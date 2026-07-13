@@ -1,0 +1,19 @@
+bin/
+cover.out
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+
+# Kubernetes
+kubeconfig
+
+# Go
+vendor/

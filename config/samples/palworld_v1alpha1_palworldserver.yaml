@@ -1,0 +1,39 @@
+apiVersion: palworld.dataknife.ai/v1alpha1
+kind: PalworldServer
+metadata:
+  name: palworld-server
+  namespace: game-servers
+spec:
+  serverImage: thijsvanloef/palworld-server-docker:latest
+  gateway:
+    address: 192.168.14.200
+    className: envoy
+  serverName: DataKnife Palworld
+  serverDescription: Managed by palworld-operator
+  maxPlayers: 16
+  gamePort: 8211
+  queryPort: 27015
+  rcon:
+    enabled: true
+    port: 25575
+  restAPI:
+    enabled: true
+    port: 8212
+    exposeViaGateway: false
+  community:
+    enabled: false
+  multithreading: true
+  updateOnBoot: true
+  crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
+  storageSize: 100Gi
+  storageClassName: truenas-csi-nfs
+  terminationGracePeriodSeconds: 60
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+  # adminPasswordSecretRef:
+  #   name: palworld-server-secrets
+  #   key: admin-password
+  # serverPasswordSecretRef:
+  #   name: palworld-server-secrets
+  #   key: server-password

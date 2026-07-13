@@ -1,0 +1,16 @@
+domain: dataknife.ai
+layout:
+  - go.kubebuilder.io/v4
+projectName: palworld-operator
+repo: github.com/DataKnifeAI/palworld-operator
+resources:
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: true
+    domain: dataknife.ai
+    group: palworld
+    kind: PalworldServer
+    path: github.com/DataKnifeAI/palworld-operator/api/v1alpha1
+    version: v1alpha1
+version: "3"

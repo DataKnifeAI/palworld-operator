@@ -1,0 +1,4 @@
+## Placeholder
+# Sample only — CRD is not installed until Phase 1 generates manifests.
+resources:
+  - palworld_v1alpha1_palworldserver.yaml
