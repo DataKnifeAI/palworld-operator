@@ -1,6 +1,12 @@
 # Implementation tasks
 
-Ordered work plan for code, build, and test. Mirror of GitHub Issues; keep this file updated as tasks complete.
+Ordered work plan for code, build, and test. Mirrored as [GitHub Issues](https://github.com/DataKnifeAI/palworld-operator/issues); keep this file updated as tasks complete.
+
+| ID | Issue |
+|----|-------|
+| C1–C6 | [#1](https://github.com/DataKnifeAI/palworld-operator/issues/1)–[#6](https://github.com/DataKnifeAI/palworld-operator/issues/6) |
+| B1–B3 | [#7](https://github.com/DataKnifeAI/palworld-operator/issues/7)–[#9](https://github.com/DataKnifeAI/palworld-operator/issues/9) |
+| T1–T4 | [#10](https://github.com/DataKnifeAI/palworld-operator/issues/10)–[#13](https://github.com/DataKnifeAI/palworld-operator/issues/13) |
 
 Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
