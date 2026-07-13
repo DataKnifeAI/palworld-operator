@@ -65,4 +65,6 @@ spec:
               cpu: 10m
               memory: 128Mi
       serviceAccountName: controller-manager
+      imagePullSecrets:
+        - name: harbor-registry-secret
       terminationGracePeriodSeconds: 10
