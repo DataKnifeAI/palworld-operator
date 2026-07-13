@@ -156,6 +156,36 @@ CPU: prefer multi-core; official CLI includes `-UseMultithreadForDS` (community:
 - Set `terminationGracePeriodSeconds` high enough (e.g. 60–120s)
 - Prefer careful update policy in prod (unexpected image/Steam updates mid-session)
 
+## Updating the game server (Steam / patches)
+
+Pocketpair’s official image and community SteamCMD images behave differently. This operator defaults to the official image.
+
+### Official image (`ghcr.io/pocketpairjp/palserver`) — **pin / bump the image tag**
+
+Official Pocketpair guidance ([Updating the Dedicated Server](https://github.com/pocketpairjp/palworld-dedicated-server-docker#updating-the-dedicated-server)):
+
+1. **Back up** the Saved PVC (or snapshot) before updating.
+2. **Stop** the server (scale / roll the Deployment — the operator uses `Recreate`).
+3. **Change the image tag** in `spec.serverImage` to the game version (e.g. `ghcr.io/pocketpairjp/palserver:v1.0.0.100427`), or move `latest` only after confirming the published tag matches the client.
+4. **Start** again and confirm REST `/v1/api/info` `version` and that `worldguid` / days still match the previous world.
+
+| Mechanism | Official Pocketpair image | Community (e.g. thijsvanloef) |
+|-----------|---------------------------|--------------------------------|
+| How game bits update | **New container image tag** published by Pocketpair | **SteamCMD** inside the container on start |
+| `UPDATE_ON_BOOT` / `spec.updateOnBoot` | **Not used** (operator only injects that env for community images) | Controls SteamCMD update/install on boot |
+| Pinning a version | Tag or digest on `spec.serverImage` | `TARGET_MANIFEST_ID` / skip-update flags on community images |
+| Rebuild required? | No — pull Pocketpair’s published image | No — SteamCMD downloads app **2394010** into the volume |
+
+**Operator practice:** prefer an explicit version tag (or digest) in production; treat `latest` as convenience only. After a game patch, bump `spec.serverImage` when Pocketpair publishes a matching `palserver` tag ([GHCR package](https://github.com/pocketpairjp/palworld-dedicated-server-docker/pkgs/container/palserver)). Do **not** expect an in-container SteamCMD update from the official image.
+
+`spec.updateOnBoot` remains for optional community images; it does not make the official image self-update.
+
+### World selection across restarts
+
+Palworld loads the world named in `Pal/Saved/Config/LinuxServer/GameUserSettings.ini` under `[/Script/Pal.PalGameLocalSettings]` → `DedicatedServerName=<SaveGames/0 folder name>`. That folder name is the world GUID (also reported by REST `worldguid`).
+
+If `DedicatedServerName` is missing or wrong after a roll, the server creates a **new** empty world and leaves the old folder on the PVC. Keep `GameUserSettings.ini` on the Saved PVC (the operator’s `seed-settings` init only overwrites `PalWorldSettings.ini`). After any reschedule, confirm REST `worldguid` still matches the intended `SaveGames/0/<guid>/` directory.
+
 ## Crossplay
 
 Dedicated servers support Steam / Xbox / PS5 / Mac via `CrossplayPlatforms` (INI) or community image `CROSSPLAY_PLATFORMS`.

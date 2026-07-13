@@ -44,7 +44,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 |-----|----------|
 | [docs/CONNECT.md](docs/CONNECT.md) | Join from inside Palworld (direct connect, passwords, community, crossplay) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Reconciled resources, Gateway layout, Palworld vs Windrose deltas |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env config, resource guidance |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env config, resources, **game updates / Steam** |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub quality gates + GitLab Harbor publish |
 
 ## Development
