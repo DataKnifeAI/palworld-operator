@@ -26,4 +26,9 @@ const (
 	gatewayListenerRESTTCP  = "rest-tcp"
 
 	initContainerImage = "busybox:1.37"
+
+	secretKeyAdminPassword  = "admin-password"
+	secretKeyServerPassword = "server-password"
+	credentialsSecretSuffix = "-secrets"
+	generatedPasswordBytes  = 24
 )

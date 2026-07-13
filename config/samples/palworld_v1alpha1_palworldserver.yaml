@@ -38,12 +38,29 @@ spec:
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
   terminationGracePeriodSeconds: 60
 
+  # Credentials — pick ONE mode:
+  #
+  # Mode A: bring-your-own Secret (create first, then reference keys):
+  #   kubectl -n game-servers create secret generic palworld-server-secrets \
+  #     --from-literal=admin-password='CHANGE_ME_ADMIN' \
+  #     --from-literal=server-password='CHANGE_ME_JOIN'
   adminPasswordSecretRef:
     name: palworld-server-secrets
     key: admin-password
   serverPasswordSecretRef:
     name: palworld-server-secrets
     key: server-password
+  #
+  # Mode B: operator auto-generates an Opaque Secret ({metadata.name}-secrets)
+  # with random server-password / admin-password. Omit the refs above and set:
+  #   generateSecrets: true
+  # Optional name override: credentialsSecretName: my-creds
+  # Read passwords (never committed to git):
+  #   kubectl get secret palworld-server-secrets -n game-servers \
+  #     -o jsonpath='{.data.server-password}' | base64 -d; echo
+  #   kubectl get secret palworld-server-secrets -n game-servers \
+  #     -o jsonpath='{.data.admin-password}' | base64 -d; echo
+  # Status surfaces credentialsSecretName / credentialsGenerated (no plaintext).
 
   storageSize: 50Gi
   storageClassName: truenas-csi-nfs

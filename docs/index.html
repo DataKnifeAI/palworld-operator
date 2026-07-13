@@ -211,6 +211,16 @@ kubectl get palworldserver palworld-server -n game-servers \
             <span class="ports__value">Admin / RCON — keep private</span>
           </li>
         </ul>
+        <pre class="codeblock"><code># Secret name: status.credentialsSecretName (sample BYO name below)
+kubectl get secret palworld-server-secrets -n game-servers \
+  -o jsonpath='{.data.server-password}' | base64 -d; echo
+
+kubectl get secret palworld-server-secrets -n game-servers \
+  -o jsonpath='{.data.admin-password}' | base64 -d; echo</code></pre>
+        <p class="fineprint">
+          Bring-your-own Secret refs, or set <code>spec.generateSecrets: true</code> so the
+          operator creates <code>{cr-name}-secrets</code>. Passwords are never written into status.
+        </p>
 
         <h3 class="subhead">4. Community browser vs direct connect</h3>
         <p>

@@ -181,11 +181,29 @@ type PalworldServerSpec struct {
 	// +optional
 	CrossplayPlatforms string `json:"crossplayPlatforms,omitempty"`
 
+	// GenerateSecrets when true creates an Opaque Secret with random strong
+	// passwords for keys server-password (join) and admin-password (RCON/admin)
+	// if the Secret is missing or those keys are empty. Existing non-empty keys
+	// are never overwritten. Secret name defaults to {metadata.name}-secrets
+	// (override with credentialsSecretName). When false/omitted, provide
+	// adminPasswordSecretRef and serverPasswordSecretRef yourself (bring-your-own).
+	// +optional
+	GenerateSecrets bool `json:"generateSecrets,omitempty"`
+
+	// CredentialsSecretName overrides the auto-generated Secret name when
+	// generateSecrets is true. Default: {metadata.name}-secrets.
+	// +optional
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
+
 	// AdminPasswordSecretRef points to a Secret key used as ADMIN_PASSWORD.
+	// Required for bring-your-own credentials; optional when generateSecrets is true
+	// (defaults to credentials Secret key admin-password).
 	// +optional
 	AdminPasswordSecretRef *corev1.SecretKeySelector `json:"adminPasswordSecretRef,omitempty"`
 
 	// ServerPasswordSecretRef points to a Secret key used as SERVER_PASSWORD.
+	// Required for bring-your-own credentials; optional when generateSecrets is true
+	// (defaults to credentials Secret key server-password).
 	// +optional
 	ServerPasswordSecretRef *corev1.SecretKeySelector `json:"serverPasswordSecretRef,omitempty"`
 
@@ -230,6 +248,16 @@ type PalworldServerStatus struct {
 	// Message is a human-readable status detail.
 	// +optional
 	Message string `json:"message,omitempty"`
+
+	// CredentialsSecretName is the Secret that holds join/admin passwords.
+	// Never contains plaintext passwords — use kubectl to read Secret data.
+	// +optional
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
+
+	// CredentialsGenerated is true when spec.generateSecrets created or manages
+	// the credentials Secret (passwords are not written into status).
+	// +optional
+	CredentialsGenerated bool `json:"credentialsGenerated,omitempty"`
 
 	// ObservedGeneration is the last reconciled generation.
 	// +optional

@@ -34,7 +34,7 @@ type PalworldServerReconciler struct {
 // +kubebuilder:rbac:groups=palworld.dataknife.ai,resources=palworldservers/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
@@ -72,7 +72,7 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	names := deriveNames(server)
 
-	adminPassword, serverPassword, err := r.resolvePasswords(ctx, server)
+	adminPassword, serverPassword, credentialsSecret, credentialsGenerated, err := r.resolvePasswords(ctx, server)
 	if err != nil {
 		return r.failStatus(ctx, server, err)
 	}
@@ -119,6 +119,8 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	server.Status.ConnectionPort = gamePort(server.Spec)
 	server.Status.ConnectionAddress = connectionAddressFromGateway(server, gateway)
 	server.Status.Message = message
+	server.Status.CredentialsSecretName = credentialsSecret
+	server.Status.CredentialsGenerated = credentialsGenerated
 	server.Status.ObservedGeneration = server.Generation
 	meta.SetStatusCondition(&server.Status.Conditions, metav1.Condition{
 		Type:               "Ready",
@@ -143,20 +145,83 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 func (r *PalworldServerReconciler) resolvePasswords(
 	ctx context.Context,
 	server *palworldv1alpha1.PalworldServer,
-) (adminPassword, serverPassword string, err error) {
-	if server.Spec.AdminPasswordSecretRef != nil {
-		adminPassword, err = r.readSecretKey(ctx, server.Namespace, server.Spec.AdminPasswordSecretRef)
-		if err != nil {
-			return "", "", fmt.Errorf("adminPasswordSecretRef: %w", err)
+) (adminPassword, serverPassword, credentialsSecret string, credentialsGenerated bool, err error) {
+	credentialsGenerated = server.Spec.GenerateSecrets
+	if server.Spec.GenerateSecrets {
+		credentialsSecret = credentialsSecretName(server)
+		if err = r.reconcileCredentialsSecret(ctx, server, credentialsSecret); err != nil {
+			return "", "", "", false, err
 		}
 	}
-	if server.Spec.ServerPasswordSecretRef != nil {
-		serverPassword, err = r.readSecretKey(ctx, server.Namespace, server.Spec.ServerPasswordSecretRef)
+
+	adminRef := server.Spec.AdminPasswordSecretRef
+	if adminRef == nil && server.Spec.GenerateSecrets {
+		adminRef = defaultSecretKeySelector(credentialsSecret, secretKeyAdminPassword)
+	}
+	serverRef := server.Spec.ServerPasswordSecretRef
+	if serverRef == nil && server.Spec.GenerateSecrets {
+		serverRef = defaultSecretKeySelector(credentialsSecret, secretKeyServerPassword)
+	}
+
+	if adminRef != nil {
+		adminPassword, err = r.readSecretKey(ctx, server.Namespace, adminRef)
 		if err != nil {
-			return "", "", fmt.Errorf("serverPasswordSecretRef: %w", err)
+			return "", "", "", false, fmt.Errorf("adminPasswordSecretRef: %w", err)
+		}
+		if credentialsSecret == "" {
+			credentialsSecret = adminRef.Name
 		}
 	}
-	return adminPassword, serverPassword, nil
+	if serverRef != nil {
+		serverPassword, err = r.readSecretKey(ctx, server.Namespace, serverRef)
+		if err != nil {
+			return "", "", "", false, fmt.Errorf("serverPasswordSecretRef: %w", err)
+		}
+		if credentialsSecret == "" {
+			credentialsSecret = serverRef.Name
+		}
+	}
+	return adminPassword, serverPassword, credentialsSecret, credentialsGenerated, nil
+}
+
+func (r *PalworldServerReconciler) reconcileCredentialsSecret(
+	ctx context.Context,
+	server *palworldv1alpha1.PalworldServer,
+	name string,
+) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: server.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		if err := controllerutil.SetControllerReference(server, secret, r.Scheme); err != nil {
+			return err
+		}
+		secret.Labels = serverLabels(server.Name)
+		secret.Type = corev1.SecretTypeOpaque
+		if secret.Data == nil {
+			secret.Data = map[string][]byte{}
+		}
+		for _, key := range []string{secretKeyAdminPassword, secretKeyServerPassword} {
+			if len(secret.Data[key]) > 0 {
+				continue
+			}
+			password, genErr := generatePassword()
+			if genErr != nil {
+				return fmt.Errorf("generate %s: %w", key, genErr)
+			}
+			secret.Data[key] = []byte(password)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("reconcile credentials Secret: %w", err)
+	}
+	logf.FromContext(ctx).V(1).Info("reconciled credentials Secret", "operation", op, "name", name)
+	return nil
 }
 
 func (r *PalworldServerReconciler) readSecretKey(
@@ -418,6 +483,7 @@ func (r *PalworldServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Secret{}).
 		Owns(&gatewayv1.Gateway{}).
 		Owns(&gatewayv1alpha2.TCPRoute{}).
 		Owns(&gatewayv1alpha2.UDPRoute{}).

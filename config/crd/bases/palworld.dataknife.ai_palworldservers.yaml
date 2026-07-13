@@ -64,8 +64,10 @@ spec:
               https://docs.palworldgame.com/settings-and-operation/configuration/
             properties:
               adminPasswordSecretRef:
-                description: AdminPasswordSecretRef points to a Secret key used as
-                  ADMIN_PASSWORD.
+                description: |-
+                  AdminPasswordSecretRef points to a Secret key used as ADMIN_PASSWORD.
+                  Required for bring-your-own credentials; optional when generateSecrets is true
+                  (defaults to credentials Secret key admin-password).
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -105,6 +107,11 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              credentialsSecretName:
+                description: |-
+                  CredentialsSecretName overrides the auto-generated Secret name when
+                  generateSecrets is true. Default: {metadata.name}-secrets.
+                type: string
               crossplayPlatforms:
                 description: CrossplayPlatforms lists allowed platforms, e.g. "(Steam,Xbox,PS5,Mac)".
                 type: string
@@ -149,6 +156,15 @@ spec:
                 required:
                 - address
                 type: object
+              generateSecrets:
+                description: |-
+                  GenerateSecrets when true creates an Opaque Secret with random strong
+                  passwords for keys server-password (join) and admin-password (RCON/admin)
+                  if the Secret is missing or those keys are empty. Existing non-empty keys
+                  are never overwritten. Secret name defaults to {metadata.name}-secrets
+                  (override with credentialsSecretName). When false/omitted, provide
+                  adminPasswordSecretRef and serverPasswordSecretRef yourself (bring-your-own).
+                type: boolean
               imagePullPolicy:
                 default: IfNotPresent
                 description: ImagePullPolicy for the game server container.
@@ -309,8 +325,10 @@ spec:
                 description: ServerName is the display name for the dedicated server.
                 type: string
               serverPasswordSecretRef:
-                description: ServerPasswordSecretRef points to a Secret key used as
-                  SERVER_PASSWORD.
+                description: |-
+                  ServerPasswordSecretRef points to a Secret key used as SERVER_PASSWORD.
+                  Required for bring-your-own credentials; optional when generateSecrets is true
+                  (defaults to credentials Secret key server-password).
                 properties:
                   key:
                     description: The key of the secret to select from.  Must be a
@@ -425,6 +443,16 @@ spec:
                 description: ConnectionPort is the UDP game port clients should use.
                 format: int32
                 type: integer
+              credentialsGenerated:
+                description: |-
+                  CredentialsGenerated is true when spec.generateSecrets created or manages
+                  the credentials Secret (passwords are not written into status).
+                type: boolean
+              credentialsSecretName:
+                description: |-
+                  CredentialsSecretName is the Secret that holds join/admin passwords.
+                  Never contains plaintext passwords — use kubectl to read Secret data.
+                type: string
               message:
                 description: Message is a human-readable status detail.
                 type: string

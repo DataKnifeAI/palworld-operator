@@ -29,7 +29,7 @@ Each `PalworldServer` reconciles:
 | Deployment | Game server pod (official image by default) |
 | PersistentVolumeClaim | World saves under `/pal/Package/Pal/Saved` |
 | ConfigMap | `PalWorldSettings.ini` (official path) |
-| Secret | Admin / server passwords injected into INI or env |
+| Secret | Join/admin passwords (`server-password`, `admin-password`); owned when `spec.generateSecrets: true`, otherwise bring-your-own refs |
 | Service (ClusterIP) | Backend for game / query / RCON / REST ports |
 | Service (Envoy backend) | `{name}-envoy` ClusterIP |
 | Gateway + EnvoyProxy | External VIP binding |

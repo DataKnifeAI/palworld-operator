@@ -98,6 +98,32 @@ Env vars map to INI / launch options. Highly recommended: `PUID`, `PGID`, `PORT`
 
 Passwords must come from Kubernetes Secrets, not CR plaintext.
 
+### Credentials: bring-your-own vs auto-generate
+
+| Mode | Spec | Secret |
+|------|------|--------|
+| **Bring-your-own** | `adminPasswordSecretRef` + `serverPasswordSecretRef` | You create the Opaque Secret first |
+| **Auto-generate** | `generateSecrets: true` (omit refs, or keep refs pointing at the managed Secret) | Operator creates `{metadata.name}-secrets` (override with `credentialsSecretName`) |
+
+Auto-gen behavior:
+
+- Creates an Opaque Secret owned by the `PalworldServer` (OwnerReference)
+- Fills missing/empty keys `server-password` (join) and `admin-password` (RCON/admin) with random strong passwords
+- **Never overwrites** existing non-empty keys
+- Status sets `credentialsSecretName` and `credentialsGenerated: true` — **no plaintext** in status
+
+Read passwords (placeholder names match the sample CR):
+
+```shell
+kubectl get secret palworld-server-secrets -n game-servers \
+  -o jsonpath='{.data.server-password}' | base64 -d; echo
+kubectl get secret palworld-server-secrets -n game-servers \
+  -o jsonpath='{.data.admin-password}' | base64 -d; echo
+```
+
+For auto-gen, substitute the Secret name from
+`.status.credentialsSecretName` (default `{cr-name}-secrets`).
+
 ### CR field mapping
 
 | Concern | Official (INI / CLI) | Community env | CR field |
@@ -108,7 +134,7 @@ Passwords must come from Kubernetes Secrets, not CR plaintext.
 | Query port | INI / server args | `QUERY_PORT` | `spec.queryPort` (default 27015) |
 | RCON | `RCONEnabled` / `RCONPort` | `RCON_*` | `spec.rcon` |
 | REST API | INI | `REST_API_*` | `spec.restAPI` |
-| Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs |
+| Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs **or** `spec.generateSecrets` |
 | Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 

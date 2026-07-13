@@ -31,20 +31,34 @@ Example: `192.168.14.187:8211`
 
 ### Join password vs admin password
 
-The sample Secret uses two keys:
+The credentials Secret uses two keys (bring-your-own or operator-generated via
+`spec.generateSecrets: true`):
 
 | Secret key | Used for | Share with players? |
 |------------|----------|---------------------|
 | `server-password` | In-game **join** / `ServerPassword` | Yes (trusted players only) |
 | `admin-password` | In-game admin / RCON (`AdminPassword`) | **No** — operators only |
 
+Find the Secret name from status (sample BYO name shown; auto-gen defaults to `{cr-name}-secrets`):
+
+```shell
+kubectl get palworldserver palworld-server -n game-servers \
+  -o jsonpath='{.status.credentialsSecretName}{"\n"}'
+```
+
 ```shell
 # Reveal join password only when you intend to share it
 kubectl get secret palworld-server-secrets -n game-servers \
   -o jsonpath='{.data.server-password}' | base64 -d; echo
+
+# Reveal admin / RCON password (operators only — do not share with players)
+kubectl get secret palworld-server-secrets -n game-servers \
+  -o jsonpath='{.data.admin-password}' | base64 -d; echo
 ```
 
-Do not put passwords in the CR or commit them to git.
+Do not put passwords in the CR or commit them to git. Auto-gen never writes
+plaintext passwords into `status` — only the Secret name and
+`credentialsGenerated: true`.
 
 ## In-game steps (PC / Steam — direct connect)
 

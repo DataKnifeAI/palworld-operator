@@ -40,6 +40,7 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ### C5. Config & secrets UX
 - [x] Secret refs for admin/server passwords; official INI + community env paths
+- [x] Optional `spec.generateSecrets` auto-creates Opaque Secret (fill-if-missing, no clobber)
 
 ### C6. Resource auto-selection
 - [x] Conservative tiers for ~8Gi nodes; `spec.resources` override; unit tests

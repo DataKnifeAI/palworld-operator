@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -61,6 +63,28 @@ func deriveNames(server *palworldv1alpha1.PalworldServer) derivedNames {
 		names.envoyProxyName = server.Spec.Gateway.EnvoyProxyName
 	}
 	return names
+}
+
+func credentialsSecretName(server *palworldv1alpha1.PalworldServer) string {
+	if server.Spec.CredentialsSecretName != "" {
+		return server.Spec.CredentialsSecretName
+	}
+	return server.Name + credentialsSecretSuffix
+}
+
+func defaultSecretKeySelector(name, key string) *corev1.SecretKeySelector {
+	return &corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: name},
+		Key:                  key,
+	}
+}
+
+func generatePassword() (string, error) {
+	buf := make([]byte, generatedPasswordBytes)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 func serverImage(spec palworldv1alpha1.PalworldServerSpec) string {
