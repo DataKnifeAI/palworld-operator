@@ -1,12 +1,12 @@
-name: Lint
+name: Build
 
 on:
   push:
   pull_request:
 
 jobs:
-  lint:
-    name: golangci-lint
+  build:
+    name: go build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,7 +17,5 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.4.0
+      - name: go build
+        run: go build -o bin/manager cmd/main.go

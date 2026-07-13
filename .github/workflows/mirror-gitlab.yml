@@ -1,4 +1,4 @@
-# Mirror to GitLab after CI; GitLab CI publishes the operator image to Harbor.
+# Mirror to GitLab after lint + test + build; GitLab CI publishes the image to Harbor.
 # Uses org secret GITLAB_TOKEN; Harbor vars inherited from dk-raas/dkai GitLab group.
 name: Mirror to GitLab
 
@@ -18,8 +18,8 @@ env:
   GITLAB_MIRROR_PATH: dk-raas/dkai/game-servers/palworld-operator
 
 jobs:
-  verify:
-    name: Verify
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,21 +30,48 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Scaffold checks
-        run: |
-          # Full make ci requires TASKS.md T1–T2 (API registration + go.mod deps).
-          # After those land, replace this job with windrose-style golangci-lint + make ci.
-          test -f api/v1alpha1/palworldserver_types.go
-          test -f TASKS.md
-          test -f README.md
-          test -f .gitlab-ci.yml
-          go test ./...
-          go build -o bin/manager cmd/main.go
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.4.0
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./... -race -coverprofile cover.out
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go build
+        run: go build -o bin/manager cmd/main.go
 
   mirror:
     name: Push to GitLab
     runs-on: ubuntu-latest
-    needs: [verify]
+    needs: [lint, test, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout

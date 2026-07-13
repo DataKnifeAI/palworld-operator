@@ -1,14 +1,40 @@
+version: "2"
 run:
+  allow-parallel-runners: true
   timeout: 5m
-
 linters:
+  default: none
   enable:
+    - copyloopvar
     - errcheck
+    - goconst
     - govet
     - ineffassign
-    - staticcheck
-    - unused
     - misspell
-
-issues:
-  exclude-use-default: false
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+  settings:
+    revive:
+      rules:
+        - name: comment-spacings
+        - name: import-shadowing
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - revive
+        path: api/v1alpha1/zz_generated.deepcopy.go
+    paths:
+      - third_party$
+      - bin$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - bin$

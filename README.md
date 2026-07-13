@@ -24,7 +24,7 @@ persists world saves on a PVC.
 | Choice | Detail |
 |--------|--------|
 | **Default** | `ghcr.io/pocketpairjp/palserver:latest` — [official Pocketpair package](https://github.com/orgs/pocketpairjp/packages/container/package/palserver) |
-| Operator image (CI) | `harbor.dataknife.net/library/palworld-operator` — built on GitLab mirror ([docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md)) |
+| Operator image (CI) | `harbor.dataknife.net/library/palworld-operator` — GitHub lint/test/build + mirror; GitLab builds/pushes to Harbor ([docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md)) |
 | Harbor game mirror | Optional: retag/copy to `harbor.dataknife.net/library/palserver:...` if the cluster should pull only from Harbor |
 | Community alternative | `thijsvanloef/palworld-server-docker` — env-driven config; set via `spec.serverImage` |
 | Custom DataKnifeAI game-image repo | **Not required** while Pocketpair publishes the official container (unlike Windrose’s Wine image in `windrose-server-k8s`) |
@@ -190,12 +190,17 @@ make build
 make docker-build IMG=harbor.dataknife.net/library/palworld-operator:latest
 ```
 
+**CI split** (see [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md)):
+
+- **GitHub Actions:** lint (`golangci-lint`), test (`go test ./... -race`), build (`go build`), then mirror `main` to GitLab
+- **GitLab CI:** build the operator image and push to `harbor.dataknife.net/library/palworld-operator`
+
 See [TASKS.md](TASKS.md) for the ordered code / build / test plan.
 
 ## Related projects
 
 - [DataKnifeAI/windrose-operator](https://github.com/DataKnifeAI/windrose-operator) — architectural reference
-- [GitLab mirror](docs/GITLAB_MIRROR.md) — CI builds `harbor.dataknife.net/library/palworld-operator`
+- [GitLab mirror](docs/GITLAB_MIRROR.md) — GitHub quality gates + GitLab Harbor publish
 - [Official Palworld dedicated server docs](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
 - [Palworld configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker)

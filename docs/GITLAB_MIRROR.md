@@ -1,11 +1,32 @@
 # GitLab mirror and Harbor publish
 
-The operator image is built and pushed to Harbor from GitLab CI on the mirror at
-`gitlab.com/dk-raas/dkai/game-servers/palworld-operator`.
+## CI split
 
-GitHub Actions on `main` runs verification, then mirrors the repository to GitLab.
-GitLab CI runs tests, builds the Docker image, and publishes to
-`harbor.dataknife.net/library/palworld-operator`.
+| System | Responsibility |
+|--------|----------------|
+| **GitHub Actions** | Lint, test, compile/build, then mirror `main` to GitLab |
+| **GitLab CI** | Build the operator container image and push to Harbor |
+
+Quality gates run on GitHub before mirror. GitLab does **not** re-run lint/unit tests; it only builds and publishes:
+
+`harbor.dataknife.net/library/palworld-operator`
+
+Mirror project: `gitlab.com/dk-raas/dkai/game-servers/palworld-operator`.
+
+## GitHub workflows
+
+| Workflow | Role |
+|----------|------|
+| `lint.yml` | `golangci-lint` (aligned with windrose-operator) |
+| `test.yml` | `go vet` + `go test ./... -race` |
+| `build.yml` | `go build` of `cmd/main.go` |
+| `mirror-gitlab.yml` | Re-runs lint + test + build, then pushes to GitLab on `main` (`needs:`) |
+
+## GitLab pipeline
+
+`.gitlab-ci.yml` has a single `docker` stage job `publish-palworld-operator` that builds with buildkit and pushes `:latest`, `:<commit-sha>`, and `:<git-tag>` when applicable.
+
+Harbor variables are inherited from the `dk-raas/dkai` GitLab group.
 
 ## Credentials (already configured at org/group level)
 
