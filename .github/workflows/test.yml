@@ -1,0 +1,24 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Note scaffold status
+        run: |
+          echo "Full make ci requires TASKS.md T1–T2 (API registration + go.mod deps)."
+          echo "Placeholder compile check:"
+          # cmd/main.go intentionally panics until T2; skip until deps exist
+          test -f api/v1alpha1/palworldserver_types.go
+          test -f TASKS.md
+          test -f README.md

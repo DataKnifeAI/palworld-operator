@@ -1,3 +1,5 @@
+//go:build ignore
+
 package v1alpha1
 
 import (
@@ -6,8 +8,8 @@ import (
 )
 
 // NOTE: These types document the intended PalworldServer API surface for Phase 1.
-// They are not yet wired into a buildable controller-runtime project (no generated
-// deepcopy, no go.sum deps). Implement TASKS.md T1–T2 before running make generate.
+// Excluded from normal builds (`//go:build ignore`) until T1 wires controller-gen,
+// deepcopy, and go.mod dependencies. Remove the build tag when implementing T1.
 
 const (
 	PhasePending = "Pending"

@@ -5,6 +5,8 @@
 // gateway-api + envoyproxy, leader election, health/metrics).
 package main
 
+import "fmt"
+
 func main() {
-	panic("palworld-operator: implement cmd/main.go (see TASKS.md T2)")
+	fmt.Println("palworld-operator scaffold: implement cmd/main.go (see TASKS.md T2)")
 }

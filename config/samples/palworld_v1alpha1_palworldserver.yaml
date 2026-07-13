@@ -4,36 +4,65 @@ metadata:
   name: palworld-server
   namespace: game-servers
 spec:
+  # Community image wrapping SteamCMD AppID 2394010.
+  # Pin a digest in production.
   serverImage: thijsvanloef/palworld-server-docker:latest
+  imagePullPolicy: IfNotPresent
+
   gateway:
+    # Dedicated external IP (Kube-VIP / MetalLB), one per server.
     address: 192.168.14.200
     className: envoy
+    # gatewayName: palworld-gateway
+    # envoyProxyName: game-palworld-kubevip
+
   serverName: DataKnife Palworld
-  serverDescription: Managed by palworld-operator
+  serverDescription: Operated by DataKnifeAI palworld-operator
   maxPlayers: 16
+  multithreading: true
+
   gamePort: 8211
   queryPort: 27015
+
   rcon:
     enabled: true
     port: 25575
+
   restAPI:
     enabled: true
     port: 8212
     exposeViaGateway: false
+
   community:
     enabled: false
-  multithreading: true
+    # When enabled, advertise the Gateway address/port:
+    # publicIP: 192.168.14.200
+    # publicPort: 8211
+
   updateOnBoot: true
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
-  storageSize: 100Gi
-  storageClassName: truenas-csi-nfs
   terminationGracePeriodSeconds: 60
-  nodeSelector:
-    kubernetes.io/os: linux
-    kubernetes.io/arch: amd64
+
+  # Prefer Secret refs once the reconciler lands (TASKS.md C5).
   # adminPasswordSecretRef:
   #   name: palworld-server-secrets
   #   key: admin-password
   # serverPasswordSecretRef:
   #   name: palworld-server-secrets
   #   key: server-password
+
+  storageSize: 100Gi
+  storageClassName: truenas-csi-nfs
+
+  # Omit resources to use auto-selection from maxPlayers (C6).
+  # resources:
+  #   requests:
+  #     cpu: "4"
+  #     memory: 16Gi
+  #   limits:
+  #     cpu: "8"
+  #     memory: 32Gi
+
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubernetes.io/arch: amd64

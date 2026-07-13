@@ -29,7 +29,7 @@ Sources:
 | `Pal/Saved/Config/LinuxServer/` | `PalWorldSettings.ini`, related INI |
 | Docker image: `/palworld` | Single volume covering install + saves + backups |
 
-Recommended PVC size: **≥ 50Gi** (saves + native backups grow; Windrose uses 35Gi as a floor for a lighter game).
+Recommended PVC size: **≥ 100Gi** default in the CRD draft (saves + Steam files + native backups grow; Windrose uses 35Gi as a floor for a lighter game).
 
 ## Container image options
 

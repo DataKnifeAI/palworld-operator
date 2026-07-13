@@ -1,0 +1,5 @@
+# Default kustomization — populated in TASKS.md T10.
+resources:
+  - ../crd
+  - ../rbac
+  - ../manager
