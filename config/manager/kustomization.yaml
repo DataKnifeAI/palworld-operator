@@ -1,2 +1,7 @@
-# Manager manifests — populated in TASKS.md T10.
-resources: []
+resources:
+  - manager.yaml
+
+images:
+  - name: controller
+    newName: harbor.dataknife.net/library/palworld-operator
+    newTag: latest

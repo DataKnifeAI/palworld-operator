@@ -1,15 +1,9 @@
-//go:build ignore
-
 package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// NOTE: These types document the intended PalworldServer API surface for Phase 1.
-// Excluded from normal builds (`//go:build ignore`) until T1 wires controller-gen,
-// deepcopy, and go.mod dependencies. Remove the build tag when implementing T1.
 
 const (
 	PhasePending = "Pending"
@@ -139,7 +133,7 @@ type PalworldServerSpec struct {
 
 	// MaxPlayers is the maximum number of simultaneous players (1–32).
 	// When spec.resources is unset, pod CPU/memory are auto-selected from this value.
-	// +kubebuilder:default=16
+	// +kubebuilder:default=4
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=32
 	// +optional
@@ -197,7 +191,7 @@ type PalworldServerSpec struct {
 
 	// StorageSize is the PVC capacity for world saves (official mount:
 	// /pal/Package/Pal/Saved; community image typically /palworld).
-	// +kubebuilder:default="100Gi"
+	// +kubebuilder:default="50Gi"
 	// +optional
 	StorageSize string `json:"storageSize,omitempty"`
 
@@ -240,11 +234,15 @@ type PalworldServerStatus struct {
 	// ObservedGeneration is the last reconciled generation.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Conditions represent the latest available observations.
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName=ps;palworldserver
+// +kubebuilder:resource:shortName=ps;palworld
 // +kubebuilder:printcolumn:name="Ready",type=boolean,JSONPath=`.status.ready`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Address",type=string,JSONPath=`.status.connectionAddress`
@@ -264,7 +262,11 @@ type PalworldServer struct {
 
 // PalworldServerList contains a list of PalworldServer.
 type PalworldServerList struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PalworldServer `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&PalworldServer{}, &PalworldServerList{})
 }

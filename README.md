@@ -8,9 +8,9 @@ kubebuilder-style Go operator that manages game servers declaratively via a
 custom resource, exposes them with **Envoy Gateway** (TCPRoute/UDPRoute), and
 persists world saves on a PVC.
 
-> **Status:** Project bootstrap. The CRD API surface, architecture, and
-> implementation plan are documented here and in [TASKS.md](TASKS.md). Full
-> reconciler implementation is tracked as ordered GitHub Issues.
+> **Status:** MVP implemented. Install with `kubectl apply -k config/default`,
+> then apply a `PalworldServer` sample. See [TASKS.md](TASKS.md) for remaining
+> hardening items.
 
 ## Goals
 
@@ -41,9 +41,9 @@ See [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) for mounts, INI vs env co
 | Extra ports | Query `27015/UDP`, RCON `25575/TCP`, REST `8212/TCP` | None beyond game port |
 | Config | ConfigMap → `PalWorldSettings.ini` (+ CLI args) | ConfigMap → `ServerDescription.json` |
 | Save mount | `/pal/Package/Pal/Saved` (official) | `/home/ue_user/app/R5/Saved` |
-| External access | Envoy Gateway (planned) | Envoy Gateway |
+| External access | Envoy Gateway | Envoy Gateway |
 
-## Architecture (planned)
+## Architecture
 
 ```
 Clients → spec.gateway.address (Kube-VIP / MetalLB)
@@ -127,9 +127,14 @@ CPU: prefer multi-core; official CLI flags include `-UseMultithreadForDS` (commu
 - One dedicated external IP per server (`spec.gateway.address`)
 - Cluster can pull from GHCR (or use a Harbor mirror + `imagePullSecrets` as needed)
 
-## Quick start (after implementation)
+## Quick start
 
 ```shell
+# Create password Secret (required by the sample)
+kubectl -n game-servers create secret generic palworld-server-secrets \
+  --from-literal=admin-password='CHANGE_ME_ADMIN' \
+  --from-literal=server-password='CHANGE_ME_JOIN'
+
 kubectl apply -k config/default
 kubectl apply -f config/samples/palworld_v1alpha1_palworldserver.yaml
 kubectl get palworldserver -n game-servers
@@ -137,7 +142,13 @@ kubectl get palworldserver -n game-servers
 
 Connect in-game using `.status.connectionAddress` and `.status.connectionPort` (default `8211`).
 
-## Example (planned CR)
+To delete a test server and owned resources:
+
+```shell
+kubectl delete palworldserver palworld-server -n game-servers
+```
+
+## Example CR
 
 ```yaml
 apiVersion: palworld.dataknife.ai/v1alpha1
@@ -148,10 +159,10 @@ metadata:
 spec:
   serverImage: ghcr.io/pocketpairjp/palserver:latest
   gateway:
-    address: 192.168.14.200
+    address: 192.168.14.187
     className: envoy
   serverName: DataKnife Palworld
-  maxPlayers: 16
+  maxPlayers: 4
   gamePort: 8211
   queryPort: 27015
   rcon:
@@ -161,8 +172,21 @@ spec:
     enabled: true
     port: 8212
   multithreading: true
-  storageSize: 100Gi
+  storageSize: 50Gi
   storageClassName: truenas-csi-nfs
+  adminPasswordSecretRef:
+    name: palworld-server-secrets
+    key: admin-password
+  serverPasswordSecretRef:
+    name: palworld-server-secrets
+    key: server-password
+  resources:
+    requests:
+      cpu: "1"
+      memory: 3Gi
+    limits:
+      cpu: "4"
+      memory: 6Gi
   nodeSelector:
     kubernetes.io/os: linux
     kubernetes.io/arch: amd64

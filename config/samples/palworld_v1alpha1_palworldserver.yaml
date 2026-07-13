@@ -5,21 +5,18 @@ metadata:
   namespace: game-servers
 spec:
   # Official Pocketpair image (GHCR). Pin a version tag or digest in production.
-  # Optional Harbor mirror: harbor.dataknife.net/library/palserver:<tag>
-  # Optional community image: thijsvanloef/palworld-server-docker:latest
   serverImage: ghcr.io/pocketpairjp/palserver:latest
   imagePullPolicy: IfNotPresent
 
   gateway:
     # Dedicated external IP (Kube-VIP / MetalLB), one per server.
-    address: 192.168.14.200
+    address: 192.168.14.187
     className: envoy
-    # gatewayName: palworld-gateway
-    # envoyProxyName: game-palworld-kubevip
 
   serverName: DataKnife Palworld
   serverDescription: Operated by DataKnifeAI palworld-operator
-  maxPlayers: 16
+  # Keep small for cluster nodes with ~8Gi allocatable.
+  maxPlayers: 4
   multithreading: true
 
   gamePort: 8211
@@ -36,34 +33,29 @@ spec:
 
   community:
     enabled: false
-    # When enabled, advertise the Gateway address/port:
-    # publicIP: 192.168.14.200
-    # publicPort: 8211
 
-  # Community SteamCMD images may honor updateOnBoot; official image is tagged.
   updateOnBoot: true
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
   terminationGracePeriodSeconds: 60
 
-  # Prefer Secret refs once the reconciler lands (TASKS.md C5).
-  # adminPasswordSecretRef:
-  #   name: palworld-server-secrets
-  #   key: admin-password
-  # serverPasswordSecretRef:
-  #   name: palworld-server-secrets
-  #   key: server-password
+  adminPasswordSecretRef:
+    name: palworld-server-secrets
+    key: admin-password
+  serverPasswordSecretRef:
+    name: palworld-server-secrets
+    key: server-password
 
-  storageSize: 100Gi
+  storageSize: 50Gi
   storageClassName: truenas-csi-nfs
 
-  # Omit resources to use auto-selection from maxPlayers (C6).
-  # resources:
-  #   requests:
-  #     cpu: "4"
-  #     memory: 16Gi
-  #   limits:
-  #     cpu: "8"
-  #     memory: 32Gi
+  # Explicit modest resources for ~8Gi worker nodes.
+  resources:
+    requests:
+      cpu: "1"
+      memory: 3Gi
+    limits:
+      cpu: "4"
+      memory: 6Gi
 
   nodeSelector:
     kubernetes.io/os: linux

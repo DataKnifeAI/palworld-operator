@@ -13,9 +13,7 @@ endif
 CONTROLLER_GEN ?= $(GOBIN)/controller-gen
 
 .PHONY: all
-all: ## Bootstrap is docs-only; implement via TASKS.md then enable generate/build
-	@echo "palworld-operator bootstrap: implement Phase 1 tasks in TASKS.md before make generate/build"
-	@echo "Reference implementation: https://github.com/DataKnifeAI/windrose-operator"
+all: generate manifests build
 
 .PHONY: generate
 generate: controller-gen
@@ -83,4 +81,4 @@ vet:
 
 .PHONY: help
 help:
-	@echo "Targets match windrose-operator. Go sources land in Phase 1 (TASKS.md C1+)."
+	@echo "Targets match windrose-operator."
