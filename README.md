@@ -23,6 +23,7 @@ kubectl get palworldserver -n game-servers
 ```
 
 Connect using `.status.connectionAddress` and `.status.connectionPort` (default `8211` UDP).
+In-game join steps (Join Multiplayer Game, passwords, community vs direct): [docs/CONNECT.md](docs/CONNECT.md).
 Adjust the [sample CR](config/samples/palworld_v1alpha1_palworldserver.yaml) for your VIP, StorageClass, and resources.
 
 ```shell
@@ -33,6 +34,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
+| [docs/CONNECT.md](docs/CONNECT.md) | Join from inside Palworld (direct connect, passwords, community, crossplay) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Reconciled resources, Gateway layout, Palworld vs Windrose deltas |
 | [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env config, resource guidance |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub quality gates + GitLab Harbor publish |

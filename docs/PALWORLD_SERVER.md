@@ -133,3 +133,7 @@ CPU: prefer multi-core; official CLI includes `-UseMultithreadForDS` (community:
 ## Crossplay
 
 Dedicated servers support Steam / Xbox / PS5 / Mac via `CrossplayPlatforms` (INI) or community image `CROSSPLAY_PLATFORMS`.
+
+## Connecting from the game client
+
+Player-facing join flow (Join Multiplayer Game, `connectionAddress:connectionPort`, join vs admin password, community browser): see [CONNECT.md](CONNECT.md).
