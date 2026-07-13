@@ -1,0 +1,43 @@
+# Local / minimal PC Palworld dedicated server (no Kubernetes).
+# Official Pocketpair image — see docs/LOCAL.md
+#
+#   cp .env.example .env   # edit passwords
+#   make compose-up
+#   make compose-down
+
+services:
+  palworld-server:
+    # Pin a version tag in production; latest is fine for local smoke tests.
+    # https://github.com/pocketpairjp/palworld-dedicated-server-docker/pkgs/container/palserver
+    image: ${PALSERVER_IMAGE:-ghcr.io/pocketpairjp/palserver:latest}
+    container_name: palworld-local
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+    # Official entry helper (chown Saved + exec PalServer.sh)
+    entrypoint: /pal/helper.sh
+    # https://tech.palworldgame.com/settings-and-operation/arguments
+    command:
+      - -port=8211
+      - -useperfthreads
+      - -NoAsyncLoadingThread
+      - -UseMultithreadForDS
+
+    ports:
+      # Game traffic — players direct-connect here (UDP)
+      - "${GAME_PORT:-8211}:8211/udp"
+      # Steam query — only needed for community browser listing
+      - "${QUERY_PORT:-27015}:27015/udp"
+      # Ops only — bound to loopback; do not publish these to the LAN/WAN
+      - "127.0.0.1:${REST_PORT:-8212}:8212/tcp"
+      - "127.0.0.1:${RCON_PORT:-25575}:25575/tcp"
+
+    volumes:
+      - ./helper.sh:/pal/helper.sh:ro
+      - ./Saved:/pal/Package/Pal/Saved
+
+    # Honest PC caps: comfortable for 2–4 players on a gaming laptop/desktop.
+    # Palworld is UE5 — expect ~4–8 Gi RAM used at idle/light load; raise MEM_LIMIT if OOM.
+    mem_limit: ${MEM_LIMIT:-6g}
+    cpus: ${CPU_LIMIT:-4.0}
+    shm_size: ${SHM_SIZE:-1gb}

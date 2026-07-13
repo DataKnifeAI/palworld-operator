@@ -395,6 +395,13 @@ code {
   margin-bottom: 0.5rem;
 }
 
+.section--local {
+  background:
+    radial-gradient(ellipse 50% 40% at 10% 20%, rgba(232, 160, 48, 0.12), transparent 55%),
+    radial-gradient(ellipse 40% 50% at 90% 80%, rgba(42, 168, 160, 0.1), transparent 50%),
+    var(--sand);
+}
+
 .section--promise {
   background:
     radial-gradient(ellipse 60% 50% at 90% 0%, rgba(94, 212, 200, 0.2), transparent 55%),

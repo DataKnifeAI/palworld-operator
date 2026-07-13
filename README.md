@@ -8,7 +8,20 @@ Declare a `PalworldServer` CR and run a world on Kubernetes with Deployment, PVC
 **Default game image:** [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker) (official Pocketpair).
 **Operator image:** `harbor.dataknife.net/library/palworld-operator`
 
-## Quick start
+## Local / minimal PC (no Kubernetes)
+
+For a gaming PC or laptop — Docker Compose only, same official image the operator runs:
+
+```shell
+cp compose/.env.example compose/.env   # set SERVER_PASSWORD / ADMIN_PASSWORD
+make compose-up
+# Join Multiplayer Game → 127.0.0.1:8211
+make compose-down
+```
+
+Full guide (RAM, ports, LAN, passwords): [docs/LOCAL.md](docs/LOCAL.md).
+
+## Quick start (Kubernetes)
 
 Prerequisites: Kubernetes 1.28+, [Envoy Gateway](https://gateway.envoyproxy.io/) (`GatewayClass` `envoy`), a StorageClass for saves, and one dedicated external IP per server (`spec.gateway.address`).
 
@@ -42,6 +55,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
+| [docs/LOCAL.md](docs/LOCAL.md) | **Docker Compose** local / minimal PC — no Kubernetes |
 | [docs/CONNECT.md](docs/CONNECT.md) | Join from inside Palworld (direct connect, passwords, community, crossplay) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Reconciled resources, Gateway layout, Palworld vs Windrose deltas |
 | [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env config, resources, **game updates / Steam** |

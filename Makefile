@@ -3,13 +3,11 @@ IMG ?= harbor.dataknife.net/library/palworld-operator:latest
 
 VERSION ?= 0.1.0
 
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
+# Resolve GOBIN lazily so compose-* targets work without a Go toolchain.
+GOBIN ?= $(shell go env GOBIN 2>/dev/null)
+ifeq ($(GOBIN),)
+GOBIN := $(shell go env GOPATH 2>/dev/null)/bin
 endif
-
 CONTROLLER_GEN ?= $(GOBIN)/controller-gen
 
 .PHONY: all
@@ -79,6 +77,31 @@ fmt:
 vet:
 	go vet ./...
 
+# Local / minimal PC — Docker Compose (no Kubernetes). See docs/LOCAL.md
+COMPOSE_DIR ?= compose
+COMPOSE = docker compose -f $(COMPOSE_DIR)/compose.yaml --project-directory $(COMPOSE_DIR)
+
+.PHONY: compose-up
+compose-up:
+	@test -f $(COMPOSE_DIR)/.env || cp $(COMPOSE_DIR)/.env.example $(COMPOSE_DIR)/.env
+	@$(COMPOSE_DIR)/scripts/seed-settings.sh
+	$(COMPOSE) up -d
+	@echo "Game: UDP $${GAME_PORT:-8211} on this host (see docs/LOCAL.md)"
+
+.PHONY: compose-down
+compose-down:
+	$(COMPOSE) down
+
+.PHONY: compose-logs
+compose-logs:
+	$(COMPOSE) logs -f
+
+.PHONY: compose-ps
+compose-ps:
+	$(COMPOSE) ps
+
 .PHONY: help
 help:
-	@echo "Targets match windrose-operator."
+	@echo "Operator: generate manifests build test lint ci install deploy"
+	@echo "Local PC (Compose, no K8s): compose-up compose-down compose-logs compose-ps"
+	@echo "See docs/LOCAL.md"

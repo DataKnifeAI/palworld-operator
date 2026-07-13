@@ -31,6 +31,8 @@ SteamCMD App ID **2394010** is the underlying dedicated server; the official ima
 
 Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (`-port=8211`, multithreading). Gameplay settings live in `PalWorldSettings.ini` under the Saved mount.
 
+**Local / minimal PC (this repo):** [`compose/`](../compose/) + [LOCAL.md](LOCAL.md) — Docker Compose, no Kubernetes, resource caps and `.env` password seed.
+
 ## Ports
 
 | Port | Proto | Role | Operator notes |

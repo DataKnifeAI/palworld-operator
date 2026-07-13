@@ -44,6 +44,7 @@
       </p>
       <div class="cta">
         <a class="btn btn--primary" href="https://github.com/DataKnifeAI/palworld-operator">View on GitHub</a>
+        <a class="btn btn--ghost" href="#local">Local / PC</a>
         <a class="btn btn--ghost" href="#connect">How to connect</a>
       </div>
     </div>
@@ -141,6 +142,35 @@
 
         <p class="section__cta">
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/config/samples/palworld_v1alpha1_palworldserver.yaml">Browse the sample CR →</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section section--local" id="local" aria-labelledby="local-heading">
+      <div class="wrap wrap--readable">
+        <h2 id="local-heading">Local / minimal PC</h2>
+        <p class="section__lede section__lede--wide">
+          No Kubernetes required. Run the same official
+          <code>ghcr.io/pocketpairjp/palserver</code> image with Docker Compose on a
+          gaming PC or laptop — then graduate to the operator when you want cluster
+          hosting. Guide:
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/LOCAL.md">docs/LOCAL.md</a>.
+        </p>
+
+        <pre class="codeblock"><code>cp compose/.env.example compose/.env   # set SERVER_PASSWORD / ADMIN_PASSWORD
+make compose-up
+# Palworld → Join Multiplayer Game → 127.0.0.1:8211
+make compose-down</code></pre>
+
+        <ul class="ports">
+          <li><span class="ports__label">Players</span> <span class="ports__value">Default max 4 — keep small on a shared PC</span></li>
+          <li><span class="ports__label">RAM</span> <span class="ports__value">~8&nbsp;Gi free recommended · compose cap 6g (raise if OOM)</span></li>
+          <li><span class="ports__label">Game port</span> <span class="ports__value">8211 / UDP · REST/RCON on localhost only</span></li>
+        </ul>
+        <p class="fineprint">
+          Saves live under <code>compose/Saved/</code>. Passwords seed into
+          <code>PalWorldSettings.ini</code> on first start from <code>.env</code>.
+          Cluster path (Envoy Gateway + CR) stays the production default above.
         </p>
       </div>
     </section>
@@ -262,6 +292,8 @@ kubectl get secret palworld-server-secrets -n game-servers \
           not an official Pocketpair product.
         </p>
         <p>
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/LOCAL.md">Local / Compose</a>
+          ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/CONNECT.md">Connect guide</a>
           ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/ARCHITECTURE.md">Architecture</a>

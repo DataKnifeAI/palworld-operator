@@ -125,6 +125,7 @@ Notes: Update Palworld first. Use Join Multiplayer Game → direct connect.
 
 ## Related
 
+- [LOCAL.md](LOCAL.md) — Docker Compose on a PC (no Kubernetes)
 - [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, INI/env, persistence, resources
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Gateway / UDPRoute layout
 - Sample CR: [`config/samples/palworld_v1alpha1_palworldserver.yaml`](../config/samples/palworld_v1alpha1_palworldserver.yaml)
