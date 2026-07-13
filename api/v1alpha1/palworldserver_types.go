@@ -262,7 +262,7 @@ type PalworldServer struct {
 
 // PalworldServerList contains a list of PalworldServer.
 type PalworldServerList struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PalworldServer `json:"items"`
 }

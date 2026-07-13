@@ -119,8 +119,8 @@ func TestIsCommunityImage(t *testing.T) {
 
 func TestOfficialCommandArgs(t *testing.T) {
 	args := officialCommandArgs(palworldv1alpha1.PalworldServerSpec{
-		GamePort:        8211,
-		Multithreading:  boolPtr(true),
+		GamePort:       8211,
+		Multithreading: boolPtr(true),
 	})
 	joined := strings.Join(args, " ")
 	for _, want := range []string{"-port=8211", "-UseMultithreadForDS"} {

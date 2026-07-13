@@ -12,17 +12,17 @@ import (
 )
 
 type derivedNames struct {
-	pvcName         string
-	configMapName   string
-	deploymentName  string
-	serviceName     string
-	envoyService    string
-	gatewayName     string
-	envoyProxyName  string
-	gameUDPRoute    string
-	queryUDPRoute   string
-	rconTCPRoute    string
-	restTCPRoute    string
+	pvcName        string
+	configMapName  string
+	deploymentName string
+	serviceName    string
+	envoyService   string
+	gatewayName    string
+	envoyProxyName string
+	gameUDPRoute   string
+	queryUDPRoute  string
+	rconTCPRoute   string
+	restTCPRoute   string
 }
 
 func boolValue(value *bool, fallback bool) bool {

@@ -16,7 +16,7 @@ const (
 
 	containerUser = int64(1000)
 
-	officialSavedMountPath = "/pal/Package/Pal/Saved"
+	officialSavedMountPath  = "/pal/Package/Pal/Saved"
 	communitySavedMountPath = "/palworld"
 	settingsConfigKey       = "PalWorldSettings.ini"
 	settingsRelativePath    = "Config/LinuxServer/PalWorldSettings.ini"
