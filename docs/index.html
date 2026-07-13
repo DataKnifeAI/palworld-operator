@@ -10,88 +10,296 @@
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/landing.css" />
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="hero" id="top">
+    <div class="hero__glow" aria-hidden="true"></div>
     <div class="hero__sky" aria-hidden="true"></div>
+
     <div class="hero__art" aria-hidden="true">
-      <svg class="scene" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" role="img">
+      <svg class="scene" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" role="img">
         <defs>
-          <linearGradient id="islandFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6fbf6a" />
-            <stop offset="55%" stop-color="#3f8f4a" />
-            <stop offset="100%" stop-color="#2a6b3c" />
+          <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#7eb8c8" />
+            <stop offset="100%" stop-color="#5a9aaa" />
           </linearGradient>
-          <linearGradient id="waterFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#5ec4c8" stop-opacity="0.55" />
-            <stop offset="100%" stop-color="#2a8a9a" stop-opacity="0.35" />
+          <linearGradient id="mtnMid" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6aaa78" />
+            <stop offset="100%" stop-color="#3d7a52" />
           </linearGradient>
-          <linearGradient id="sphereA" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#ffe08a" />
-            <stop offset="100%" stop-color="#f0a83a" />
+          <linearGradient id="islandMain" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#7fd46a" />
+            <stop offset="40%" stop-color="#4cb85a" />
+            <stop offset="100%" stop-color="#2d7a40" />
           </linearGradient>
-          <linearGradient id="sphereB" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#9ae0d4" />
-            <stop offset="100%" stop-color="#3aa8b0" />
+          <linearGradient id="islandLite" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a8e878" />
+            <stop offset="100%" stop-color="#5ec05a" stop-opacity="0" />
           </linearGradient>
-          <linearGradient id="sphereC" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#f7c4a0" />
-            <stop offset="100%" stop-color="#e07a4a" />
+          <linearGradient id="waterDeep" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5ed4d8" stop-opacity="0.55" />
+            <stop offset="45%" stop-color="#2aa8b8" stop-opacity="0.7" />
+            <stop offset="100%" stop-color="#1a7a8a" stop-opacity="0.85" />
           </linearGradient>
+          <linearGradient id="waterShine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#fff" stop-opacity="0" />
+            <stop offset="35%" stop-color="#e8fffc" stop-opacity="0.35" />
+            <stop offset="55%" stop-color="#fff" stop-opacity="0.55" />
+            <stop offset="75%" stop-color="#e8fffc" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#fff" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="sunCore" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff6c8" />
+            <stop offset="55%" stop-color="#ffc94a" />
+            <stop offset="100%" stop-color="#f0a020" />
+          </linearGradient>
+          <radialGradient id="sunHalo" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffd56a" stop-opacity="0.55" />
+            <stop offset="70%" stop-color="#ffc94a" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#ffc94a" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="sphereGold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffe89a" />
+            <stop offset="55%" stop-color="#f0b040" />
+            <stop offset="100%" stop-color="#d87820" />
+          </linearGradient>
+          <linearGradient id="sphereTeal" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#c8fff0" />
+            <stop offset="50%" stop-color="#4ec8c0" />
+            <stop offset="100%" stop-color="#1a8a90" />
+          </linearGradient>
+          <linearGradient id="sphereCoral" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffd0b0" />
+            <stop offset="55%" stop-color="#f08050" />
+            <stop offset="100%" stop-color="#c85030" />
+          </linearGradient>
+          <linearGradient id="sphereMint" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e0ffc0" />
+            <stop offset="100%" stop-color="#5aaa40" />
+          </linearGradient>
+          <linearGradient id="crystal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e8fffa" />
+            <stop offset="40%" stop-color="#7edce0" />
+            <stop offset="100%" stop-color="#2a9aaa" />
+          </linearGradient>
+          <linearGradient id="totemBody" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#fff6e0" />
+            <stop offset="100%" stop-color="#e8d8b8" />
+          </linearGradient>
+          <linearGradient id="soil" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a07040" />
+            <stop offset="100%" stop-color="#6a4428" />
+          </linearGradient>
+          <linearGradient id="treeCanopy" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8fd860" />
+            <stop offset="100%" stop-color="#3a8a38" />
+          </linearGradient>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1a4030" flood-opacity="0.28" />
+          </filter>
+          <filter id="tinyShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#1a4030" flood-opacity="0.25" />
+          </filter>
         </defs>
 
-        <!-- distant hills -->
-        <path class="drift drift--slow" d="M0 320 C120 280 220 300 340 270 C460 240 520 290 640 260 C760 230 860 250 960 220 L960 540 L0 540 Z" fill="#7ec8b8" opacity="0.35" />
-        <path class="drift" d="M0 360 C160 320 280 350 420 310 C560 270 680 330 820 300 C900 285 940 295 960 290 L960 540 L0 540 Z" fill="#5aaa78" opacity="0.45" />
-
-        <!-- water band -->
-        <ellipse cx="480" cy="430" rx="420" ry="70" fill="url(#waterFill)" />
-
-        <!-- main island -->
-        <g class="island">
-          <ellipse cx="480" cy="400" rx="210" ry="48" fill="#2d6a4f" opacity="0.35" />
-          <path d="M280 390 C320 320 380 290 480 285 C580 290 640 320 680 390 C620 420 540 435 480 435 C420 435 340 420 280 390 Z" fill="url(#islandFill)" />
-          <path d="M340 350 C380 310 440 295 500 300 C560 305 610 335 640 370 C580 355 520 345 460 350 C410 354 370 360 340 350 Z" fill="#8fd18a" opacity="0.55" />
-          <!-- abstract cluster nodes -->
-          <rect x="430" y="250" width="36" height="48" rx="6" fill="#f4efe4" stroke="#2a5a4a" stroke-width="3" />
-          <rect x="474" y="235" width="40" height="63" rx="6" fill="#fff8e8" stroke="#2a5a4a" stroke-width="3" />
-          <rect x="522" y="258" width="32" height="40" rx="6" fill="#e8f4ef" stroke="#2a5a4a" stroke-width="3" />
-          <circle cx="448" cy="268" r="5" fill="#3aa8b0" />
-          <circle cx="494" cy="252" r="5" fill="#f0a83a" />
-          <circle cx="538" cy="274" r="5" fill="#6fbf6a" />
-          <path d="M448 268 L494 252 L538 274" fill="none" stroke="#2a5a4a" stroke-width="2" stroke-opacity="0.45" />
+        <!-- distant mountains -->
+        <g class="layer layer--far">
+          <path d="M0 420 L120 340 L200 380 L320 280 L420 360 L540 250 L660 340 L780 220 L920 310 L1040 240 L1160 320 L1280 270 L1440 350 L1440 520 L0 520 Z" fill="url(#mtnFar)" opacity="0.45" />
+          <path d="M0 460 L180 380 L300 420 L440 330 L580 400 L720 310 L860 390 L1000 300 L1140 380 L1280 330 L1440 400 L1440 560 L0 560 Z" fill="url(#mtnMid)" opacity="0.55" />
         </g>
 
-        <!-- floating creature-like spheres (abstract pals) -->
-        <g class="float float--a">
-          <ellipse cx="190" cy="210" rx="48" ry="44" fill="url(#sphereA)" />
-          <ellipse cx="175" cy="200" rx="14" ry="10" fill="#fff6d8" opacity="0.7" />
-          <circle cx="175" cy="205" r="6" fill="#2a3a2a" />
-          <circle cx="205" cy="205" r="6" fill="#2a3a2a" />
-          <path d="M178 222 Q190 232 202 222" fill="none" stroke="#2a3a2a" stroke-width="3" stroke-linecap="round" />
-          <ellipse cx="190" cy="248" rx="18" ry="8" fill="#c47a20" opacity="0.35" />
-        </g>
-        <g class="float float--b">
-          <ellipse cx="780" cy="180" rx="40" ry="36" fill="url(#sphereB)" />
-          <ellipse cx="768" cy="170" rx="11" ry="8" fill="#e8fffa" opacity="0.65" />
-          <circle cx="768" cy="175" r="5" fill="#1a3a3a" />
-          <circle cx="792" cy="175" r="5" fill="#1a3a3a" />
-          <path d="M772 188 Q780 196 790 188" fill="none" stroke="#1a3a3a" stroke-width="2.5" stroke-linecap="round" />
-        </g>
-        <g class="float float--c">
-          <ellipse cx="700" cy="320" rx="28" ry="26" fill="url(#sphereC)" />
-          <circle cx="692" cy="316" r="4" fill="#3a2010" />
-          <circle cx="708" cy="316" r="4" fill="#3a2010" />
-          <path d="M694 326 Q700 332 706 326" fill="none" stroke="#3a2010" stroke-width="2" stroke-linecap="round" />
+        <!-- clouds -->
+        <g class="clouds">
+          <g class="cloud cloud--a">
+            <ellipse cx="180" cy="120" rx="70" ry="28" fill="#fff" opacity="0.85" />
+            <ellipse cx="140" cy="128" rx="42" ry="20" fill="#fff" opacity="0.8" />
+            <ellipse cx="220" cy="124" rx="48" ry="22" fill="#fff" opacity="0.75" />
+            <ellipse cx="170" cy="108" rx="36" ry="18" fill="#fff" opacity="0.9" />
+          </g>
+          <g class="cloud cloud--b">
+            <ellipse cx="620" cy="90" rx="90" ry="32" fill="#fff" opacity="0.7" />
+            <ellipse cx="560" cy="100" rx="50" ry="22" fill="#fff" opacity="0.65" />
+            <ellipse cx="680" cy="96" rx="55" ry="24" fill="#fff" opacity="0.68" />
+            <ellipse cx="610" cy="78" rx="40" ry="18" fill="#fff" opacity="0.8" />
+          </g>
+          <g class="cloud cloud--c">
+            <ellipse cx="1180" cy="140" rx="75" ry="26" fill="#fff" opacity="0.78" />
+            <ellipse cx="1130" cy="148" rx="40" ry="18" fill="#fff" opacity="0.7" />
+            <ellipse cx="1225" cy="145" rx="45" ry="20" fill="#fff" opacity="0.72" />
+          </g>
+          <g class="cloud cloud--d">
+            <ellipse cx="980" cy="70" rx="48" ry="18" fill="#fff" opacity="0.55" />
+            <ellipse cx="950" cy="76" rx="28" ry="12" fill="#fff" opacity="0.5" />
+            <ellipse cx="1010" cy="74" rx="30" ry="13" fill="#fff" opacity="0.5" />
+          </g>
         </g>
 
         <!-- sun -->
-        <circle class="sun" cx="860" cy="90" r="42" fill="#ffd56a" opacity="0.9" />
-        <circle class="sun sun--halo" cx="860" cy="90" r="62" fill="#ffd56a" opacity="0.22" />
+        <g class="sun-group">
+          <circle cx="1240" cy="110" r="110" fill="url(#sunHalo)" />
+          <circle class="sun" cx="1240" cy="110" r="52" fill="url(#sunCore)" />
+          <circle cx="1225" cy="95" r="14" fill="#fff8d0" opacity="0.55" />
+        </g>
+
+        <!-- mid hills + satellite islands -->
+        <g class="layer layer--mid">
+          <path d="M0 520 C160 470 280 500 420 460 C560 420 640 480 780 450 C920 420 1040 470 1180 440 C1280 420 1360 440 1440 430 L1440 620 L0 620 Z" fill="#4aaa68" opacity="0.7" />
+
+          <!-- left satellite island -->
+          <g filter="url(#tinyShadow)">
+            <ellipse cx="220" cy="560" rx="110" ry="28" fill="#1a5a50" opacity="0.3" />
+            <path d="M120 550 C150 500 180 480 220 475 C270 480 300 505 320 550 C280 575 250 580 220 580 C180 580 150 570 120 550 Z" fill="url(#islandMain)" />
+            <path d="M160 530 C185 505 210 498 245 505 C270 512 290 530 300 545 C260 535 220 528 185 532 C170 534 165 532 160 530 Z" fill="url(#islandLite)" opacity="0.7" />
+            <!-- tiny trees -->
+            <rect x="195" y="505" width="6" height="18" rx="2" fill="#5c3a24" />
+            <ellipse cx="198" cy="500" rx="16" ry="14" fill="url(#treeCanopy)" />
+            <rect x="230" y="510" width="5" height="14" rx="2" fill="#5c3a24" />
+            <ellipse cx="232" cy="506" rx="12" ry="11" fill="#5aaa40" />
+            <ellipse cx="165" cy="548" rx="10" ry="6" fill="#8a6a48" opacity="0.7" />
+          </g>
+
+          <!-- right far island -->
+          <g filter="url(#tinyShadow)">
+            <ellipse cx="1180" cy="530" rx="90" ry="22" fill="#1a5a50" opacity="0.28" />
+            <path d="M1100 520 C1125 485 1155 470 1180 468 C1215 472 1240 495 1260 520 C1230 540 1205 545 1180 545 C1150 545 1125 535 1100 520 Z" fill="#5ec05a" />
+            <path d="M1135 505 C1155 490 1180 488 1205 500 C1220 508 1235 518 1240 525 C1205 515 1175 510 1145 512 Z" fill="#a8e878" opacity="0.55" />
+            <ellipse cx="1160" cy="498" rx="14" ry="12" fill="#3a8a38" />
+            <ellipse cx="1195" cy="502" rx="11" ry="10" fill="#4cb85a" />
+          </g>
+        </g>
+
+        <!-- water band -->
+        <g class="water">
+          <ellipse cx="720" cy="660" rx="620" ry="95" fill="url(#waterDeep)" />
+          <ellipse class="water__shimmer" cx="720" cy="640" rx="480" ry="28" fill="url(#waterShine)" />
+          <path class="water__ripple" d="M280 650 Q400 635 520 655 T760 650 T1000 660 T1160 645" fill="none" stroke="#e8fffc" stroke-width="2.5" stroke-opacity="0.35" stroke-linecap="round" />
+          <path class="water__ripple water__ripple--b" d="M340 680 Q480 665 620 682 T880 675 T1100 688" fill="none" stroke="#c8f0f0" stroke-width="2" stroke-opacity="0.28" stroke-linecap="round" />
+        </g>
+
+        <!-- main island -->
+        <g class="island-main" filter="url(#softShadow)">
+          <ellipse cx="760" cy="670" rx="280" ry="55" fill="#1a4a40" opacity="0.35" />
+          <path d="M480 650 C520 540 600 480 760 470 C920 480 1000 545 1040 650 C960 710 860 735 760 735 C660 735 560 710 480 650 Z" fill="url(#islandMain)" />
+          <path d="M560 600 C620 530 700 500 780 505 C870 512 940 560 980 620 C900 590 820 570 730 575 C650 580 600 590 560 600 Z" fill="url(#islandLite)" opacity="0.65" />
+
+          <!-- cliff / soil edge -->
+          <path d="M500 640 C560 680 660 705 760 708 C860 705 960 680 1020 640 C980 665 880 690 760 692 C640 690 540 665 500 640 Z" fill="url(#soil)" opacity="0.55" />
+
+          <!-- rocks -->
+          <ellipse cx="580" cy="640" rx="28" ry="18" fill="#7a8a78" />
+          <ellipse cx="565" cy="635" rx="12" ry="8" fill="#9aaa98" opacity="0.6" />
+          <ellipse cx="920" cy="645" rx="22" ry="14" fill="#6a7a68" />
+          <ellipse cx="935" cy="640" rx="10" ry="7" fill="#8a9a88" opacity="0.55" />
+          <ellipse cx="680" cy="680" rx="16" ry="10" fill="#8a6a48" opacity="0.8" />
+
+          <!-- trees cluster left -->
+          <g class="trees">
+            <rect x="600" y="560" width="10" height="42" rx="3" fill="#5c3a24" />
+            <ellipse cx="605" cy="545" rx="32" ry="28" fill="url(#treeCanopy)" />
+            <ellipse cx="585" cy="555" rx="18" ry="16" fill="#5aaa40" />
+            <ellipse cx="625" cy="552" rx="16" ry="14" fill="#6fc850" />
+
+            <rect x="655" y="575" width="8" height="32" rx="2" fill="#5c3a24" />
+            <ellipse cx="659" cy="565" rx="22" ry="20" fill="#4cb85a" />
+            <ellipse cx="645" cy="572" rx="12" ry="11" fill="#3a8a38" />
+
+            <rect x="880" y="555" width="9" height="38" rx="3" fill="#5c3a24" />
+            <ellipse cx="884" cy="542" rx="28" ry="24" fill="url(#treeCanopy)" />
+            <ellipse cx="865" cy="550" rx="14" ry="13" fill="#5aaa40" />
+            <ellipse cx="900" cy="548" rx="13" ry="12" fill="#7fd46a" />
+
+            <rect x="920" y="575" width="7" height="28" rx="2" fill="#6a4428" />
+            <ellipse cx="923" cy="568" rx="16" ry="14" fill="#3a8a38" />
+          </g>
+
+          <!-- flower / grass tufts -->
+          <g opacity="0.85">
+            <path d="M700 620 L702 605 L704 620" stroke="#6fc850" stroke-width="2" stroke-linecap="round" />
+            <circle cx="702" cy="602" r="4" fill="#f0a020" />
+            <path d="M820 615 L822 600 L824 615" stroke="#6fc850" stroke-width="2" stroke-linecap="round" />
+            <circle cx="822" cy="597" r="4" fill="#f08050" />
+            <path d="M640 615 L642 602 L644 615" stroke="#5aaa40" stroke-width="2" stroke-linecap="round" />
+            <circle cx="642" cy="599" r="3.5" fill="#ffe89a" />
+          </g>
+
+          <!-- K8s crystal / server totem (playful operator motif) -->
+          <g class="totem">
+            <rect x="730" y="520" width="58" height="72" rx="8" fill="url(#totemBody)" stroke="#3a5a48" stroke-width="3.5" />
+            <rect x="742" y="500" width="34" height="28" rx="6" fill="url(#totemBody)" stroke="#3a5a48" stroke-width="3" />
+            <!-- crystal hex (cluster vibe) -->
+            <path d="M759 512 L775 520 L775 538 L759 546 L743 538 L743 520 Z" fill="url(#crystal)" stroke="#2a7a80" stroke-width="2" />
+            <path d="M759 512 L775 520 L759 528 L743 520 Z" fill="#e8fffa" opacity="0.55" />
+            <!-- status nodes -->
+            <circle cx="748" cy="560" r="5" fill="#4ec8c0" />
+            <circle cx="759" cy="560" r="5" fill="#f0b040" />
+            <circle cx="770" cy="560" r="5" fill="#6fc850" />
+            <path d="M748 560 L759 560 L770 560" fill="none" stroke="#3a5a48" stroke-width="1.5" stroke-opacity="0.4" />
+            <rect x="744" y="575" width="30" height="6" rx="2" fill="#3a5a48" opacity="0.25" />
+            <rect x="744" y="586" width="22" height="6" rx="2" fill="#3a5a48" opacity="0.2" />
+            <!-- antenna / waypoint -->
+            <line x1="759" y1="500" x2="759" y2="478" stroke="#3a5a48" stroke-width="3" stroke-linecap="round" />
+            <circle cx="759" cy="472" r="8" fill="#ffc94a" stroke="#3a5a48" stroke-width="2.5" />
+            <circle cx="759" cy="472" r="3" fill="#fff6e0" />
+          </g>
+        </g>
+
+        <!-- floating abstract creatures (original, not named Pals) -->
+        <g class="float float--a" filter="url(#tinyShadow)">
+          <ellipse cx="300" cy="300" rx="58" ry="52" fill="url(#sphereGold)" />
+          <ellipse cx="278" cy="282" rx="18" ry="12" fill="#fff6d8" opacity="0.7" />
+          <circle cx="282" cy="295" r="7" fill="#2a3020" />
+          <circle cx="318" cy="295" r="7" fill="#2a3020" />
+          <circle cx="284" cy="293" r="2.5" fill="#fff" />
+          <circle cx="320" cy="293" r="2.5" fill="#fff" />
+          <path d="M288 318 Q300 330 314 318" fill="none" stroke="#2a3020" stroke-width="3.5" stroke-linecap="round" />
+          <!-- ear nubs -->
+          <ellipse cx="268" cy="265" rx="12" ry="16" fill="#f0b040" transform="rotate(-20 268 265)" />
+          <ellipse cx="338" cy="268" rx="11" ry="15" fill="#d87820" transform="rotate(18 338 268)" />
+          <ellipse cx="300" cy="348" rx="22" ry="9" fill="#c87820" opacity="0.3" />
+        </g>
+
+        <g class="float float--b" filter="url(#tinyShadow)">
+          <ellipse cx="1120" cy="280" rx="48" ry="44" fill="url(#sphereTeal)" />
+          <ellipse cx="1102" cy="265" rx="14" ry="10" fill="#e8fffa" opacity="0.65" />
+          <circle cx="1105" cy="275" r="6" fill="#143838" />
+          <circle cx="1132" cy="275" r="6" fill="#143838" />
+          <circle cx="1107" cy="273" r="2" fill="#fff" />
+          <circle cx="1134" cy="273" r="2" fill="#fff" />
+          <path d="M1110 292 Q1120 302 1132 292" fill="none" stroke="#143838" stroke-width="3" stroke-linecap="round" />
+          <!-- little fins -->
+          <path d="M1075 290 Q1060 275 1072 260" fill="#2aa8b8" opacity="0.7" />
+          <path d="M1165 288 Q1180 272 1168 258" fill="#1a8a90" opacity="0.65" />
+          <ellipse cx="1120" cy="322" rx="16" ry="7" fill="#1a6a70" opacity="0.28" />
+        </g>
+
+        <g class="float float--c" filter="url(#tinyShadow)">
+          <ellipse cx="980" cy="480" rx="34" ry="31" fill="url(#sphereCoral)" />
+          <circle cx="970" cy="474" r="5" fill="#3a2010" />
+          <circle cx="990" cy="474" r="5" fill="#3a2010" />
+          <path d="M972 488 Q980 496 988 488" fill="none" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" />
+          <ellipse cx="968" cy="464" rx="8" ry="5" fill="#ffd0b0" opacity="0.55" />
+          <path d="M955 465 Q948 450 958 448" fill="#f08050" opacity="0.8" />
+          <path d="M1005 465 Q1012 450 1002 448" fill="#c85030" opacity="0.75" />
+        </g>
+
+        <g class="float float--d" filter="url(#tinyShadow)">
+          <ellipse cx="480" cy="420" rx="26" ry="24" fill="url(#sphereMint)" />
+          <circle cx="472" cy="416" r="4" fill="#1a3020" />
+          <circle cx="488" cy="416" r="4" fill="#1a3020" />
+          <path d="M474 428 Q480 434 486 428" fill="none" stroke="#1a3020" stroke-width="2" stroke-linecap="round" />
+          <ellipse cx="470" cy="408" rx="6" ry="4" fill="#e0ffc0" opacity="0.6" />
+        </g>
+
+        <!-- birds / spark dots -->
+        <g class="sparkles" opacity="0.5">
+          <path d="M400 180 L404 188 L412 190 L404 194 L400 202 L396 194 L388 190 L396 188 Z" fill="#fff6e0" />
+          <path d="M860 160 L862 165 L868 166 L862 168 L860 174 L858 168 L852 166 L858 165 Z" fill="#fff" />
+          <path d="M1280 220 L1282 224 L1286 225 L1282 227 L1280 232 L1278 227 L1274 225 L1278 224 Z" fill="#ffe89a" />
+        </g>
       </svg>
     </div>
 
@@ -100,9 +308,9 @@
         <span class="brand__name">Palworld Operator</span>
         <span class="brand__by">by DataKnifeAI</span>
       </p>
-      <h1 class="hero__title">Your Palworld world, declared on Kubernetes.</h1>
+      <h1 class="hero__title">Spin up a Palworld world with one CR.</h1>
       <p class="hero__lede">
-        Operator MVP: apply a <code>PalworldServer</code> CR and get a dedicated Palworld server with Deployment, PVC, and Envoy Gateway.
+        Apply a <code>PalworldServer</code> and the operator builds a dedicated server on Kubernetes — Deployment, PVC, and Envoy Gateway included.
       </p>
       <div class="cta">
         <a class="btn btn--primary" href="https://github.com/DataKnifeAI/palworld-operator">View on GitHub</a>
@@ -111,39 +319,92 @@
     </div>
   </header>
 
+  <div class="wave" aria-hidden="true">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 40 C240 80 480 0 720 40 C960 80 1200 10 1440 40 L1440 80 L0 80 Z" fill="var(--cream)" />
+      <path d="M0 50 C200 20 400 70 720 45 C1040 20 1240 65 1440 48 L1440 80 L0 80 Z" fill="var(--paper)" opacity="0.9" />
+    </svg>
+  </div>
+
   <main id="main">
     <section class="section section--how" aria-labelledby="how-heading">
       <div class="wrap">
-        <h2 id="how-heading">How it works</h2>
-        <p class="section__lede">Three steps from CRD to a running world.</p>
+        <div class="section__intro">
+          <h2 id="how-heading">How it works</h2>
+          <p class="section__lede">Three steps from CRD to a running world.</p>
+        </div>
+
         <ol class="steps">
           <li class="steps__item">
-            <span class="steps__num" aria-hidden="true">1</span>
+            <div class="steps__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="18" width="44" height="34" rx="6" fill="#fff6e0" stroke="#2a5a48" stroke-width="3" />
+                <rect x="18" y="10" width="28" height="14" rx="4" fill="#c8ebe8" stroke="#2a5a48" stroke-width="2.5" />
+                <circle cx="24" cy="34" r="4" fill="#3aa8b8" />
+                <circle cx="32" cy="34" r="4" fill="#f0a83a" />
+                <circle cx="40" cy="34" r="4" fill="#6fbf6a" />
+              </svg>
+            </div>
             <div>
               <h3>Install the operator</h3>
-              <p><code>kubectl apply -k config/default</code> — CRDs, RBAC, and controller in your cluster.</p>
+              <p><code>kubectl apply -k config/default</code> — CRDs, RBAC, and controller land in your cluster.</p>
             </div>
           </li>
           <li class="steps__item">
-            <span class="steps__num" aria-hidden="true">2</span>
+            <div class="steps__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="32" cy="48" rx="22" ry="8" fill="#2d6a4f" opacity="0.35" />
+                <path d="M12 42 C18 28 24 22 32 20 C40 22 46 28 52 42 C44 50 38 52 32 52 C26 52 20 50 12 42 Z" fill="#4cb85a" />
+                <rect x="26" y="28" width="12" height="16" rx="3" fill="#fff6e0" stroke="#2a5a48" stroke-width="2" />
+                <path d="M32 24 L38 28 L32 32 L26 28 Z" fill="#7edce0" stroke="#2a7a80" stroke-width="1.5" />
+              </svg>
+            </div>
             <div>
               <h3>Declare a PalworldServer</h3>
               <p>Apply a sample CR. The reconciler builds Deployment, PVC, ConfigMap, Secret, and Envoy Gateway routes.</p>
             </div>
           </li>
           <li class="steps__item">
-            <span class="steps__num" aria-hidden="true">3</span>
+            <div class="steps__icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="30" r="16" fill="#f0b040" />
+                <circle cx="26" cy="28" r="3" fill="#2a3020" />
+                <circle cx="38" cy="28" r="3" fill="#2a3020" />
+                <path d="M26 36 Q32 42 38 36" fill="none" stroke="#2a3020" stroke-width="2.5" stroke-linecap="round" />
+                <ellipse cx="32" cy="50" rx="14" ry="5" fill="#1a5a50" opacity="0.25" />
+              </svg>
+            </div>
             <div>
               <h3>Join the world</h3>
               <p>Players connect through your gateway address on the game port. Saves land on the PVC.</p>
             </div>
           </li>
         </ol>
+
         <p class="section__cta">
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/config/samples/palworld_v1alpha1_palworldserver.yaml">Browse the sample CR →</a>
         </p>
       </div>
     </section>
+
+    <div class="divider" aria-hidden="true">
+      <svg class="divider__scene" viewBox="0 0 1440 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="divWater" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5ed4d8" stop-opacity="0.4" />
+            <stop offset="100%" stop-color="#2aa8b8" stop-opacity="0.55" />
+          </linearGradient>
+        </defs>
+        <rect width="1440" height="160" fill="#e8f6f0" />
+        <path d="M0 80 C180 40 360 110 540 70 C720 30 900 100 1080 65 C1260 30 1380 70 1440 55 L1440 160 L0 160 Z" fill="#6fbf6a" opacity="0.45" />
+        <ellipse cx="720" cy="120" rx="520" ry="40" fill="url(#divWater)" />
+        <ellipse cx="320" cy="95" rx="70" ry="18" fill="#4cb85a" />
+        <ellipse cx="1080" cy="100" rx="55" ry="14" fill="#5aaa68" />
+        <circle cx="200" cy="50" r="14" fill="#f0b040" opacity="0.85" />
+        <circle cx="1240" cy="45" r="11" fill="#4ec8c0" opacity="0.85" />
+        <circle cx="700" cy="40" r="9" fill="#f08050" opacity="0.8" />
+      </svg>
+    </div>
 
     <section class="section section--connect" aria-labelledby="connect-heading">
       <div class="wrap wrap--narrow">
