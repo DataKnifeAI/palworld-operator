@@ -19,7 +19,7 @@ Pocketpair publishes an **official dedicated server container** on GHCR:
 
 SteamCMD App ID **2394010** remains the underlying dedicated server; the official image packages that build. Non-container installs (Steam / SteamCMD on Linux or Windows) are still documented by Pocketpair.
 
-**No DataKnifeAI custom server-image repository is required** while this official image is maintained. Mirror to Harbor only if cluster policy prefers a private registry (optional ops step, not the operator default).
+**No DataKnifeAI custom server-image repository is required** while this official image is maintained. Mirror to Harbor only if cluster policy prefers a private registry (optional ops step, not the operator default) — see [GITLAB_MIRROR.md](GITLAB_MIRROR.md). The **operator** image is published separately to `harbor.dataknife.net/library/palworld-operator`.
 
 ### Official image layout
 

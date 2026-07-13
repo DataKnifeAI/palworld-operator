@@ -24,9 +24,10 @@ persists world saves on a PVC.
 | Choice | Detail |
 |--------|--------|
 | **Default** | `ghcr.io/pocketpairjp/palserver:latest` — [official Pocketpair package](https://github.com/orgs/pocketpairjp/packages/container/package/palserver) |
-| Harbor mirror | Optional: retag/copy to `harbor.dataknife.net/library/palserver:...` if the cluster should pull only from Harbor |
+| Operator image (CI) | `harbor.dataknife.net/library/palworld-operator` — built on GitLab mirror ([docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md)) |
+| Harbor game mirror | Optional: retag/copy to `harbor.dataknife.net/library/palserver:...` if the cluster should pull only from Harbor |
 | Community alternative | `thijsvanloef/palworld-server-docker` — env-driven config; set via `spec.serverImage` |
-| Custom DataKnifeAI image repo | **Not required** while Pocketpair publishes the official container |
+| Custom DataKnifeAI game-image repo | **Not required** while Pocketpair publishes the official container (unlike Windrose’s Wine image in `windrose-server-k8s`) |
 
 See [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) for mounts, INI vs env config, and ports.
 
@@ -194,6 +195,7 @@ See [TASKS.md](TASKS.md) for the ordered code / build / test plan.
 ## Related projects
 
 - [DataKnifeAI/windrose-operator](https://github.com/DataKnifeAI/windrose-operator) — architectural reference
+- [GitLab mirror](docs/GITLAB_MIRROR.md) — CI builds `harbor.dataknife.net/library/palworld-operator`
 - [Official Palworld dedicated server docs](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
 - [Palworld configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker)
