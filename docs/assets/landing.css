@@ -1,0 +1,568 @@
+/* Palworld Operator landing — sky teal / grass / amber */
+
+:root {
+  --sky-deep: #1a6f7a;
+  --sky: #3aa8b8;
+  --sky-light: #8ed4d8;
+  --sky-wash: #c8ebe8;
+  --grass: #3f8f4a;
+  --grass-bright: #6fbf6a;
+  --amber: #f0a83a;
+  --amber-soft: #ffd56a;
+  --cream: #fff8e8;
+  --cream-soft: #f4efe4;
+  --ink: #1e3328;
+  --ink-muted: #3d5a48;
+  --paper: #f7faf6;
+  --line: rgba(30, 51, 40, 0.12);
+
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body: "Outfit", "Segoe UI", sans-serif;
+
+  --radius: 0.5rem;
+  --space: clamp(1rem, 3vw, 2rem);
+  --wrap: 68rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--sky-deep);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--grass);
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  background: rgba(58, 168, 184, 0.12);
+  padding: 0.12em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--cream);
+  color: var(--ink);
+  padding: 0.5rem 1rem;
+  z-index: 100;
+}
+
+.skip:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+
+.wrap {
+  width: min(100% - 2 * var(--space), var(--wrap));
+  margin-inline: auto;
+}
+
+.wrap--narrow {
+  width: min(100% - 2 * var(--space), 38rem);
+}
+
+/* ——— Hero: one composition, full-bleed ——— */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 80% 50% at 75% 15%, rgba(255, 213, 106, 0.45), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 15% 70%, rgba(110, 191, 106, 0.35), transparent 50%),
+    linear-gradient(165deg, #9ad8d4 0%, #6ec4c0 28%, #5aaa88 62%, #4a9a6a 100%);
+}
+
+.hero__sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.35) 0 2px, transparent 3px),
+    radial-gradient(circle at 55% 18%, rgba(255, 255, 255, 0.28) 0 1.5px, transparent 3px),
+    radial-gradient(circle at 80% 35%, rgba(255, 255, 255, 0.22) 0 2px, transparent 3px),
+    radial-gradient(circle at 35% 40%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px);
+  background-size: 100% 100%;
+  opacity: 0.9;
+  animation: grain-drift 28s linear infinite;
+}
+
+.hero__art {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hero__art .scene {
+  width: min(120%, 72rem);
+  height: auto;
+  transform: translateY(4%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+  width: min(100% - 2 * var(--space), 40rem);
+  margin: 0 auto clamp(2.5rem, 8vh, 5rem);
+  padding: clamp(1.25rem, 3vw, 2rem) 0 0;
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.brand {
+  margin: 0 0 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.85rem, 5.5vw, 3.15rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  text-shadow: 0 2px 18px rgba(30, 51, 40, 0.25);
+}
+
+.brand__by {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(30, 51, 40, 0.72);
+}
+
+.hero__title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  line-height: 1.2;
+  color: var(--ink);
+  max-width: 22ch;
+}
+
+.hero__lede {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1rem, 2.2vw, 1.125rem);
+  color: var(--ink-muted);
+  max-width: 36ch;
+}
+
+.hero__lede code {
+  background: rgba(255, 248, 232, 0.65);
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: 0 4px 0 rgba(30, 51, 40, 0.35);
+}
+
+.btn--primary:hover {
+  color: var(--cream);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(30, 51, 40, 0.3);
+  background: #274033;
+}
+
+.btn--primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 rgba(30, 51, 40, 0.35);
+}
+
+.btn--ghost {
+  background: rgba(255, 248, 232, 0.55);
+  color: var(--ink);
+  border-color: rgba(30, 51, 40, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.btn--ghost:hover {
+  color: var(--ink);
+  background: var(--cream);
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+
+/* Ambient SVG motion */
+
+.drift {
+  animation: hill-drift 18s ease-in-out infinite alternate;
+}
+
+.drift--slow {
+  animation-duration: 26s;
+  animation-direction: alternate-reverse;
+}
+
+.float {
+  transform-origin: center;
+  animation: bob 5.5s ease-in-out infinite;
+}
+
+.float--a {
+  animation-duration: 6.2s;
+}
+
+.float--b {
+  animation-duration: 7.4s;
+  animation-delay: -1.5s;
+}
+
+.float--c {
+  animation-duration: 5s;
+  animation-delay: -0.8s;
+}
+
+.sun {
+  transform-origin: 860px 90px;
+  animation: sun-breathe 8s ease-in-out infinite;
+}
+
+.sun--halo {
+  animation-duration: 10s;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes hill-drift {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(12px);
+  }
+}
+
+@keyframes sun-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes grain-drift {
+  from {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 40px -20px, -30px 15px, 20px 25px, -15px -10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ——— Sections ——— */
+
+.section {
+  padding: clamp(3.5rem, 10vw, 6rem) 0;
+}
+
+.section h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.section__lede {
+  margin: 0 0 2rem;
+  color: var(--ink-muted);
+  font-size: 1.05rem;
+  max-width: 36ch;
+}
+
+.section--how {
+  background:
+    linear-gradient(180deg, var(--cream-soft) 0%, var(--paper) 100%);
+  border-top: 1px solid var(--line);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.75rem;
+  counter-reset: none;
+}
+
+.steps__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem 1.25rem;
+  align-items: start;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.steps__item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.steps__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--cream);
+  background: var(--sky-deep);
+  border-radius: 0.4rem;
+}
+
+.steps h3 {
+  margin: 0.15rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.steps p {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.section__cta {
+  margin: 2rem 0 0;
+  font-weight: 600;
+}
+
+.section--connect {
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 0%, rgba(142, 212, 216, 0.35), transparent 60%),
+    var(--paper);
+}
+
+.ports {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.ports li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.ports li:first-child {
+  border-top: 1px solid var(--line);
+}
+
+.ports__label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ports__value {
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 0.95rem;
+  color: var(--sky-deep);
+}
+
+.fineprint {
+  margin: 1.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+/* ——— Footer ——— */
+
+.footer {
+  padding: 2.5rem 0 3rem;
+  background: var(--ink);
+  color: rgba(255, 248, 232, 0.78);
+  font-size: 0.925rem;
+}
+
+.footer a {
+  color: var(--amber-soft);
+}
+
+.footer a:hover {
+  color: var(--cream);
+}
+
+.footer__grid {
+  display: grid;
+  gap: 1.75rem;
+}
+
+@media (min-width: 720px) {
+  .footer__grid {
+    grid-template-columns: minmax(10rem, 16rem) 1fr;
+    gap: 3rem;
+  }
+
+  .steps {
+    max-width: 40rem;
+  }
+}
+
+.footer__brand {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+
+.footer p {
+  margin: 0 0 0.65rem;
+}
+
+.footer .fineprint {
+  color: rgba(255, 248, 232, 0.5);
+}
+
+/* ——— Responsive hero tweaks ——— */
+
+@media (max-width: 640px) {
+  .hero {
+    align-items: flex-end;
+  }
+
+  .hero__content {
+    margin-bottom: clamp(1.5rem, 5vh, 2.5rem);
+  }
+
+  .hero__art .scene {
+    width: 160%;
+    max-width: none;
+    transform: translateX(-8%) translateY(8%);
+  }
+
+  .brand__name {
+    text-shadow: 0 2px 12px rgba(30, 51, 40, 0.35);
+  }
+}
+
+@media (min-width: 900px) {
+  .hero {
+    align-items: center;
+  }
+
+  .hero__content {
+    margin: 0;
+    margin-left: max(var(--space), calc((100% - var(--wrap)) / 2));
+    padding-bottom: 2rem;
+  }
+
+  .hero__art {
+    justify-content: flex-end;
+  }
+
+  .hero__art .scene {
+    width: min(70vw, 56rem);
+    margin-right: -4%;
+    transform: translateY(0);
+  }
+}

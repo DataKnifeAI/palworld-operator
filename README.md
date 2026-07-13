@@ -1,5 +1,7 @@
 # Palworld Operator
 
+> **Landing page:** [dataknifeai.github.io/palworld-operator](https://dataknifeai.github.io/palworld-operator/) — celebrate the operator MVP: declare a `PalworldServer` CR and run dedicated Palworld worlds on Kubernetes.
+
 Kubernetes operator for [Palworld](https://www.palworldgame.com/) dedicated game servers.
 
 This project follows the same architectural model as

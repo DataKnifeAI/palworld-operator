@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Palworld Operator — DataKnifeAI</title>
+  <meta name="description" content="Declare a PalworldServer custom resource and run dedicated Palworld worlds on Kubernetes. Operator MVP from DataKnifeAI." />
+  <meta property="og:title" content="Palworld Operator — DataKnifeAI" />
+  <meta property="og:description" content="Kubernetes operator for Palworld dedicated servers. CRD → Deployment, PVC, Gateway." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/landing.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="hero" id="top">
+    <div class="hero__sky" aria-hidden="true"></div>
+    <div class="hero__art" aria-hidden="true">
+      <svg class="scene" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" role="img">
+        <defs>
+          <linearGradient id="islandFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6fbf6a" />
+            <stop offset="55%" stop-color="#3f8f4a" />
+            <stop offset="100%" stop-color="#2a6b3c" />
+          </linearGradient>
+          <linearGradient id="waterFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5ec4c8" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#2a8a9a" stop-opacity="0.35" />
+          </linearGradient>
+          <linearGradient id="sphereA" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffe08a" />
+            <stop offset="100%" stop-color="#f0a83a" />
+          </linearGradient>
+          <linearGradient id="sphereB" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9ae0d4" />
+            <stop offset="100%" stop-color="#3aa8b0" />
+          </linearGradient>
+          <linearGradient id="sphereC" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f7c4a0" />
+            <stop offset="100%" stop-color="#e07a4a" />
+          </linearGradient>
+        </defs>
+
+        <!-- distant hills -->
+        <path class="drift drift--slow" d="M0 320 C120 280 220 300 340 270 C460 240 520 290 640 260 C760 230 860 250 960 220 L960 540 L0 540 Z" fill="#7ec8b8" opacity="0.35" />
+        <path class="drift" d="M0 360 C160 320 280 350 420 310 C560 270 680 330 820 300 C900 285 940 295 960 290 L960 540 L0 540 Z" fill="#5aaa78" opacity="0.45" />
+
+        <!-- water band -->
+        <ellipse cx="480" cy="430" rx="420" ry="70" fill="url(#waterFill)" />
+
+        <!-- main island -->
+        <g class="island">
+          <ellipse cx="480" cy="400" rx="210" ry="48" fill="#2d6a4f" opacity="0.35" />
+          <path d="M280 390 C320 320 380 290 480 285 C580 290 640 320 680 390 C620 420 540 435 480 435 C420 435 340 420 280 390 Z" fill="url(#islandFill)" />
+          <path d="M340 350 C380 310 440 295 500 300 C560 305 610 335 640 370 C580 355 520 345 460 350 C410 354 370 360 340 350 Z" fill="#8fd18a" opacity="0.55" />
+          <!-- abstract cluster nodes -->
+          <rect x="430" y="250" width="36" height="48" rx="6" fill="#f4efe4" stroke="#2a5a4a" stroke-width="3" />
+          <rect x="474" y="235" width="40" height="63" rx="6" fill="#fff8e8" stroke="#2a5a4a" stroke-width="3" />
+          <rect x="522" y="258" width="32" height="40" rx="6" fill="#e8f4ef" stroke="#2a5a4a" stroke-width="3" />
+          <circle cx="448" cy="268" r="5" fill="#3aa8b0" />
+          <circle cx="494" cy="252" r="5" fill="#f0a83a" />
+          <circle cx="538" cy="274" r="5" fill="#6fbf6a" />
+          <path d="M448 268 L494 252 L538 274" fill="none" stroke="#2a5a4a" stroke-width="2" stroke-opacity="0.45" />
+        </g>
+
+        <!-- floating creature-like spheres (abstract pals) -->
+        <g class="float float--a">
+          <ellipse cx="190" cy="210" rx="48" ry="44" fill="url(#sphereA)" />
+          <ellipse cx="175" cy="200" rx="14" ry="10" fill="#fff6d8" opacity="0.7" />
+          <circle cx="175" cy="205" r="6" fill="#2a3a2a" />
+          <circle cx="205" cy="205" r="6" fill="#2a3a2a" />
+          <path d="M178 222 Q190 232 202 222" fill="none" stroke="#2a3a2a" stroke-width="3" stroke-linecap="round" />
+          <ellipse cx="190" cy="248" rx="18" ry="8" fill="#c47a20" opacity="0.35" />
+        </g>
+        <g class="float float--b">
+          <ellipse cx="780" cy="180" rx="40" ry="36" fill="url(#sphereB)" />
+          <ellipse cx="768" cy="170" rx="11" ry="8" fill="#e8fffa" opacity="0.65" />
+          <circle cx="768" cy="175" r="5" fill="#1a3a3a" />
+          <circle cx="792" cy="175" r="5" fill="#1a3a3a" />
+          <path d="M772 188 Q780 196 790 188" fill="none" stroke="#1a3a3a" stroke-width="2.5" stroke-linecap="round" />
+        </g>
+        <g class="float float--c">
+          <ellipse cx="700" cy="320" rx="28" ry="26" fill="url(#sphereC)" />
+          <circle cx="692" cy="316" r="4" fill="#3a2010" />
+          <circle cx="708" cy="316" r="4" fill="#3a2010" />
+          <path d="M694 326 Q700 332 706 326" fill="none" stroke="#3a2010" stroke-width="2" stroke-linecap="round" />
+        </g>
+
+        <!-- sun -->
+        <circle class="sun" cx="860" cy="90" r="42" fill="#ffd56a" opacity="0.9" />
+        <circle class="sun sun--halo" cx="860" cy="90" r="62" fill="#ffd56a" opacity="0.22" />
+      </svg>
+    </div>
+
+    <div class="hero__content">
+      <p class="brand">
+        <span class="brand__name">Palworld Operator</span>
+        <span class="brand__by">by DataKnifeAI</span>
+      </p>
+      <h1 class="hero__title">Your Palworld world, declared on Kubernetes.</h1>
+      <p class="hero__lede">
+        Operator MVP: apply a <code>PalworldServer</code> CR and get a dedicated server with Deployment, PVC, and Gateway — Windrose-style.
+      </p>
+      <div class="cta">
+        <a class="btn btn--primary" href="https://github.com/DataKnifeAI/palworld-operator">View on GitHub</a>
+        <a class="btn btn--ghost" href="https://github.com/DataKnifeAI/palworld-operator#quick-start">Get Started</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="section section--how" aria-labelledby="how-heading">
+      <div class="wrap">
+        <h2 id="how-heading">How it works</h2>
+        <p class="section__lede">Three steps from CRD to a running world.</p>
+        <ol class="steps">
+          <li class="steps__item">
+            <span class="steps__num" aria-hidden="true">1</span>
+            <div>
+              <h3>Install the operator</h3>
+              <p><code>kubectl apply -k config/default</code> — CRDs, RBAC, and controller in your cluster.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num" aria-hidden="true">2</span>
+            <div>
+              <h3>Declare a PalworldServer</h3>
+              <p>Apply a sample CR. The reconciler builds Deployment, PVC, ConfigMap, Secret, and Envoy Gateway routes.</p>
+            </div>
+          </li>
+          <li class="steps__item">
+            <span class="steps__num" aria-hidden="true">3</span>
+            <div>
+              <h3>Join the world</h3>
+              <p>Players connect through your gateway address on the game port. Saves land on the PVC.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="section__cta">
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/config/samples/palworld_v1alpha1_palworldserver.yaml">Browse the sample CR →</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="section section--connect" aria-labelledby="connect-heading">
+      <div class="wrap wrap--narrow">
+        <h2 id="connect-heading">Connect</h2>
+        <p class="section__lede">Ports the operator wires for a dedicated world.</p>
+        <ul class="ports">
+          <li><span class="ports__label">Game</span> <span class="ports__value">8211 / UDP</span></li>
+          <li><span class="ports__label">Steam query</span> <span class="ports__value">27015 / UDP</span></li>
+          <li><span class="ports__label">RCON</span> <span class="ports__value">25575 / TCP</span></li>
+          <li><span class="ports__label">REST API</span> <span class="ports__value">8212 / TCP</span></li>
+        </ul>
+        <p class="fineprint">REST and RCON are powerful — keep them off the public internet unless you mean it.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__grid">
+      <div>
+        <p class="footer__brand">Palworld Operator</p>
+        <p>Apache-2.0 · <a href="https://github.com/DataKnifeAI">DataKnifeAI</a></p>
+      </div>
+      <div>
+        <p>
+          Palworld is a game by Pocketpair. This project is an independent Kubernetes operator —
+          not an official Pocketpair product.
+        </p>
+        <p>
+          <a href="https://docs.palworldgame.com/getting-started/deploy-dedicated-server">Official dedicated server docs</a>
+          ·
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/LICENSE">License</a>
+        </p>
+        <p class="fineprint">
+          Pocketpair trademarks and game assets remain their property. Landing art is original CSS/SVG —
+          no official Palworld art is used or hotlinked.
+        </p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
