@@ -1,15 +1,14 @@
 # Controller package
 
-Implement during TASKS.md C3–C6, porting patterns from:
+Reconciles `PalworldServer` into Deployment, PVC, ConfigMap, Secrets, Services, and Envoy Gateway resources.
 
-`github.com/DataKnifeAI/windrose-operator/internal/controller`
+| File | Role |
+|------|------|
+| `constants.go` | Labels, finalizer, default ports/paths/image |
+| `helpers.go` | Naming, resource tiers, INI/CLI (+ community env) mapping |
+| `envoy_gateway.go` | Gateway, EnvoyProxy, UDPRoute, TCPRoute |
+| `palworldserver_controller.go` | Reconcile loop |
+| `*_test.go` | Unit tests (helpers, secrets); envtest / fake-client loop still backlog (#10–#11) |
 
-Suggested files:
-
-- `constants.go` — labels, finalizer, default ports/paths
-  - `defaultServerImage = "ghcr.io/pocketpairjp/palserver:latest"`
-  - `savedMountPath = "/pal/Package/Pal/Saved"` (official)
-- `helpers.go` — naming, resource tiers, INI/CLI (and optional community env) mapping
-- `envoy_gateway.go` — Gateway, EnvoyProxy, UDPRoute, TCPRoute
-- `palworldserver_controller.go` — reconcile loop
-- `*_test.go` — fake-client unit tests (T1)
+Default game image: `ghcr.io/pocketpairjp/palserver:latest`.
+Saved mount (official): `/pal/Package/Pal/Saved`.

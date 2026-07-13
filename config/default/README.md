@@ -1,3 +1,5 @@
 # Default kustomize overlay
 
-Compose CRD + RBAC + manager Deployment (copy structure from windrose-operator `config/default` during B2).
+Composes CRD + RBAC + manager Deployment for `kubectl apply -k config/default`.
+
+Installs into namespace `palworld-operator-system` by default.

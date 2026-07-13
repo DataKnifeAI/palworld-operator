@@ -69,7 +69,10 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - [ ] controller-runtime envtest for CRD install + reconcile loop
 
 ### T3. Manual cluster smoke test
-- [~] Deploy on prd-apps `game-servers`; verify owned resources / status
+- [~] Deploy on prd-apps `game-servers`; status Running + REST world verified ([#12](https://github.com/DataKnifeAI/palworld-operator/issues/12))
+- [ ] Client join via `.status.connectionAddress` / game port
+- [ ] PVC retains save across pod restart
+- [ ] RCON / graceful stop does not corrupt saves
 
 ### T4. Negative / ops tests
 - [ ] Wrong StorageClass / missing Secret / VIP reuse runbook coverage

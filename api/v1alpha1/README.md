@@ -1,10 +1,11 @@
-# Target API group/version: palworld.dataknife.ai/v1alpha1
-# Kind: PalworldServer (shortName: ps)
-#
-# Implement types in this package during TASKS.md C2, modeled on:
-#   github.com/DataKnifeAI/windrose-operator/api/v1alpha1
-#
-# Planned files:
-#   groupversion_info.go
-#   palworldserver_types.go
-#   zz_generated.deepcopy.go  (controller-gen)
+# API: `palworld.dataknife.ai/v1alpha1`
+
+Kind: `PalworldServer` (shortName: `ps`).
+
+| File | Role |
+|------|------|
+| `groupversion_info.go` | Scheme registration |
+| `palworldserver_types.go` | CRD types + markers |
+| `zz_generated.deepcopy.go` | controller-gen deepcopy |
+
+Regenerate with `make generate manifests`.

@@ -3,6 +3,8 @@
 Kubernetes operator for [Palworld](https://www.palworldgame.com/) dedicated servers.
 Declare a `PalworldServer` CR and run a world on Kubernetes with Deployment, PVC, and Envoy Gateway exposure.
 
+Congrats to Pocketpair on [Palworld 1.0](https://store.steampowered.com/news/app/1623730/view/686383649529010623) — see their [1.0 announcement](https://www.pocketpair.jp/en/game-news/palworld-1-0-july-10-cinematic-trailer-revealed/) and the [Steam store page](https://store.steampowered.com/app/1623730/Palworld/).
+
 **Landing page:** [dataknifeai.github.io/palworld-operator](https://dataknifeai.github.io/palworld-operator/)
 
 **Default game image:** [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker) (official Pocketpair).
@@ -37,6 +39,7 @@ kubectl get palworldserver -n game-servers
 ```
 
 Connect using `.status.connectionAddress` and `.status.connectionPort` (default `8211` UDP).
+**Known limitation:** the operator does not manage `DedicatedServerName` in `GameUserSettings.ini` — without a pin, a restart can load a new empty world (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#world-selection-across-restarts)).
 Read join/admin passwords from the credentials Secret (see [docs/CONNECT.md](docs/CONNECT.md)):
 
 ```shell
@@ -60,6 +63,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Reconciled resources, Gateway layout, Palworld vs Windrose deltas |
 | [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env config, resources, **game updates / Steam** |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub quality gates + GitLab Harbor publish |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 
 ## Development
 

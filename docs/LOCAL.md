@@ -76,6 +76,13 @@ grep -E 'ServerPassword|AdminPassword' compose/Saved/Config/LinuxServer/PalWorld
 
 Do not commit `compose/.env` or live `Saved/` data (both are gitignored).
 
+## World selection across restarts
+
+Same as the operator path: Palworld picks the world from `GameUserSettings.ini` →
+`DedicatedServerName`. Compose does not manage that file — after a recreate, confirm the
+save under `compose/Saved/SaveGames/0/` still matches REST `worldguid`. Details:
+[PALWORLD_SERVER.md](PALWORLD_SERVER.md#world-selection-across-restarts).
+
 ## Connect from the game client
 
 Same flow as the operator path — see [CONNECT.md](CONNECT.md):

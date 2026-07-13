@@ -18,3 +18,8 @@ kubeconfig
 # Go
 vendor/
 bin/
+
+# Compose local path (also listed in compose/.gitignore)
+compose/.env
+compose/Saved/**
+!compose/Saved/.gitkeep
