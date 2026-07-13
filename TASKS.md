@@ -18,6 +18,7 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] Apache-2.0 LICENSE, README, architecture docs
 - [x] Directory layout matching windrose-operator / kubebuilder
 - [x] Sample CR YAML + Palworld research notes
+- [x] Prefer official Pocketpair image (`ghcr.io/pocketpairjp/palserver`); no separate DataKnifeAI server-image repo needed
 - [x] Task breakdown (this file + GitHub Issues)
 
 ---
@@ -49,10 +50,12 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 ### C3. Reconciler: owned resources (core)
 Port patterns from `windrose-operator/internal/controller`:
 - Finalizer + deletion cleanup
-- PVC for `/palworld`
-- Deployment using community image, env from CR + Secret refs
+- PVC for `/pal/Package/Pal/Saved` (official Pocketpair image mount)
+- Deployment using **default** `ghcr.io/pocketpairjp/palserver:latest` (override via `spec.serverImage`)
+- ConfigMap for `PalWorldSettings.ini` (+ CLI args for port/threading), matching Windrose ConfigMap pattern
 - ClusterIP Service for game ports; Envoy backend Service
 - Status updates from Deployment readiness
+- Document community image (`thijsvanloef/...`) as optional alternate mount `/palworld` + env mapping
 - **Done when:** Creating a CR without Gateway deps still creates Deployment/PVC/Services (Gateway can be feature-gated in C4)
 
 ### C4. Reconciler: Envoy Gateway exposure
@@ -64,10 +67,10 @@ Port patterns from `windrose-operator/internal/controller`:
 
 ### C5. Config & secrets UX
 - Document required Secrets for admin/server passwords
-- Map CR fields → Docker env (`SERVER_NAME`, `PLAYERS`, `PORT`, `RCON_*`, etc.)
-- Optional later: generate/mount `PalWorldSettings.ini` for advanced gameplay balances
-- Graceful shutdown: ensure RCON enabled (Docker image needs it for clean stop) + suitable `terminationGracePeriodSeconds`
-- **Done when:** README documents secret creation; sample uses Secret refs
+- **Official image (default):** map CR fields → `PalWorldSettings.ini` ConfigMap + container command args (`-port=`, multithreading flags)
+- **Community image (optional):** map CR fields → Docker env (`SERVER_NAME`, `PLAYERS`, `PORT`, `RCON_*`, etc.)
+- Graceful shutdown: ensure RCON enabled + suitable `terminationGracePeriodSeconds`
+- **Done when:** README documents secret creation; sample uses Secret refs; official INI path documented
 
 ### C6. Resource auto-selection
 - Derive CPU/memory requests/limits from `maxPlayers` (Palworld is RAM-heavy; start conservative tiers e.g. 8/16/32 Gi)

@@ -4,9 +4,10 @@ metadata:
   name: palworld-server
   namespace: game-servers
 spec:
-  # Community image wrapping SteamCMD AppID 2394010.
-  # Pin a digest in production.
-  serverImage: thijsvanloef/palworld-server-docker:latest
+  # Official Pocketpair image (GHCR). Pin a version tag or digest in production.
+  # Optional Harbor mirror: harbor.dataknife.net/library/palserver:<tag>
+  # Optional community image: thijsvanloef/palworld-server-docker:latest
+  serverImage: ghcr.io/pocketpairjp/palserver:latest
   imagePullPolicy: IfNotPresent
 
   gateway:
@@ -39,6 +40,7 @@ spec:
     # publicIP: 192.168.14.200
     # publicPort: 8211
 
+  # Community SteamCMD images may honor updateOnBoot; official image is tagged.
   updateOnBoot: true
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
   terminationGracePeriodSeconds: 60

@@ -15,20 +15,31 @@ persists world saves on a PVC.
 ## Goals
 
 - Manage Palworld dedicated servers via a `PalworldServer` custom resource
-- Prefer the community Linux Docker image [`thijsvanloef/palworld-server-docker`](https://hub.docker.com/r/thijsvanloef/palworld-server-docker) (SteamCMD App ID `2394010` under the hood)
+- Prefer the **official** Pocketpair Linux image [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker) (same “publisher image first” stance as Windrose)
 - Match DataKnife `prd-apps` / `game-servers` Envoy Gateway exposure patterns used by Windrose
-- Keep secrets (admin/server passwords) out of plain CR fields where practical (Secrets + envFrom)
+- Keep secrets (admin/server passwords) out of plain CR fields where practical (Secrets + mounts/env)
+
+## Image strategy
+
+| Choice | Detail |
+|--------|--------|
+| **Default** | `ghcr.io/pocketpairjp/palserver:latest` — [official Pocketpair package](https://github.com/orgs/pocketpairjp/packages/container/package/palserver) |
+| Harbor mirror | Optional: retag/copy to `harbor.dataknife.net/library/palserver:...` if the cluster should pull only from Harbor |
+| Community alternative | `thijsvanloef/palworld-server-docker` — env-driven config; set via `spec.serverImage` |
+| Custom DataKnifeAI image repo | **Not required** while Pocketpair publishes the official container |
+
+See [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) for mounts, INI vs env config, and ports.
 
 ## Comparison with Windrose Operator
 
 | | palworld-operator | windrose-operator |
 |--|-------------------|-------------------|
-| Image | `thijsvanloef/palworld-server-docker` (community; SteamCMD-based) | `windroseserver/windroseserver` (official) |
+| Image | `ghcr.io/pocketpairjp/palserver` (official) | `windroseserver/windroseserver` (official) |
 | CRD | `PalworldServer` | `WindroseServer` |
 | Primary game port | `8211/UDP` | `7777/TCP+UDP` |
 | Extra ports | Query `27015/UDP`, RCON `25575/TCP`, REST `8212/TCP` | None beyond game port |
-| Config | Env vars → `PalWorldSettings.ini` | ConfigMap → `ServerDescription.json` |
-| Save mount | `/palworld` (image convention) | `/home/ue_user/app/R5/Saved` |
+| Config | ConfigMap → `PalWorldSettings.ini` (+ CLI args) | ConfigMap → `ServerDescription.json` |
+| Save mount | `/pal/Package/Pal/Saved` (official) | `/home/ue_user/app/R5/Saved` |
 | External access | Envoy Gateway (planned) | Envoy Gateway |
 
 ## Architecture (planned)
@@ -42,18 +53,19 @@ Clients → spec.gateway.address (Kube-VIP / MetalLB)
               ↓
       {name}-envoy  (ClusterIP)  →  {name} (ClusterIP)
               ↓
-      Deployment  (palworld-server-docker)
+      Deployment  (ghcr.io/pocketpairjp/palserver)
               ↓
-      PVC (/palworld)  +  Secret (passwords)  +  optional ConfigMap
+      PVC (/pal/Package/Pal/Saved)  +  Secret + ConfigMap (INI)
 ```
 
 Each `PalworldServer` will reconcile:
 
 | Kind | Purpose |
 |------|---------|
-| Deployment | Game server pod |
-| PersistentVolumeClaim | World saves + server files under `/palworld` |
-| Secret / env | `ADMIN_PASSWORD`, `SERVER_PASSWORD`, optional Discord webhook |
+| Deployment | Game server pod (official image by default) |
+| PersistentVolumeClaim | World saves under `/pal/Package/Pal/Saved` |
+| ConfigMap | `PalWorldSettings.ini` (official path) |
+| Secret | Admin / server passwords injected into INI or env |
 | Service (ClusterIP) | Backend for game / query / RCON / REST ports |
 | Service (Envoy backend) | `{name}-envoy` ClusterIP matching Windrose naming |
 | Gateway + EnvoyProxy | External VIP binding |
@@ -64,7 +76,7 @@ Each `PalworldServer` will reconcile:
 
 Sources: [official deploy guide](https://docs.palworldgame.com/getting-started/deploy-dedicated-server),
 [configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/),
-[palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker).
+[official Docker image](https://github.com/pocketpairjp/palworld-dedicated-server-docker).
 
 ### Ports
 
@@ -72,15 +84,15 @@ Sources: [official deploy guide](https://docs.palworldgame.com/getting-started/d
 |------|----------|------|
 | 8211 | UDP | Primary game traffic (required) |
 | 27015 | UDP | Steam query / community browser |
-| 25575 | TCP | RCON (required for graceful stop/save in Docker image) |
-| 8212 | TCP | REST API (default on in Docker image; do not publicly expose carelessly) |
+| 25575 | TCP | RCON (enable for graceful stop/save) |
+| 8212 | TCP | REST API (do not publicly expose carelessly) |
 
 ### Persistence
 
-- Save data lives under `Pal/Saved/SaveGames/` (Docker image mounts `/palworld`)
-- Config: `Pal/Saved/Config/LinuxServer/PalWorldSettings.ini` (copied from `DefaultPalWorldSettings.ini`)
+- Official image: PVC → `/pal/Package/Pal/Saved` (covers `SaveGames/` + `Config/LinuxServer/`)
+- Config: `PalWorldSettings.ini` (copied from `DefaultPalWorldSettings.ini` in the image)
 - Stop the server before mutating settings files; shutdown overwrites in-memory settings
-- Native backups via `bIsUseBackupSaveData` / image `BACKUP_*` env vars; PVC should be sized generously (start at **50–100Gi**; worlds grow with bases/Pals)
+- PVC should be sized generously (start at **50–100Gi**; worlds grow with bases/Pals)
 
 ### Resources (guidance)
 
@@ -90,22 +102,21 @@ Sources: [official deploy guide](https://docs.palworldgame.com/getting-started/d
 | 8–16 | 16–24 Gi | Typical dedicated |
 | 16–32 | 24–32+ Gi | Public / large bases; UE5 scales with structures |
 
-CPU: prefer multi-core; Docker image `MULTITHREADING=true` helps up to ~4 threads.
+CPU: prefer multi-core; official CLI flags include `-UseMultithreadForDS` (community image: `MULTITHREADING=true`).
 
-### Key configuration knobs (CR / env mapping)
+### Key configuration knobs (CR mapping)
 
-| Concern | Docker env / INI | CR field (planned) |
-|---------|------------------|--------------------|
-| Display name | `SERVER_NAME` | `spec.serverName` |
-| Max players | `PLAYERS` / `ServerPlayerMaxNum` | `spec.maxPlayers` |
-| Game port | `PORT` | `spec.gamePort` (default 8211) |
-| Query port | `QUERY_PORT` | `spec.queryPort` (default 27015) |
-| RCON | `RCON_ENABLED` / `RCON_PORT` | `spec.rcon` |
-| REST API | `REST_API_ENABLED` / `REST_API_PORT` | `spec.restAPI` |
-| Passwords | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | `spec.serverPasswordSecretRef` / `adminPasswordSecretRef` |
-| Community list | `COMMUNITY`, `PUBLIC_IP`, `PUBLIC_PORT` | `spec.community` + gateway address |
-| Crossplay | `CROSSPLAY_PLATFORMS` / `CrossplayPlatforms` | `spec.crossplayPlatforms` |
-| Update on boot | `UPDATE_ON_BOOT` | `spec.updateOnBoot` |
+| Concern | Official (INI / CLI) | Community env (optional image) | CR field (planned) |
+|---------|----------------------|--------------------------------|--------------------|
+| Display name | `ServerName` in INI | `SERVER_NAME` | `spec.serverName` |
+| Max players | `ServerPlayerMaxNum` | `PLAYERS` | `spec.maxPlayers` |
+| Game port | `-port=` CLI | `PORT` | `spec.gamePort` (default 8211) |
+| Query port | INI / server args | `QUERY_PORT` | `spec.queryPort` (default 27015) |
+| RCON | `RCONEnabled` / `RCONPort` | `RCON_*` | `spec.rcon` |
+| REST API | INI | `REST_API_*` | `spec.restAPI` |
+| Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs |
+| Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
+| Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 
 ## Prerequisites (runtime)
 
@@ -113,6 +124,7 @@ CPU: prefer multi-core; Docker image `MULTITHREADING=true` helps up to ~4 thread
 - [Envoy Gateway](https://gateway.envoyproxy.io/) with GatewayClass `envoy`
 - StorageClass suitable for game saves (NFS/CSI OK; prefer ReadWriteOnce)
 - One dedicated external IP per server (`spec.gateway.address`)
+- Cluster can pull from GHCR (or use a Harbor mirror + `imagePullSecrets` as needed)
 
 ## Quick start (after implementation)
 
@@ -133,7 +145,7 @@ metadata:
   name: palworld-server
   namespace: game-servers
 spec:
-  serverImage: thijsvanloef/palworld-server-docker:latest
+  serverImage: ghcr.io/pocketpairjp/palserver:latest
   gateway:
     address: 192.168.14.200
     className: envoy
@@ -148,12 +160,20 @@ spec:
     enabled: true
     port: 8212
   multithreading: true
-  updateOnBoot: true
   storageSize: 100Gi
   storageClassName: truenas-csi-nfs
   nodeSelector:
     kubernetes.io/os: linux
     kubernetes.io/arch: amd64
+```
+
+Optional community image:
+
+```yaml
+spec:
+  serverImage: thijsvanloef/palworld-server-docker:latest
+  # Community image uses /palworld + env-driven settings; reconciler must
+  # detect or document the alternate mount/config path when overriding.
 ```
 
 ## Development
@@ -176,7 +196,8 @@ See [TASKS.md](TASKS.md) for the ordered code / build / test plan.
 - [DataKnifeAI/windrose-operator](https://github.com/DataKnifeAI/windrose-operator) — architectural reference
 - [Official Palworld dedicated server docs](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
 - [Palworld configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
-- [thijsvanloef/palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker)
+- [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker)
+- [Community alternative: thijsvanloef/palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker)
 
 ## License
 

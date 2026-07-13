@@ -101,12 +101,15 @@ type CommunityConfig struct {
 }
 
 // PalworldServerSpec defines the desired state of a Palworld dedicated game server.
-// Settings map to thijsvanloef/palworld-server-docker environment variables and
-// PalWorldSettings.ini fields documented at
+// Default image is the official Pocketpair package (ghcr.io/pocketpairjp/palserver).
+// Settings map to PalWorldSettings.ini / CLI args (official) or community-image
+// environment variables. See docs/PALWORLD_SERVER.md and
 // https://docs.palworldgame.com/settings-and-operation/configuration/
 type PalworldServerSpec struct {
 	// ServerImage is the Palworld dedicated server container image.
-	// +kubebuilder:default="thijsvanloef/palworld-server-docker:latest"
+	// Defaults to the official Pocketpair image. Override with a Harbor mirror
+	// or a community image (e.g. thijsvanloef/palworld-server-docker) if needed.
+	// +kubebuilder:default="ghcr.io/pocketpairjp/palserver:latest"
 	// +optional
 	ServerImage string `json:"serverImage,omitempty"`
 
@@ -174,7 +177,8 @@ type PalworldServerSpec struct {
 	Multithreading *bool `json:"multithreading,omitempty"`
 
 	// UpdateOnBoot updates/installs server files on container start.
-	// Must be true on first boot for the Docker image.
+	// Relevant primarily for community SteamCMD-based images; the official
+	// Pocketpair image is versioned via the image tag.
 	// +kubebuilder:default=true
 	// +optional
 	UpdateOnBoot *bool `json:"updateOnBoot,omitempty"`
@@ -191,7 +195,8 @@ type PalworldServerSpec struct {
 	// +optional
 	ServerPasswordSecretRef *corev1.SecretKeySelector `json:"serverPasswordSecretRef,omitempty"`
 
-	// StorageSize is the PVC capacity for /palworld (saves + server files).
+	// StorageSize is the PVC capacity for world saves (official mount:
+	// /pal/Package/Pal/Saved; community image typically /palworld).
 	// +kubebuilder:default="100Gi"
 	// +optional
 	StorageSize string `json:"storageSize,omitempty"`
