@@ -1,14 +1,14 @@
-# Palworld dedicated server — operator research notes
+# Palworld dedicated server notes
+
+Operator-relevant detail for the official Pocketpair image and optional community images.
 
 Sources:
-- [Deploy dedicated server](https://docs.palworldgame.com/getting-started/deploy-dedicated-server) (official)
-- [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/) (official)
+- [Deploy dedicated server](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
+- [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker) — `ghcr.io/pocketpairjp/palserver`
 - [thijsvanloef/palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker) (community alternative)
 
 ## Official distribution
-
-Pocketpair publishes an **official dedicated server container** on GHCR:
 
 | Item | Value |
 |------|-------|
@@ -17,9 +17,9 @@ Pocketpair publishes an **official dedicated server container** on GHCR:
 | Docs | [Palworld Server Guide](https://tech.palworldgame.com/) / [requirements](https://tech.palworldgame.com/getting-started/requirements) |
 | Tags | Versioned (e.g. `v1.0.0.100427`) and `latest` |
 
-SteamCMD App ID **2394010** remains the underlying dedicated server; the official image packages that build. Non-container installs (Steam / SteamCMD on Linux or Windows) are still documented by Pocketpair.
+SteamCMD App ID **2394010** is the underlying dedicated server; the official image packages that build.
 
-**No DataKnifeAI custom server-image repository is required** while this official image is maintained. Mirror to Harbor only if cluster policy prefers a private registry (optional ops step, not the operator default) — see [GITLAB_MIRROR.md](GITLAB_MIRROR.md). The **operator** image is published separately to `harbor.dataknife.net/library/palworld-operator`.
+**No DataKnifeAI custom server-image repository is required** while this official image is maintained. Optional Harbor mirror of the game image is an ops step — see [GITLAB_MIRROR.md](GITLAB_MIRROR.md). The **operator** image publishes separately to `harbor.dataknife.net/library/palworld-operator`.
 
 ### Official image layout
 
@@ -29,18 +29,18 @@ SteamCMD App ID **2394010** remains the underlying dedicated server; the officia
 | `/pal/Package/DefaultPalWorldSettings.ini` | Defaults template (do **not** edit for live config) |
 | `/pal/Package/Pal/Saved` | Persist this directory (saves + `Config/LinuxServer/`) |
 
-Compose sample mounts host `./Saved` → `/pal/Package/Pal/Saved` and passes CLI args (`-port=8211`, multithreading flags). Gameplay settings go in `PalWorldSettings.ini` under the Saved mount — same INI model as bare SteamCMD.
+Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (`-port=8211`, multithreading). Gameplay settings live in `PalWorldSettings.ini` under the Saved mount.
 
 ## Ports
 
 | Port | Proto | Role | Operator notes |
 |------|-------|------|----------------|
 | 8211 | UDP | Game traffic | Primary client connect; expose via UDPRoute |
-| 27015 | UDP | Steam query | Community browser / Steam; expose via UDPRoute when listing |
-| 25575 | TCP | RCON | Enable via INI / community image env for graceful stop |
-| 8212 | TCP | REST API | Useful for health/player logging; **do not** public-forward |
+| 27015 | UDP | Steam query | Community browser / Steam; UDPRoute when listing |
+| 25575 | TCP | RCON | Enable for graceful stop/save |
+| 8212 | TCP | REST API | Useful for ops; **do not** public-forward casually |
 
-Official compose examples expose **8211/UDP** only; query/RCON/REST are still part of the dedicated server when enabled in settings.
+Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings.
 
 ## Persistence
 
@@ -51,30 +51,26 @@ Official compose examples expose **8211/UDP** only; query/RCON/REST are still pa
 | Official image mount | `/pal/Package/Pal/Saved` |
 | Community image mount | `/palworld` (install + saves + backups) |
 
-Recommended PVC size: **≥ 100Gi** default in the CRD draft (saves + server files + backups grow; Windrose uses 35Gi as a floor for a lighter game).
+Recommended PVC size: start at **50–100Gi** (worlds grow with bases/Pals). Stop the server before mutating settings files; shutdown overwrites in-memory settings.
 
 ## Container image options
 
 | Image | Role |
 |-------|------|
-| **`ghcr.io/pocketpairjp/palserver`** | **Operator default** — official Pocketpair image (Windrose-style: prefer publisher image) |
-| `harbor.dataknife.net/library/palserver:...` | Optional Harbor mirror of the official image (cluster pull policy) |
-| `thijsvanloef/palworld-server-docker` | Optional community image: env-driven config, backups, RCON helpers |
+| **`ghcr.io/pocketpairjp/palserver`** | **Operator default** — official Pocketpair image |
+| `harbor.dataknife.net/library/palserver:...` | Optional Harbor mirror |
+| `thijsvanloef/palworld-server-docker` | Optional community image (env-driven config) |
 | `johnnyknighten/palworld-server` | Another community env→INI option |
 
-Operator default: `ghcr.io/pocketpairjp/palserver:latest` (pin a version tag or digest in production).
-
-### Why not a DataKnifeAI `palworld-server-docker` repo?
-
-A separate DataKnifeAI image project (Dockerfile + Harbor CI) is only warranted if Pocketpair stopped publishing containers. That is **not** the case today — use the official GHCR image and keep the operator focused on Kubernetes reconciliation.
+Pin a version tag or digest in production. A separate DataKnifeAI game-image project is only warranted if Pocketpair stopped publishing containers.
 
 ## Configuration models
 
 ### Official image (default)
 
-- **CLI args** for port / threading (compose `command:` → `-port=8211`, `-UseMultithreadForDS`, …)
+- **CLI args** for port / threading (`-port=8211`, `-UseMultithreadForDS`, …)
 - **INI** for name, passwords, RCON, crossplay, balance: `Pal/Saved/Config/LinuxServer/PalWorldSettings.ini`
-- Operator should generate/mount that INI (ConfigMap or template) similar to Windrose’s `ServerDescription.json`, not rely on community env vars
+- Operator generates/mounts that INI (ConfigMap), not community env vars
 
 ### Community image (optional)
 
@@ -95,26 +91,42 @@ Env vars map to INI / launch options. Highly recommended: `PUID`, `PGID`, `PORT`
 | `REST_API_PORT` | 8212 | REST TCP |
 | `MULTITHREADING` | false | Up to ~4 threads useful |
 | `COMMUNITY` | false | Community browser listing |
-| `PUBLIC_IP` / `PUBLIC_PORT` | auto | Community listing; set to Gateway address/port in K8s |
+| `PUBLIC_IP` / `PUBLIC_PORT` | auto | Set to Gateway address/port in K8s |
 | `UPDATE_ON_BOOT` | true | Required on first install |
 | `BACKUP_ENABLED` | true | Cron backups inside container |
 | `CROSSPLAY_PLATFORMS` | Steam,Xbox,PS5,Mac | Crossplay allow-list |
 
 Passwords must come from Kubernetes Secrets, not CR plaintext.
 
+### CR field mapping
+
+| Concern | Official (INI / CLI) | Community env | CR field |
+|---------|----------------------|---------------|----------|
+| Display name | `ServerName` in INI | `SERVER_NAME` | `spec.serverName` |
+| Max players | `ServerPlayerMaxNum` | `PLAYERS` | `spec.maxPlayers` |
+| Game port | `-port=` CLI | `PORT` | `spec.gamePort` (default 8211) |
+| Query port | INI / server args | `QUERY_PORT` | `spec.queryPort` (default 27015) |
+| RCON | `RCONEnabled` / `RCONPort` | `RCON_*` | `spec.rcon` |
+| REST API | INI | `REST_API_*` | `spec.restAPI` |
+| Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs |
+| Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
+| Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
+
 ## Resource guidance
 
 Community/hosting consensus (not official Pocketpair SLAs):
 
-- Light private: ~8–16 GiB RAM, 4 vCPU
-- Typical multiplayer with bases: **16 GiB+** RAM
-- UE5 + Pal AI scales with player count, base count, and `BaseCampWorkerMaxNum`
+| Players | Suggested memory | Notes |
+|---------|------------------|-------|
+| 1–8 | 8–16 Gi | Light private world |
+| 8–16 | 16–24 Gi | Typical dedicated |
+| 16–32 | 24–32+ Gi | Public / large bases; UE5 scales with structures |
 
-Operator should auto-select resources from `maxPlayers` with override via `spec.resources` (same UX as Windrose).
+CPU: prefer multi-core; official CLI includes `-UseMultithreadForDS` (community: `MULTITHREADING=true`). Override via `spec.resources`. Sample CR uses modest requests for ~8Gi nodes.
 
 ## Graceful lifecycle
 
-- Enable RCON (INI or community env) so shutdown can save cleanly on SIGTERM
+- Enable RCON so shutdown can save cleanly on SIGTERM
 - Set `terminationGracePeriodSeconds` high enough (e.g. 60–120s)
 - Prefer careful update policy in prod (unexpected image/Steam updates mid-session)
 
