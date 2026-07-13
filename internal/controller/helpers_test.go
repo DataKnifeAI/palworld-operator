@@ -9,9 +9,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	testGatewayAddress = "192.168.14.187"
+	testMemLimitLarge  = "7Gi"
+)
+
 func TestBuildPalWorldSettingsINI(t *testing.T) {
 	spec := palworldv1alpha1.PalworldServerSpec{
-		Gateway:           palworldv1alpha1.GatewayConfig{Address: "192.168.14.187"},
+		Gateway:           palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 		ServerName:        `DataKnife "Test"`,
 		ServerDescription: "ops",
 		MaxPlayers:        4,
@@ -42,9 +47,9 @@ func TestResourcesForPlayerCount(t *testing.T) {
 		memLimit string
 	}{
 		{players: 4, memReq: "3Gi", memLimit: "6Gi"},
-		{players: 8, memReq: "4Gi", memLimit: "7Gi"},
-		{players: 16, memReq: "5Gi", memLimit: "7Gi"},
-		{players: 32, memReq: "6Gi", memLimit: "7Gi"},
+		{players: 8, memReq: "4Gi", memLimit: testMemLimitLarge},
+		{players: 16, memReq: "5Gi", memLimit: testMemLimitLarge},
+		{players: 32, memReq: "6Gi", memLimit: testMemLimitLarge},
 	}
 
 	for _, tt := range tests {
@@ -60,7 +65,7 @@ func TestResourcesForPlayerCount(t *testing.T) {
 
 func TestDefaultResourcesAutoSelectAndOverride(t *testing.T) {
 	auto := defaultResources(palworldv1alpha1.PalworldServerSpec{
-		Gateway:    palworldv1alpha1.GatewayConfig{Address: "192.168.14.187"},
+		Gateway:    palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 		MaxPlayers: 4,
 	})
 	if got := auto.Requests.Memory().String(); got != "3Gi" {
@@ -68,7 +73,7 @@ func TestDefaultResourcesAutoSelectAndOverride(t *testing.T) {
 	}
 
 	override := defaultResources(palworldv1alpha1.PalworldServerSpec{
-		Gateway:    palworldv1alpha1.GatewayConfig{Address: "192.168.14.187"},
+		Gateway:    palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 		MaxPlayers: 4,
 		Resources: &corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -86,7 +91,7 @@ func TestDeriveNamesPalworldServer(t *testing.T) {
 	server := &palworldv1alpha1.PalworldServer{
 		ObjectMeta: metav1.ObjectMeta{Name: "palworld-server"},
 		Spec: palworldv1alpha1.PalworldServerSpec{
-			Gateway: palworldv1alpha1.GatewayConfig{Address: "192.168.14.187"},
+			Gateway: palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 		},
 	}
 

@@ -18,6 +18,8 @@ const (
 
 	officialSavedMountPath  = "/pal/Package/Pal/Saved"
 	communitySavedMountPath = "/palworld"
+	volumeSaves             = "saves"
+	volumeSettings          = "settings"
 	settingsConfigKey       = "PalWorldSettings.ini"
 	settingsRelativePath    = "Config/LinuxServer/PalWorldSettings.ini"
 

@@ -41,7 +41,7 @@ func testServerForSecrets(generate bool) *palworldv1alpha1.PalworldServer {
 			UID:       "test-uid",
 		},
 		Spec: palworldv1alpha1.PalworldServerSpec{
-			Gateway:         palworldv1alpha1.GatewayConfig{Address: "192.168.14.187"},
+			Gateway:         palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 			GenerateSecrets: generate,
 		},
 	}

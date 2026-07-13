@@ -347,13 +347,13 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 			Ports:           containerPorts(server.Spec),
 			Resources:       defaultResources(server.Spec),
 			VolumeMounts: []corev1.VolumeMount{
-				{Name: "saves", MountPath: mountPath},
+				{Name: volumeSaves, MountPath: mountPath},
 			},
 		}
 
 		volumes := []corev1.Volume{
 			{
-				Name: "saves",
+				Name: volumeSaves,
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: names.pvcName,
@@ -361,7 +361,7 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 				},
 			},
 			{
-				Name: "settings",
+				Name: volumeSettings,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{Name: names.configMapName},
@@ -392,8 +392,8 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 						),
 					},
 					VolumeMounts: []corev1.VolumeMount{
-						{Name: "saves", MountPath: "/saves"},
-						{Name: "settings", MountPath: "/settings"},
+						{Name: volumeSaves, MountPath: "/saves"},
+						{Name: volumeSettings, MountPath: "/settings"},
 					},
 				},
 			}
