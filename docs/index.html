@@ -46,6 +46,7 @@
         <a class="btn btn--primary" href="https://github.com/DataKnifeAI/palworld-operator">View on GitHub</a>
         <a class="btn btn--ghost" href="#local">Local / PC</a>
         <a class="btn btn--ghost" href="#connect">How to connect</a>
+        <a class="btn btn--ghost" href="#faq">FAQ</a>
       </div>
     </div>
   </header>
@@ -278,6 +279,45 @@ kubectl get secret palworld-server-secrets -n game-servers \
         </p>
       </div>
     </section>
+
+    <section class="section section--faq" id="faq" aria-labelledby="faq-heading">
+      <div class="wrap wrap--readable">
+        <h2 id="faq-heading">FAQ</h2>
+        <p class="section__lede section__lede--wide">
+          Short answers to issues we’ve hit hosting Palworld. Full write-up:
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/FAQ.md">docs/FAQ.md</a>.
+        </p>
+
+        <h3 class="subhead">“Incapable version”</h3>
+        <p>
+          Client/server build mismatch — usually the <strong>server image is behind</strong> a Steam client update.
+          Bump <code>spec.serverImage</code> to a current Pocketpair tag (e.g. <code>v1.0.1.100619</code>), wait for Ready,
+          confirm REST <code>/v1/api/info</code> <code>version</code>. Players: update the game on Steam.
+        </p>
+
+        <h3 class="subhead">“No password entered”</h3>
+        <p>
+          Enable <strong>Enter password</strong> and use the join Secret key <code>server-password</code>
+          (not admin). Or set <code>spec.generateSecrets: true</code> and read the generated Secret.
+        </p>
+
+        <h3 class="subhead">Empty / different world after restart</h3>
+        <p>
+          Pin <code>DedicatedServerName</code> in <code>GameUserSettings.ini</code> on the Saved PVC —
+          the operator does not manage that yet. Confirm REST <code>worldguid</code> after rolls.
+        </p>
+
+        <h3 class="subhead">How do game patches reach the server?</h3>
+        <p>
+          Official image = <strong>new container tag</strong>, not SteamCMD on boot. Community images may use
+          <code>updateOnBoot</code>. Details in FAQ / <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
+        </p>
+
+        <p class="section__cta">
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/FAQ.md">Open the full FAQ →</a>
+        </p>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -303,6 +343,8 @@ kubectl get secret palworld-server-secrets -n game-servers \
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/LOCAL.md">Local / Compose</a>
           ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/CONNECT.md">Connect guide</a>
+          ·
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/FAQ.md">FAQ</a>
           ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/ARCHITECTURE.md">Architecture</a>
           ·

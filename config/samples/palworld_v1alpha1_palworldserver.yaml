@@ -4,8 +4,10 @@ metadata:
   name: palworld-server
   namespace: game-servers
 spec:
-  # Official Pocketpair image (GHCR). Pin a version tag or digest in production.
-  serverImage: ghcr.io/pocketpairjp/palserver:latest
+  # Official Pocketpair image (GHCR). Pin a version tag in lasting worlds
+  # (stale node-cached :latest caused "incapable version" vs Steam 1.0.x clients).
+  # Tags: https://github.com/pocketpairjp/palworld-dedicated-server-docker/pkgs/container/palserver
+  serverImage: ghcr.io/pocketpairjp/palserver:v1.0.1.100619
   imagePullPolicy: IfNotPresent
 
   gateway:

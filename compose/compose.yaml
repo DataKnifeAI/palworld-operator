@@ -7,9 +7,9 @@
 
 services:
   palworld-server:
-    # Pin a version tag in production; latest is fine for local smoke tests.
+    # Default pins a current Pocketpair tag (override via PALSERVER_IMAGE). See docs/FAQ.md.
     # https://github.com/pocketpairjp/palworld-dedicated-server-docker/pkgs/container/palserver
-    image: ${PALSERVER_IMAGE:-ghcr.io/pocketpairjp/palserver:latest}
+    image: ${PALSERVER_IMAGE:-ghcr.io/pocketpairjp/palserver:v1.0.1.100619}
     container_name: palworld-local
     restart: unless-stopped
     stop_grace_period: 60s

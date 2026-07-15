@@ -125,6 +125,7 @@ Notes: Update Palworld first. Use Join Multiplayer Game → direct connect.
 
 ## Related
 
+- [FAQ.md](FAQ.md) — incapable version, “no password entered”, world drift, updates
 - [LOCAL.md](LOCAL.md) — Docker Compose on a PC (no Kubernetes)
 - [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, INI/env, persistence, resources
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Gateway / UDPRoute layout

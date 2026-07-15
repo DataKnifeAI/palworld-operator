@@ -9,6 +9,8 @@ world for friends on the LAN, or developing against the same container the opera
 | **Docker Compose (this guide)** | Local / PC / “just run the game server” — **no cluster** |
 | **Kubernetes operator** | Production / shared cluster — Envoy Gateway, PVC, CRDs — see [README](../README.md) |
 
+Troubleshooting (version mismatch, passwords, world pin): [FAQ.md](FAQ.md).
+
 Official image: [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker).
 Upstream sample lives under their `compose/` directory; this repo’s `compose/` is a
 **minimal-PC** variant (resource caps, localhost-bound REST/RCON, `.env` seed for passwords).

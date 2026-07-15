@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [docs/FAQ.md](docs/FAQ.md) (+ site FAQ section): incapable version, passwords, world pin, image updates, local vs cluster, sizing.
+
+### Changed
+
+- Sample CR / Compose default image pin: `ghcr.io/pocketpairjp/palserver:v1.0.1.100619` (prefer explicit tags over stale `:latest`).
+
 ### Planned / known gaps
 
 - Operator does not yet pin/manage `DedicatedServerName` (`GameUserSettings.ini`) — world drift risk on restart without a pin ([docs](docs/PALWORLD_SERVER.md#world-selection-across-restarts)).

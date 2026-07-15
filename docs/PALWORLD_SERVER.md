@@ -168,7 +168,7 @@ Official Pocketpair guidance ([Updating the Dedicated Server](https://github.com
 
 1. **Back up** the Saved PVC (or snapshot) before updating.
 2. **Stop** the server (scale / roll the Deployment — the operator uses `Recreate`).
-3. **Change the image tag** in `spec.serverImage` to the game version (e.g. `ghcr.io/pocketpairjp/palserver:v1.0.0.100427`), or move `latest` only after confirming the published tag matches the client.
+3. **Change the image tag** in `spec.serverImage` to the game version (e.g. `ghcr.io/pocketpairjp/palserver:v1.0.1.100619`), or move `latest` only after confirming the published tag matches the client (and that the node actually pulls a new digest — prefer `imagePullPolicy: Always` for one roll, or pin an explicit tag).
 4. **Start** again and confirm REST `/v1/api/info` `version` and that `worldguid` / days still match the previous world.
 
 | Mechanism | Official Pocketpair image | Community (e.g. thijsvanloef) |
@@ -195,3 +195,5 @@ Dedicated servers support Steam / Xbox / PS5 / Mac via `CrossplayPlatforms` (INI
 ## Connecting from the game client
 
 Player-facing join flow (Join Multiplayer Game, `connectionAddress:connectionPort`, join vs admin password, community browser): see [CONNECT.md](CONNECT.md).
+
+Common failures (“incapable version”, empty world after restart, password prompt): [FAQ.md](FAQ.md).
