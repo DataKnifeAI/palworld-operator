@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Opt-in `spec.update.autoUpdateImage`: GHCR tag discovery, pin `repo:vX.Y.Z.W`, status fields (`desiredImage`, `runningVersion`, `latestAvailableVersion`, `updateAvailable`), `onlyWhenEmpty`, optional cron `checkSchedule` / `applySchedule` + `timeZone` (default UTC), optional REST `/v1/api/announce` pre-roll notice (`notifyPlayers`).
+- `DedicatedServerName` persistence: learn REST `worldguid`, seed `GameUserSettings.ini` (spec or status pin) so Recreate / auto-update keeps the world.
 - [docs/FAQ.md](docs/FAQ.md) (+ site FAQ section): incapable version, passwords, world pin, image updates, local vs cluster, sizing.
 
 ### Changed
@@ -17,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned / known gaps
 
-- Operator does not yet pin/manage `DedicatedServerName` (`GameUserSettings.ini`) — world drift risk on restart without a pin ([docs](docs/PALWORLD_SERVER.md#world-selection-across-restarts)).
 - Finish cluster smoke (#12): client join via Gateway, PVC retain across restart, graceful stop.
 - Fake-client Reconcile unit tests (#10), optional envtest (#11), negative/ops status messages (#13).
 

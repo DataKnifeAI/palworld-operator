@@ -60,7 +60,7 @@ kubectl get palworldserver -n game-servers
 ```
 
 Connect with `.status.connectionAddress` / `.status.connectionPort` (default `8211` UDP).
-**Known limitation:** the operator does not manage `DedicatedServerName` in `GameUserSettings.ini` — without a pin, a restart can load a new empty world (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#world-selection-across-restarts)).
+The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)).
 Read join/admin passwords from the credentials Secret ([docs/CONNECT.md](docs/CONNECT.md)):
 
 ```shell

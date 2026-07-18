@@ -27,6 +27,10 @@ import (
 type PalworldServerReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	// Optional dependencies (tests / overrides). Defaults are used when nil.
+	TagLister  TagLister
+	RESTClient RESTClient
 }
 
 // +kubebuilder:rbac:groups=palworld.dataknife.ai,resources=palworldservers,verbs=get;list;watch;create;update;patch;delete
@@ -114,21 +118,56 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		message = "Game server is running"
 	}
 
+	now := time.Now()
+	var probe updateProbe
+	if ready {
+		probe = r.probeREST(ctx, server, names, adminPassword)
+		if probe.ok && probe.info.WorldGUID != "" && dedicatedServerName(server) == "" {
+			// Persist learned pin into status before any auto-update roll; ConfigMap
+			// picks it up on the next reconcile via dedicatedServerName().
+			server.Status.DedicatedServerName = probe.info.WorldGUID
+		}
+	}
+
+	requeueAfter, specMutated, updateErr := r.maybeAutoUpdate(ctx, server, names, adminPassword, probe, now)
+	if updateErr != nil {
+		return r.failStatus(ctx, server, updateErr)
+	}
+	if specMutated {
+		// Deployment will converge on the next pass with the patched serverImage.
+		if err := r.Status().Update(ctx, server); err != nil {
+			log.Error(err, "failed to update status after image patch")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: updateRequeueSoon}, nil
+	}
+
+	// Re-seed ConfigMap once we learn a world pin so Recreate rolls keep the save.
+	if pin := dedicatedServerName(server); pin != "" {
+		if err := r.reconcileConfigMap(ctx, server, names.configMapName, adminPassword, serverPassword); err != nil {
+			return r.failStatus(ctx, server, err)
+		}
+	}
+
+	// Keep messages from maybeAutoUpdate (defer / announce / skip); otherwise use phase text.
+	if server.Status.Message == "" {
+		server.Status.Message = message
+	}
 	server.Status.Phase = phase
 	server.Status.Ready = ready
 	server.Status.ConnectionPort = gamePort(server.Spec)
 	server.Status.ConnectionAddress = connectionAddressFromGateway(server, gateway)
-	server.Status.Message = message
 	server.Status.CredentialsSecretName = credentialsSecret
 	server.Status.CredentialsGenerated = credentialsGenerated
+	server.Status.DesiredImage = serverImage(server.Spec)
 	server.Status.ObservedGeneration = server.Generation
 	meta.SetStatusCondition(&server.Status.Conditions, metav1.Condition{
 		Type:               "Ready",
 		Status:             conditionStatus(ready),
 		Reason:             phase,
-		Message:            message,
+		Message:            server.Status.Message,
 		ObservedGeneration: server.Generation,
-		LastTransitionTime: metav1.NewTime(time.Now()),
+		LastTransitionTime: metav1.NewTime(now),
 	})
 
 	if err := r.Status().Update(ctx, server); err != nil {
@@ -139,7 +178,10 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if !ready {
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
-	return ctrl.Result{}, nil
+	if requeueAfter <= 0 {
+		requeueAfter = updateCheckInterval(server.Spec)
+	}
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 func (r *PalworldServerReconciler) resolvePasswords(
@@ -296,9 +338,13 @@ func (r *PalworldServerReconciler) reconcileConfigMap(
 			return err
 		}
 		configMap.Labels = serverLabels(server.Name)
-		configMap.Data = map[string]string{
+		data := map[string]string{
 			settingsConfigKey: buildPalWorldSettingsINI(server.Spec, adminPassword, serverPassword),
 		}
+		if pin := dedicatedServerName(server); pin != "" {
+			data[gameUserSettingsKey] = buildGameUserSettingsINI(pin)
+		}
+		configMap.Data = data
 		return nil
 	})
 	if err != nil {
@@ -386,10 +432,7 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 					Image: initContainerImage,
 					Command: []string{
 						"sh", "-c",
-						fmt.Sprintf(
-							"mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s",
-							settingsConfigKey, settingsRelativePath,
-						),
+						seedSettingsScript(),
 					},
 					VolumeMounts: []corev1.VolumeMount{
 						{Name: volumeSaves, MountPath: "/saves"},

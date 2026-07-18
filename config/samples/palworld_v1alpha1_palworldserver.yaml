@@ -40,6 +40,23 @@ spec:
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
   terminationGracePeriodSeconds: 60
 
+  # Opt-in: auto-bump official Pocketpair image tags (default off).
+  # Discovers latest vX.Y.Z.W via anonymous GHCR tag list; pins repo:tag (not :latest).
+  # Learns DedicatedServerName from REST worldguid and seeds GameUserSettings.ini
+  # so Recreate rolls keep the world. Prefer also setting dedicatedServerName explicitly.
+  #
+  # update:
+  #   autoUpdateImage: true
+  #   checkInterval: 6h                 # used when checkSchedule unset
+  #   # checkSchedule: "0 */6 * * *"    # optional 5-field cron (timeZone)
+  #   # applySchedule: "0 4 * * 1-5"    # optional maintenance window (cron must match now)
+  #   timeZone: UTC                     # IANA; default UTC
+  #   onlyWhenEmpty: true               # defer while REST currentplayernum > 0
+  #   notifyPlayers: true               # REST POST /v1/api/announce before roll
+  #   # notifyMessage: "Update to {version} soon — please disconnect"
+  #   notifyLeadTime: 2m
+  # dedicatedServerName: ""             # optional explicit world pin (SaveGames/0 folder)
+
   # Credentials — pick ONE mode:
   #
   # Mode A: bring-your-own Secret (create first, then reference keys):

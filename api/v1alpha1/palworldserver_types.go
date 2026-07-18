@@ -94,6 +94,73 @@ type CommunityConfig struct {
 	PublicPort int32 `json:"publicPort,omitempty"`
 }
 
+// UpdateConfig controls opt-in auto-update of the official Pocketpair server image.
+// When disabled (default), the operator never mutates spec.serverImage.
+type UpdateConfig struct {
+	// AutoUpdateImage when true periodically checks for newer Pocketpair palserver
+	// version tags and patches spec.serverImage to repo:vX.Y.Z.W (never floating
+	// :latest after an update). Default false — opt-in only.
+	// +optional
+	AutoUpdateImage bool `json:"autoUpdateImage,omitempty"`
+
+	// CheckInterval is how often to query the registry for newer tags when
+	// checkSchedule is unset. Go duration (e.g. "1h", "6h"). Default "6h".
+	// Ignored when checkSchedule is set.
+	// +kubebuilder:default="6h"
+	// +optional
+	CheckInterval string `json:"checkInterval,omitempty"`
+
+	// CheckSchedule is an optional standard 5-field cron (min hour dom month dow)
+	// that controls when GHCR tags may be polled. Evaluated in timeZone (default UTC).
+	// Example: "0 */6 * * *" (top of every 6th hour). When set, checkInterval is unused.
+	// +optional
+	CheckSchedule string `json:"checkSchedule,omitempty"`
+
+	// ApplySchedule is an optional standard 5-field cron for the maintenance window
+	// when an image roll may be applied. Evaluated in timeZone (default UTC).
+	// The cron must match the current minute for apply to proceed (e.g.
+	// "0 4 * * 1-5" = 04:00 UTC Mon–Fri; "*/15 4-6 * * *" = every 15m from 04:00–06:45).
+	// When unset, updates apply whenever idle/safe (subject to onlyWhenEmpty).
+	// +optional
+	ApplySchedule string `json:"applySchedule,omitempty"`
+
+	// TimeZone is an IANA timezone name for checkSchedule / applySchedule
+	// (e.g. "America/Los_Angeles"). Default "UTC".
+	// +kubebuilder:default="UTC"
+	// +optional
+	TimeZone string `json:"timeZone,omitempty"`
+
+	// ImageRepository is the OCI repository used when listing tags and pinning
+	// updated images. Default: ghcr.io/pocketpairjp/palserver
+	// +kubebuilder:default="ghcr.io/pocketpairjp/palserver"
+	// +optional
+	ImageRepository string `json:"imageRepository,omitempty"`
+
+	// OnlyWhenEmpty when true (default) defers applying an image bump while the
+	// REST metrics endpoint reports currentplayernum > 0.
+	// +kubebuilder:default=true
+	// +optional
+	OnlyWhenEmpty *bool `json:"onlyWhenEmpty,omitempty"`
+
+	// NotifyPlayers when true sends an in-game broadcast via official REST
+	// POST /v1/api/announce before rolling the Deployment. Requires REST enabled
+	// and admin credentials. (Pocketpair has deprecated RCON in favor of REST;
+	// this operator uses announce only — not RCON Broadcast.)
+	// +optional
+	NotifyPlayers bool `json:"notifyPlayers,omitempty"`
+
+	// NotifyMessage is the announce text. Empty uses a default that includes the
+	// target version tag. Placeholders: {version}, {image}.
+	// +optional
+	NotifyMessage string `json:"notifyMessage,omitempty"`
+
+	// NotifyLeadTime waits after a successful announce before patching
+	// spec.serverImage. Go duration (e.g. "2m", "5m"). Default "2m".
+	// +kubebuilder:default="2m"
+	// +optional
+	NotifyLeadTime string `json:"notifyLeadTime,omitempty"`
+}
+
 // PalworldServerSpec defines the desired state of a Palworld dedicated game server.
 // Default image is the official Pocketpair package (ghcr.io/pocketpairjp/palserver).
 // Settings map to PalWorldSettings.ini / CLI args (official) or community-image
@@ -177,6 +244,18 @@ type PalworldServerSpec struct {
 	// +optional
 	UpdateOnBoot *bool `json:"updateOnBoot,omitempty"`
 
+	// Update configures opt-in auto-update of the official Pocketpair image tag.
+	// Independent of updateOnBoot (community SteamCMD). See docs/PALWORLD_SERVER.md.
+	// +optional
+	Update UpdateConfig `json:"update,omitempty"`
+
+	// DedicatedServerName pins the world folder under SaveGames/0 via
+	// GameUserSettings.ini ([/Script/Pal.PalGameLocalSettings]). Prefer setting
+	// this after the first boot (REST worldguid), or leave empty and let the
+	// operator learn it from REST and seed it before Recreate rolls / auto-updates.
+	// +optional
+	DedicatedServerName string `json:"dedicatedServerName,omitempty"`
+
 	// CrossplayPlatforms lists allowed platforms, e.g. "(Steam,Xbox,PS5,Mac)".
 	// +optional
 	CrossplayPlatforms string `json:"crossplayPlatforms,omitempty"`
@@ -259,6 +338,47 @@ type PalworldServerStatus struct {
 	// +optional
 	CredentialsGenerated bool `json:"credentialsGenerated,omitempty"`
 
+	// DesiredImage is the container image the Deployment should run
+	// (typically equals spec.serverImage after reconcile).
+	// +optional
+	DesiredImage string `json:"desiredImage,omitempty"`
+
+	// RunningVersion is the game version reported by REST /v1/api/info when Ready.
+	// +optional
+	RunningVersion string `json:"runningVersion,omitempty"`
+
+	// LatestAvailableVersion is the newest vX.Y.Z.W tag seen in the configured
+	// image repository (when auto-update checks run or status was refreshed).
+	// +optional
+	LatestAvailableVersion string `json:"latestAvailableVersion,omitempty"`
+
+	// UpdateAvailable is true when LatestAvailableVersion is newer than the
+	// pinned/running version.
+	// +optional
+	UpdateAvailable bool `json:"updateAvailable,omitempty"`
+
+	// LastImageCheckTime is when the registry was last queried for tags.
+	// +optional
+	LastImageCheckTime *metav1.Time `json:"lastImageCheckTime,omitempty"`
+
+	// DedicatedServerName is the observed/learned world pin (REST worldguid).
+	// Prefer also setting spec.dedicatedServerName for GitOps durability.
+	// +optional
+	DedicatedServerName string `json:"dedicatedServerName,omitempty"`
+
+	// PlayerCount is the last observed currentplayernum from REST metrics.
+	// +optional
+	PlayerCount *int32 `json:"playerCount,omitempty"`
+
+	// PendingUpdateImage is the image announced (or queued) for apply after
+	// notifyLeadTime / maintenance-window gates. Cleared when applied or canceled.
+	// +optional
+	PendingUpdateImage string `json:"pendingUpdateImage,omitempty"`
+
+	// LastAnnounceTime is when REST /v1/api/announce last succeeded for a pending update.
+	// +optional
+	LastAnnounceTime *metav1.Time `json:"lastAnnounceTime,omitempty"`
+
 	// ObservedGeneration is the last reconciled generation.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
@@ -275,6 +395,8 @@ type PalworldServerStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Address",type=string,JSONPath=`.status.connectionAddress`
 // +kubebuilder:printcolumn:name="Port",type=integer,JSONPath=`.status.connectionPort`
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.runningVersion`
+// +kubebuilder:printcolumn:name="Update",type=boolean,JSONPath=`.status.updateAvailable`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // PalworldServer is the Schema for the palworldservers API.

@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	github.com/envoyproxy/gateway v1.6.1
+	github.com/robfig/cron/v3 v3.0.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1

@@ -291,8 +291,9 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <h3 class="subhead">“Incapable version”</h3>
         <p>
           Client/server build mismatch — usually the <strong>server image is behind</strong> a Steam client update.
-          Bump <code>spec.serverImage</code> to a current Pocketpair tag (e.g. <code>v1.0.1.100619</code>), wait for Ready,
-          confirm REST <code>/v1/api/info</code> <code>version</code>. Players: update the game on Steam.
+          Bump <code>spec.serverImage</code> to a current Pocketpair tag (e.g. <code>v1.0.1.100619</code>), or enable
+          opt-in <code>spec.update.autoUpdateImage</code>. Wait for Ready, confirm REST <code>version</code>.
+          Players: update the game on Steam.
         </p>
 
         <h3 class="subhead">“No password entered”</h3>
@@ -303,14 +304,18 @@ kubectl get secret palworld-server-secrets -n game-servers \
 
         <h3 class="subhead">Empty / different world after restart</h3>
         <p>
-          Pin <code>DedicatedServerName</code> in <code>GameUserSettings.ini</code> on the Saved PVC —
-          the operator does not manage that yet. Confirm REST <code>worldguid</code> after rolls.
+          The operator seeds <code>DedicatedServerName</code> from REST <code>worldguid</code>
+          (or <code>spec.dedicatedServerName</code>) into <code>GameUserSettings.ini</code>.
+          Confirm REST <code>worldguid</code> after rolls.
         </p>
 
         <h3 class="subhead">How do game patches reach the server?</h3>
         <p>
-          Official image = <strong>new container tag</strong>, not SteamCMD on boot. Community images may use
-          <code>updateOnBoot</code>. Details in FAQ / <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
+          Official image = <strong>new container tag</strong>, not SteamCMD on boot. Opt-in
+          <code>spec.update.autoUpdateImage</code> polls GHCR and pins <code>vX.Y.Z.W</code>
+          (optional cron windows, REST announce before roll). Community images may use
+          <code>updateOnBoot</code>. Details in FAQ /
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
         </p>
 
         <p class="section__cta">

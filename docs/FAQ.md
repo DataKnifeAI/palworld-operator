@@ -23,7 +23,9 @@ kubectl -n game-servers patch palworldserver palworld-server --type=merge \
   -p '{"spec":{"serverImage":"ghcr.io/pocketpairjp/palserver:v1.0.1.100619","imagePullPolicy":"Always"}}'
 ```
 
-Wait for Ready, then re-check REST `version`. After the roll succeeds you can set `imagePullPolicy` back to `IfNotPresent` if you pin a digest/tag.
+Or enable **opt-in** auto-update (`spec.update.autoUpdateImage: true`) so the operator polls GHCR and pins the newest `vX.Y.Z.W` tag when safe (world pin learned, optional maintenance cron, prefer empty server). Status shows `runningVersion`, `latestAvailableVersion`, `updateAvailable`.
+
+Wait for Ready, then re-check REST `version`. After a manual roll you can set `imagePullPolicy` back to `IfNotPresent` if you pin a digest/tag.
 
 **Players:** update Palworld via Steam (or your storefront) so the client matches the server. A 1.0.x client needs a matching dedicated build.
 
@@ -50,9 +52,9 @@ Step-by-step: [CONNECT.md](CONNECT.md). Landing-page summary: [site § Connect](
 
 ## World changed / empty after restart
 
-Palworld loads the world named by `DedicatedServerName` in `GameUserSettings.ini` (folder under `SaveGames/0/`). The operator does **not** manage that pin. A missing/wrong value creates a **new empty world** and leaves the old save on the PVC.
+Palworld loads the world named by `DedicatedServerName` in `GameUserSettings.ini` (folder under `SaveGames/0/`). The operator **learns** REST `worldguid` into `status.dedicatedServerName` and seeds `GameUserSettings.ini` on the Saved PVC (alongside `PalWorldSettings.ini`) so Recreate / auto-update rolls keep the world. You can also set `spec.dedicatedServerName` explicitly (recommended for GitOps).
 
-After any roll, confirm REST `worldguid` still matches the intended save folder. Keep `GameUserSettings.ini` on the Saved PVC (seed-settings only overwrites `PalWorldSettings.ini`).
+After any roll, confirm REST `worldguid` still matches the intended save folder.
 
 See [PALWORLD_SERVER.md — World selection](PALWORLD_SERVER.md#world-selection-across-restarts).
 
@@ -60,10 +62,12 @@ See [PALWORLD_SERVER.md — World selection](PALWORLD_SERVER.md#world-selection-
 
 | Image | How updates land |
 |-------|------------------|
-| **Official** `ghcr.io/pocketpairjp/palserver` (operator default) | **Bump `spec.serverImage` tag** (or pull a new `latest` digest). No SteamCMD on boot. |
-| Community SteamCMD images | In-container `app_update` / `UPDATE_ON_BOOT` (`spec.updateOnBoot`) |
+| **Official** `ghcr.io/pocketpairjp/palserver` (operator default) | **Bump `spec.serverImage` tag**, or opt in with `spec.update.autoUpdateImage`. No SteamCMD on boot. |
+| Community SteamCMD images | In-container `app_update` / `UPDATE_ON_BOOT` (`spec.updateOnBoot`); auto-update image bumps are skipped unless the image is from `spec.update.imageRepository`. |
 
-Do not expect the official image to self-update. Prefer pinning a version tag in lasting worlds. Full table: [PALWORLD_SERVER.md — Updating](PALWORLD_SERVER.md#updating-the-game-server-steam--patches).
+Auto-update is **off by default**. When enabled it lists GHCR tags anonymously, compares `vX.Y.Z.W`, defers while players are online (`onlyWhenEmpty`), optional cron windows (`checkSchedule` / `applySchedule`, timezone default **UTC**), and optional in-game warn via REST `POST /v1/api/announce` (`notifyPlayers`). Pocketpair has **deprecated RCON**; this operator does not use RCON Broadcast.
+
+Full table: [PALWORLD_SERVER.md — Updating](PALWORLD_SERVER.md#updating-the-game-server-steam--patches).
 
 ## Local PC vs Kubernetes cluster
 

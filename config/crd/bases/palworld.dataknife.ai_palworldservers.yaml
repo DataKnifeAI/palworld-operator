@@ -30,6 +30,12 @@ spec:
     - jsonPath: .status.connectionPort
       name: Port
       type: integer
+    - jsonPath: .status.runningVersion
+      name: Version
+      type: string
+    - jsonPath: .status.updateAvailable
+      name: Update
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -114,6 +120,13 @@ spec:
                 type: string
               crossplayPlatforms:
                 description: CrossplayPlatforms lists allowed platforms, e.g. "(Steam,Xbox,PS5,Mac)".
+                type: string
+              dedicatedServerName:
+                description: |-
+                  DedicatedServerName pins the world folder under SaveGames/0 via
+                  GameUserSettings.ini ([/Script/Pal.PalGameLocalSettings]). Prefer setting
+                  this after the first boot (REST worldguid), or leave empty and let the
+                  operator learn it from REST and seed it before Recreate rolls / auto-updates.
                 type: string
               gamePort:
                 default: 8211
@@ -366,6 +379,75 @@ spec:
                   on stop.
                 format: int64
                 type: integer
+              update:
+                description: |-
+                  Update configures opt-in auto-update of the official Pocketpair image tag.
+                  Independent of updateOnBoot (community SteamCMD). See docs/PALWORLD_SERVER.md.
+                properties:
+                  applySchedule:
+                    description: |-
+                      ApplySchedule is an optional standard 5-field cron for the maintenance window
+                      when an image roll may be applied. Evaluated in timeZone (default UTC).
+                      The cron must match the current minute for apply to proceed (e.g.
+                      "0 4 * * 1-5" = 04:00 UTC Mon–Fri; "*/15 4-6 * * *" = every 15m from 04:00–06:45).
+                      When unset, updates apply whenever idle/safe (subject to onlyWhenEmpty).
+                    type: string
+                  autoUpdateImage:
+                    description: |-
+                      AutoUpdateImage when true periodically checks for newer Pocketpair palserver
+                      version tags and patches spec.serverImage to repo:vX.Y.Z.W (never floating
+                      :latest after an update). Default false — opt-in only.
+                    type: boolean
+                  checkInterval:
+                    default: 6h
+                    description: |-
+                      CheckInterval is how often to query the registry for newer tags when
+                      checkSchedule is unset. Go duration (e.g. "1h", "6h"). Default "6h".
+                      Ignored when checkSchedule is set.
+                    type: string
+                  checkSchedule:
+                    description: |-
+                      CheckSchedule is an optional standard 5-field cron (min hour dom month dow)
+                      that controls when GHCR tags may be polled. Evaluated in timeZone (default UTC).
+                      Example: "0 */6 * * *" (top of every 6th hour). When set, checkInterval is unused.
+                    type: string
+                  imageRepository:
+                    default: ghcr.io/pocketpairjp/palserver
+                    description: |-
+                      ImageRepository is the OCI repository used when listing tags and pinning
+                      updated images. Default: ghcr.io/pocketpairjp/palserver
+                    type: string
+                  notifyLeadTime:
+                    default: 2m
+                    description: |-
+                      NotifyLeadTime waits after a successful announce before patching
+                      spec.serverImage. Go duration (e.g. "2m", "5m"). Default "2m".
+                    type: string
+                  notifyMessage:
+                    description: |-
+                      NotifyMessage is the announce text. Empty uses a default that includes the
+                      target version tag. Placeholders: {version}, {image}.
+                    type: string
+                  notifyPlayers:
+                    description: |-
+                      NotifyPlayers when true sends an in-game broadcast via official REST
+                      POST /v1/api/announce before rolling the Deployment. Requires REST enabled
+                      and admin credentials. (Pocketpair has deprecated RCON in favor of REST;
+                      this operator uses announce only — not RCON Broadcast.)
+                    type: boolean
+                  onlyWhenEmpty:
+                    default: true
+                    description: |-
+                      OnlyWhenEmpty when true (default) defers applying an image bump while the
+                      REST metrics endpoint reports currentplayernum > 0.
+                    type: boolean
+                  timeZone:
+                    default: UTC
+                    description: |-
+                      TimeZone is an IANA timezone name for checkSchedule / applySchedule
+                      (e.g. "America/Los_Angeles"). Default "UTC".
+                    type: string
+                type: object
               updateOnBoot:
                 default: true
                 description: |-
@@ -453,6 +535,31 @@ spec:
                   CredentialsSecretName is the Secret that holds join/admin passwords.
                   Never contains plaintext passwords — use kubectl to read Secret data.
                 type: string
+              dedicatedServerName:
+                description: |-
+                  DedicatedServerName is the observed/learned world pin (REST worldguid).
+                  Prefer also setting spec.dedicatedServerName for GitOps durability.
+                type: string
+              desiredImage:
+                description: |-
+                  DesiredImage is the container image the Deployment should run
+                  (typically equals spec.serverImage after reconcile).
+                type: string
+              lastAnnounceTime:
+                description: LastAnnounceTime is when REST /v1/api/announce last succeeded
+                  for a pending update.
+                format: date-time
+                type: string
+              lastImageCheckTime:
+                description: LastImageCheckTime is when the registry was last queried
+                  for tags.
+                format: date-time
+                type: string
+              latestAvailableVersion:
+                description: |-
+                  LatestAvailableVersion is the newest vX.Y.Z.W tag seen in the configured
+                  image repository (when auto-update checks run or status was refreshed).
+                type: string
               message:
                 description: Message is a human-readable status detail.
                 type: string
@@ -460,11 +567,30 @@ spec:
                 description: ObservedGeneration is the last reconciled generation.
                 format: int64
                 type: integer
+              pendingUpdateImage:
+                description: |-
+                  PendingUpdateImage is the image announced (or queued) for apply after
+                  notifyLeadTime / maintenance-window gates. Cleared when applied or canceled.
+                type: string
               phase:
                 description: Phase is Pending, Running, or Failed.
                 type: string
+              playerCount:
+                description: PlayerCount is the last observed currentplayernum from
+                  REST metrics.
+                format: int32
+                type: integer
               ready:
                 description: Ready is true when the game server pod is ready.
+                type: boolean
+              runningVersion:
+                description: RunningVersion is the game version reported by REST /v1/api/info
+                  when Ready.
+                type: string
+              updateAvailable:
+                description: |-
+                  UpdateAvailable is true when LatestAvailableVersion is newer than the
+                  pinned/running version.
                 type: boolean
             type: object
         type: object

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	palworldv1alpha1 "github.com/DataKnifeAI/palworld-operator/api/v1alpha1"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
@@ -92,6 +93,49 @@ func serverImage(spec palworldv1alpha1.PalworldServerSpec) string {
 		return spec.ServerImage
 	}
 	return defaultServerImage
+}
+
+func imageRepository(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.Update.ImageRepository != "" {
+		return strings.TrimSuffix(spec.Update.ImageRepository, "/")
+	}
+	return defaultImageRepository
+}
+
+func updateCheckInterval(spec palworldv1alpha1.PalworldServerSpec) time.Duration {
+	if spec.Update.CheckInterval == "" {
+		return defaultUpdateCheckInterval
+	}
+	d, err := time.ParseDuration(spec.Update.CheckInterval)
+	if err != nil || d <= 0 {
+		return defaultUpdateCheckInterval
+	}
+	return d
+}
+
+func updateOnlyWhenEmpty(spec palworldv1alpha1.PalworldServerSpec) bool {
+	return boolValue(spec.Update.OnlyWhenEmpty, true)
+}
+
+// dedicatedServerName returns the world pin from spec, else observed status.
+func dedicatedServerName(server *palworldv1alpha1.PalworldServer) string {
+	if server.Spec.DedicatedServerName != "" {
+		return server.Spec.DedicatedServerName
+	}
+	return server.Status.DedicatedServerName
+}
+
+func buildGameUserSettingsINI(name string) string {
+	name = strings.TrimSpace(name)
+	return fmt.Sprintf("[/Script/Pal.PalGameLocalSettings]\nDedicatedServerName=%s\n", name)
+}
+
+func seedSettingsScript() string {
+	return fmt.Sprintf(
+		`mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s && if [ -f /settings/%s ]; then cp /settings/%s /saves/%s; fi`,
+		settingsConfigKey, settingsRelativePath,
+		gameUserSettingsKey, gameUserSettingsKey, gameUserSettingsRelPath,
+	)
 }
 
 func isCommunityImage(spec palworldv1alpha1.PalworldServerSpec) bool {

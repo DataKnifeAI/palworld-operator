@@ -182,11 +182,42 @@ Official Pocketpair guidance ([Updating the Dedicated Server](https://github.com
 
 `spec.updateOnBoot` remains for optional community images; it does not make the official image self-update.
 
+### Opt-in auto-update (`spec.update`)
+
+Set `spec.update.autoUpdateImage: true` to have the operator:
+
+1. **Discover latest** — anonymous GHCR OCI tag list for `spec.update.imageRepository` (default `ghcr.io/pocketpairjp/palserver`); parse `vX.Y.Z.W`; ignore `latest` for comparison (or treat a floating pin as behind any newer version tag). Lookups are cached (~30m).
+2. **Compare** — pinned image tag, else REST `/v1/api/info` `version`, vs newest tag. Status: `desiredImage`, `runningVersion`, `latestAvailableVersion`, `updateAvailable`, `lastImageCheckTime`.
+3. **Apply safely** — patch `spec.serverImage` to `repo:vX.Y.Z.W` (never leave a floating `latest` after an auto bump). Requires a world pin (`spec.dedicatedServerName` or learned REST `worldguid`) once the server has been Ready. Default `onlyWhenEmpty: true` defers while REST `/v1/api/metrics` `currentplayernum > 0`.
+4. **Schedules** (optional, 5-field cron, `spec.update.timeZone` default **UTC**):
+   - `checkInterval` (default `6h`) when `checkSchedule` unset — how often to poll GHCR
+   - `checkSchedule` — cron minutes when polling is allowed (replaces interval)
+   - `applySchedule` — cron must match the **current minute** for a roll (maintenance window); omit to apply whenever idle/safe
+5. **In-game notice** (optional) — `notifyPlayers: true` calls official REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) with `{"message":"..."}` (Basic auth `admin`), then waits `notifyLeadTime` (default `2m`) before patching. Placeholders in `notifyMessage`: `{version}`, `{image}`. Pocketpair documents **RCON as deprecated**; this feature uses REST announce only (no RCON `Broadcast`).
+
+When `autoUpdateImage` is false, the operator never mutates `spec.serverImage` (manual pins win).
+
+Example:
+
+```yaml
+spec:
+  dedicatedServerName: "YOUR-WORLD-GUID"   # or leave empty to learn from REST
+  update:
+    autoUpdateImage: true
+    checkInterval: 6h
+    # checkSchedule: "0 */6 * * *"
+    applySchedule: "0 4 * * 1-5"           # 04:00 UTC Mon–Fri
+    timeZone: UTC
+    onlyWhenEmpty: true
+    notifyPlayers: true
+    notifyLeadTime: 2m
+```
+
 ### World selection across restarts
 
 Palworld loads the world named in `Pal/Saved/Config/LinuxServer/GameUserSettings.ini` under `[/Script/Pal.PalGameLocalSettings]` → `DedicatedServerName=<SaveGames/0 folder name>`. That folder name is the world GUID (also reported by REST `worldguid`).
 
-If `DedicatedServerName` is missing or wrong after a roll, the server creates a **new** empty world and leaves the old folder on the PVC. Keep `GameUserSettings.ini` on the Saved PVC (the operator’s `seed-settings` init only overwrites `PalWorldSettings.ini`). After any reschedule, confirm REST `worldguid` still matches the intended `SaveGames/0/<guid>/` directory.
+The operator seeds `GameUserSettings.ini` from `spec.dedicatedServerName` or learned `status.dedicatedServerName` (REST `worldguid`) via the same `seed-settings` init that writes `PalWorldSettings.ini`. A missing/wrong pin creates a **new** empty world and leaves the old folder on the PVC. Prefer setting `spec.dedicatedServerName` in GitOps after the first successful boot. After any reschedule, confirm REST `worldguid` still matches the intended `SaveGames/0/<guid>/` directory.
 
 ## Crossplay
 
