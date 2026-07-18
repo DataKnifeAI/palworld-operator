@@ -2,14 +2,19 @@ package controller
 
 import "testing"
 
+const (
+	testPalVersion101 = "v1.0.1.100619"
+	testPalVersion100 = "v1.0.0.100427"
+)
+
 func TestParsePalVersion(t *testing.T) {
 	tests := []struct {
 		in      string
 		wantRaw string
 		ok      bool
 	}{
-		{"v1.0.1.100619", "v1.0.1.100619", true},
-		{"1.0.0.100427", "v1.0.0.100427", true},
+		{testPalVersion101, testPalVersion101, true},
+		{"1.0.0.100427", testPalVersion100, true},
 		{"latest", "", false},
 		{"v1.0.1", "", false},
 		{"", "", false},
@@ -27,8 +32,8 @@ func TestParsePalVersion(t *testing.T) {
 }
 
 func TestCompareAndNewest(t *testing.T) {
-	older, _ := parsePalVersion("v1.0.0.100427")
-	newer, _ := parsePalVersion("v1.0.1.100619")
+	older, _ := parsePalVersion(testPalVersion100)
+	newer, _ := parsePalVersion(testPalVersion101)
 	if comparePalVersions(older, newer) >= 0 {
 		t.Fatal("expected older < newer")
 	}
@@ -39,26 +44,26 @@ func TestCompareAndNewest(t *testing.T) {
 		t.Fatal("expected equal")
 	}
 
-	tag, ok := newestPalVersionTag([]string{"latest", "v1.0.0.100427", "v0.7.3.90464", "v1.0.1.100619", "nightly"})
-	if !ok || tag != "v1.0.1.100619" {
+	tag, ok := newestPalVersionTag([]string{"latest", testPalVersion100, "v0.7.3.90464", testPalVersion101, "nightly"})
+	if !ok || tag != testPalVersion101 {
 		t.Fatalf("newest=%q ok=%v", tag, ok)
 	}
 }
 
 func TestShouldUpdateImage(t *testing.T) {
-	latest := "v1.0.1.100619"
+	latest := testPalVersion101
 	cases := []struct {
 		name    string
 		image   string
 		running string
 		want    bool
 	}{
-		{"behind pin", "ghcr.io/pocketpairjp/palserver:v1.0.0.100427", "", true},
-		{"current pin", "ghcr.io/pocketpairjp/palserver:v1.0.1.100619", "", false},
+		{"behind pin", "ghcr.io/pocketpairjp/palserver:" + testPalVersion100, "", true},
+		{"current pin", "ghcr.io/pocketpairjp/palserver:" + testPalVersion101, "", false},
 		{"ahead pin", "ghcr.io/pocketpairjp/palserver:v1.0.2.999999", "", false},
-		{"latest tag uses running", "ghcr.io/pocketpairjp/palserver:latest", "v1.0.0.100427", true},
-		{"latest tag current running", "ghcr.io/pocketpairjp/palserver:latest", "v1.0.1.100619", false},
-		{"unparseable behind", "ghcr.io/pocketpairjp/palserver:latest", "", true},
+		{"latest tag uses running", defaultServerImage, testPalVersion100, true},
+		{"latest tag current running", defaultServerImage, testPalVersion101, false},
+		{"unparseable behind", defaultServerImage, "", true},
 	}
 	for _, tc := range cases {
 		if got := shouldUpdateImage(tc.image, tc.running, latest); got != tc.want {
@@ -68,8 +73,8 @@ func TestShouldUpdateImage(t *testing.T) {
 }
 
 func TestImageHelpers(t *testing.T) {
-	img := "ghcr.io/pocketpairjp/palserver:v1.0.1.100619"
-	if got := imageTag(img); got != "v1.0.1.100619" {
+	img := "ghcr.io/pocketpairjp/palserver:" + testPalVersion101
+	if got := imageTag(img); got != testPalVersion101 {
 		t.Fatalf("imageTag=%q", got)
 	}
 	if got := imageRepositoryRef(img); got != "ghcr.io/pocketpairjp/palserver" {
@@ -81,7 +86,7 @@ func TestImageHelpers(t *testing.T) {
 	if imageMatchesRepository("thijsvanloef/palworld-server-docker:latest", "ghcr.io/pocketpairjp/palserver") {
 		t.Fatal("community image should not match official repo")
 	}
-	if got := formatImageRef("ghcr.io/pocketpairjp/palserver", "v1.0.1.100619"); got != img {
+	if got := formatImageRef("ghcr.io/pocketpairjp/palserver", testPalVersion101); got != img {
 		t.Fatalf("formatImageRef=%q", got)
 	}
 }

@@ -75,7 +75,7 @@ func (c *HTTPRESTClient) Announce(ctx context.Context, baseURL, adminPassword, m
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("REST announce: HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
@@ -93,7 +93,7 @@ func (c *HTTPRESTClient) getJSON(ctx context.Context, url, adminPassword string,
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("REST %s: HTTP %d: %s", url, resp.StatusCode, strings.TrimSpace(string(body)))

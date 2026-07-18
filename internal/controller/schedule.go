@@ -15,7 +15,7 @@ var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month 
 func updateTimeZone(spec palworldv1alpha1.PalworldServerSpec) (*time.Location, error) {
 	name := spec.Update.TimeZone
 	if name == "" {
-		name = "UTC"
+		name = defaultUpdateTimeZone
 	}
 	loc, err := time.LoadLocation(name)
 	if err != nil {

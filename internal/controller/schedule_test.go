@@ -31,7 +31,7 @@ func TestInApplyWindow(t *testing.T) {
 	}
 
 	spec.Update.ApplySchedule = "0 4 * * *"
-	spec.Update.TimeZone = "UTC"
+	spec.Update.TimeZone = defaultUpdateTimeZone
 	at := time.Date(2026, 7, 18, 4, 0, 0, 0, time.UTC)
 	ok, err = inApplyWindow(spec, at)
 	if err != nil || !ok {
@@ -65,7 +65,7 @@ func TestShouldCheckRegistryIntervalAndCron(t *testing.T) {
 	}
 
 	spec.Update.CheckSchedule = "0 12 * * *"
-	spec.Update.TimeZone = "UTC"
+	spec.Update.TimeZone = defaultUpdateTimeZone
 	due, err = shouldCheckRegistry(spec, nil, now)
 	if err != nil || !due {
 		t.Fatalf("cron match should be due: %v %v", due, err)
@@ -79,12 +79,12 @@ func TestShouldCheckRegistryIntervalAndCron(t *testing.T) {
 
 func TestFormatNotifyMessage(t *testing.T) {
 	spec := palworldv1alpha1.PalworldServerSpec{}
-	msg := formatNotifyMessage(spec, "v1.0.1.100619", "ghcr.io/pocketpairjp/palserver:v1.0.1.100619")
+	msg := formatNotifyMessage(spec, testPalVersion101, "ghcr.io/pocketpairjp/palserver:"+testPalVersion101)
 	if msg == "" || msg == "{version}" {
 		t.Fatalf("unexpected default message %q", msg)
 	}
 	spec.Update.NotifyMessage = "Updating to {version}"
-	if got := formatNotifyMessage(spec, "v1.0.1.100619", "x"); got != "Updating to v1.0.1.100619" {
+	if got := formatNotifyMessage(spec, testPalVersion101, "x"); got != "Updating to "+testPalVersion101 {
 		t.Fatalf("got %q", got)
 	}
 }

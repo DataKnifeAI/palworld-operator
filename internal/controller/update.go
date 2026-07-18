@@ -188,8 +188,8 @@ func (r *PalworldServerReconciler) maybeAutoUpdate(
 			server.Status.Message = fmt.Sprintf("announced update to %s; applying after %s", latest, lead)
 			return lead, false, nil
 		}
-		if server.Status.LastAnnounceTime != nil && now.Before(server.Status.LastAnnounceTime.Time.Add(lead)) {
-			remaining := server.Status.LastAnnounceTime.Time.Add(lead).Sub(now)
+		if server.Status.LastAnnounceTime != nil && now.Before(server.Status.LastAnnounceTime.Add(lead)) {
+			remaining := server.Status.LastAnnounceTime.Add(lead).Sub(now)
 			server.Status.Message = fmt.Sprintf("announced update to %s; applying in %s", latest, remaining.Round(time.Second))
 			return remaining, false, nil
 		}

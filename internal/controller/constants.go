@@ -17,6 +17,7 @@ const (
 	defaultTerminationGrace    int64 = 60
 	defaultCrossplayPlatforms        = "(Steam,Xbox,PS5,Mac)"
 	defaultUpdateCheckInterval       = 6 * time.Hour
+	defaultUpdateTimeZone            = "UTC"
 	defaultNotifyLeadTime            = 2 * time.Minute
 	tagCacheTTL                      = 30 * time.Minute
 	updateRequeueBusy                = 2 * time.Minute

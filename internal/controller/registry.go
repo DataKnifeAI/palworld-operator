@@ -100,7 +100,7 @@ func (l *GHCRTagLister) ListTags(ctx context.Context, repository string) ([]stri
 	if err != nil {
 		return nil, fmt.Errorf("list tags %s: %w", repository, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return nil, fmt.Errorf("list tags %s: rate limited (429)", repository)
@@ -138,7 +138,7 @@ func (l *GHCRTagLister) fetchPullToken(ctx context.Context, host, path string) (
 	if err != nil {
 		return "", fmt.Errorf("ghcr token: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("ghcr token: HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
