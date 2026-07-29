@@ -149,14 +149,24 @@ type UpdateConfig struct {
 	// +optional
 	NotifyPlayers bool `json:"notifyPlayers,omitempty"`
 
-	// NotifyMessage is the announce text. Empty uses a default that includes the
-	// target version tag. Placeholders: {version}, {image}.
+	// NotifyMessage is an optional announce prefix/template. Empty uses staged
+	// defaults that include time remaining. Placeholders: {version}, {image},
+	// {remaining} (humanized duration until planned apply).
 	// +optional
 	NotifyMessage string `json:"notifyMessage,omitempty"`
 
-	// NotifyLeadTime waits after a successful announce before patching
-	// spec.serverImage. Go duration (e.g. "2m", "5m"). Default "2m".
-	// +kubebuilder:default="2m"
+	// NotifySchedule is durations before plannedApplyTime when REST announce
+	// messages should fire (e.g. ["60m","30m","15m","5m","1m","30s","10s"]).
+	// Reconcile is non-blocking: each pass sends due stages and requeues until
+	// the next boundary. The "10s" stage runs a short in-reconcile countdown.
+	// When empty: if notifyLeadTime is set, that single duration is used
+	// (backward compatible); otherwise the default multi-stage schedule above.
+	// +optional
+	NotifySchedule []string `json:"notifySchedule,omitempty"`
+
+	// NotifyLeadTime is deprecated in favor of notifySchedule. When
+	// notifySchedule is empty, treated as a single-stage schedule
+	// [notifyLeadTime] (e.g. "2m"). Ignored when notifySchedule is set.
 	// +optional
 	NotifyLeadTime string `json:"notifyLeadTime,omitempty"`
 }
@@ -370,10 +380,21 @@ type PalworldServerStatus struct {
 	// +optional
 	PlayerCount *int32 `json:"playerCount,omitempty"`
 
-	// PendingUpdateImage is the image announced (or queued) for apply after
-	// notifyLeadTime / maintenance-window gates. Cleared when applied or canceled.
+	// PendingUpdateImage is the image queued for apply after the notify schedule
+	// / maintenance-window gates. Cleared when applied or canceled.
 	// +optional
 	PendingUpdateImage string `json:"pendingUpdateImage,omitempty"`
+
+	// PlannedApplyTime is when the pending image bump should apply (T=0).
+	// Stage announces are scheduled relative to this instant.
+	// +optional
+	PlannedApplyTime *metav1.Time `json:"plannedApplyTime,omitempty"`
+
+	// AnnouncedNotifyStages lists notifySchedule stage keys already broadcast
+	// for the current PendingUpdateImage (e.g. "60m", "10s") so reconcile
+	// does not re-announce.
+	// +optional
+	AnnouncedNotifyStages []string `json:"announcedNotifyStages,omitempty"`
 
 	// LastAnnounceTime is when REST /v1/api/announce last succeeded for a pending update.
 	// +optional

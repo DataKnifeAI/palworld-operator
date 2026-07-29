@@ -193,7 +193,7 @@ Set `spec.update.autoUpdateImage: true` to have the operator:
    - `checkInterval` (default `6h`) when `checkSchedule` unset — how often to poll GHCR
    - `checkSchedule` — cron minutes when polling is allowed (replaces interval)
    - `applySchedule` — cron must match the **current minute** for a roll (maintenance window); omit to apply whenever idle/safe
-5. **In-game notice** (optional) — `notifyPlayers: true` calls official REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) with `{"message":"..."}` (Basic auth `admin`), then waits `notifyLeadTime` (default `2m`) before patching. Placeholders in `notifyMessage`: `{version}`, `{image}`. Pocketpair documents **RCON as deprecated**; this feature uses REST announce only (no RCON `Broadcast`).
+5. **In-game notice** (optional) — `notifyPlayers: true` plans `status.plannedApplyTime` (now + max schedule, or next `applySchedule`) and sends staged REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) warnings as reconcile hits each boundary. Default schedule: `60m`, `30m`, `15m`, `5m`, `1m`, `30s`, then a short `10s` countdown immediately before the image patch. Override with `notifySchedule` (Go durations). Legacy `notifyLeadTime` (e.g. `2m`) is a single-stage schedule when `notifySchedule` is empty. Placeholders in `notifyMessage`: `{version}`, `{image}`, `{remaining}`. Status tracks `announcedNotifyStages` so stages are not re-sent. `onlyWhenEmpty` still gates the **roll**, not the warnings (players online get the notices). Reconcile never blocks for the full lead — it requeues until the next stage. Pocketpair documents **RCON as deprecated**; this feature uses REST announce only.
 
 When `autoUpdateImage` is false, the operator never mutates `spec.serverImage` (manual pins win).
 
@@ -210,7 +210,9 @@ spec:
     timeZone: UTC
     onlyWhenEmpty: true
     notifyPlayers: true
-    notifyLeadTime: 2m
+    # notifySchedule: ["60m","30m","15m","5m","1m","30s","10s"]  # default when unset + no notifyLeadTime
+    # notifyMessage: "[Server] Update {version} — restart in {remaining}"
+    # notifyLeadTime: 2m                   # deprecated single-stage fallback
 ```
 
 ### World selection across restarts

@@ -94,28 +94,11 @@ func shouldCheckRegistry(spec palworldv1alpha1.PalworldServerSpec, lastCheck *ti
 	return now.Sub(*lastCheck) >= updateCheckInterval(spec), nil
 }
 
-func notifyLeadTime(spec palworldv1alpha1.PalworldServerSpec) time.Duration {
-	if spec.Update.NotifyLeadTime == "" {
-		return defaultNotifyLeadTime
-	}
-	d, err := time.ParseDuration(spec.Update.NotifyLeadTime)
-	if err != nil || d < 0 {
-		return defaultNotifyLeadTime
-	}
-	return d
-}
-
-func defaultNotifyMessage(version, image string) string {
-	return fmt.Sprintf("Server update to %s starting soon — please disconnect. Image: %s", version, image)
-}
-
 func formatNotifyMessage(spec palworldv1alpha1.PalworldServerSpec, version, image string) string {
-	msg := spec.Update.NotifyMessage
-	if msg == "" {
-		return defaultNotifyMessage(version, image)
-	}
-	return strings.NewReplacer(
-		"{version}", version,
-		"{image}", image,
-	).Replace(msg)
+	return formatStageMessage(spec, version, image, notifyLeadTime(spec), true)
+}
+
+// notifyLeadTime returns the max stage lead for backward-compatible helpers.
+func notifyLeadTime(spec palworldv1alpha1.PalworldServerSpec) time.Duration {
+	return maxNotifyLead(parseNotifySchedule(spec))
 }

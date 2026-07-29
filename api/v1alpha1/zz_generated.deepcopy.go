@@ -194,6 +194,15 @@ func (in *PalworldServerStatus) DeepCopyInto(out *PalworldServerStatus) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.PlannedApplyTime != nil {
+		in, out := &in.PlannedApplyTime, &out.PlannedApplyTime
+		*out = (*in).DeepCopy()
+	}
+	if in.AnnouncedNotifyStages != nil {
+		in, out := &in.AnnouncedNotifyStages, &out.AnnouncedNotifyStages
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.LastAnnounceTime != nil {
 		in, out := &in.LastAnnounceTime, &out.LastAnnounceTime
 		*out = (*in).DeepCopy()
@@ -269,6 +278,11 @@ func (in *UpdateConfig) DeepCopyInto(out *UpdateConfig) {
 		in, out := &in.OnlyWhenEmpty, &out.OnlyWhenEmpty
 		*out = new(bool)
 		**out = **in
+	}
+	if in.NotifySchedule != nil {
+		in, out := &in.NotifySchedule, &out.NotifySchedule
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 

@@ -87,6 +87,11 @@ func TestFormatNotifyMessage(t *testing.T) {
 	if got := formatNotifyMessage(spec, testPalVersion101, "x"); got != "Updating to "+testPalVersion101 {
 		t.Fatalf("got %q", got)
 	}
+	spec.Update.NotifyMessage = "Restart in {remaining} → {version}"
+	got := formatNotifyMessage(spec, testPalVersion101, "x")
+	if got == "" || got == "Restart in {remaining} → {version}" {
+		t.Fatalf("expected remaining placeholder expansion, got %q", got)
+	}
 }
 
 func TestBuildGameUserSettingsINI(t *testing.T) {

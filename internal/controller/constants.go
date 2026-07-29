@@ -18,7 +18,7 @@ const (
 	defaultCrossplayPlatforms        = "(Steam,Xbox,PS5,Mac)"
 	defaultUpdateCheckInterval       = 6 * time.Hour
 	defaultUpdateTimeZone            = "UTC"
-	defaultNotifyLeadTime            = 2 * time.Minute
+	defaultNotifyLeadTime            = 60 * time.Minute // max of default multi-stage schedule
 	tagCacheTTL                      = 30 * time.Minute
 	updateRequeueBusy                = 2 * time.Minute
 	updateRequeueSoon                = 30 * time.Second

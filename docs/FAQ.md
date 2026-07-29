@@ -65,7 +65,7 @@ See [PALWORLD_SERVER.md — World selection](PALWORLD_SERVER.md#world-selection-
 | **Official** `ghcr.io/pocketpairjp/palserver` (operator default) | **Bump `spec.serverImage` tag**, or opt in with `spec.update.autoUpdateImage`. No SteamCMD on boot. |
 | Community SteamCMD images | In-container `app_update` / `UPDATE_ON_BOOT` (`spec.updateOnBoot`); auto-update image bumps are skipped unless the image is from `spec.update.imageRepository`. |
 
-Auto-update is **off by default**. When enabled it lists GHCR tags anonymously, compares `vX.Y.Z.W`, defers while players are online (`onlyWhenEmpty`), optional cron windows (`checkSchedule` / `applySchedule`, timezone default **UTC**), and optional in-game warn via REST `POST /v1/api/announce` (`notifyPlayers`). Pocketpair has **deprecated RCON**; this operator does not use RCON Broadcast.
+Auto-update is **off by default**. When enabled it lists GHCR tags anonymously, compares `vX.Y.Z.W`, defers the **image roll** while players are online (`onlyWhenEmpty`), optional cron windows (`checkSchedule` / `applySchedule`, timezone default **UTC**), and optional staged in-game warns via REST `POST /v1/api/announce` (`notifyPlayers` + `notifySchedule`, default 60m→10s; legacy `notifyLeadTime` = single stage). Warnings still fire while players are online. Pocketpair has **deprecated RCON**; this operator does not use RCON Broadcast.
 
 Full table: [PALWORLD_SERVER.md — Updating](PALWORLD_SERVER.md#updating-the-game-server-steam--patches).
 

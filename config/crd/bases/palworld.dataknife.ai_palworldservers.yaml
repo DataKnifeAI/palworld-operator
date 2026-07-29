@@ -418,15 +418,16 @@ spec:
                       updated images. Default: ghcr.io/pocketpairjp/palserver
                     type: string
                   notifyLeadTime:
-                    default: 2m
                     description: |-
-                      NotifyLeadTime waits after a successful announce before patching
-                      spec.serverImage. Go duration (e.g. "2m", "5m"). Default "2m".
+                      NotifyLeadTime is deprecated in favor of notifySchedule. When
+                      notifySchedule is empty, treated as a single-stage schedule
+                      [notifyLeadTime] (e.g. "2m"). Ignored when notifySchedule is set.
                     type: string
                   notifyMessage:
                     description: |-
-                      NotifyMessage is the announce text. Empty uses a default that includes the
-                      target version tag. Placeholders: {version}, {image}.
+                      NotifyMessage is an optional announce prefix/template. Empty uses staged
+                      defaults that include time remaining. Placeholders: {version}, {image},
+                      {remaining} (humanized duration until planned apply).
                     type: string
                   notifyPlayers:
                     description: |-
@@ -435,6 +436,17 @@ spec:
                       and admin credentials. (Pocketpair has deprecated RCON in favor of REST;
                       this operator uses announce only — not RCON Broadcast.)
                     type: boolean
+                  notifySchedule:
+                    description: |-
+                      NotifySchedule is durations before plannedApplyTime when REST announce
+                      messages should fire (e.g. ["60m","30m","15m","5m","1m","30s","10s"]).
+                      Reconcile is non-blocking: each pass sends due stages and requeues until
+                      the next boundary. The "10s" stage runs a short in-reconcile countdown.
+                      When empty: if notifyLeadTime is set, that single duration is used
+                      (backward compatible); otherwise the default multi-stage schedule above.
+                    items:
+                      type: string
+                    type: array
                   onlyWhenEmpty:
                     default: true
                     description: |-
@@ -461,6 +473,14 @@ spec:
           status:
             description: PalworldServerStatus defines the observed state of PalworldServer.
             properties:
+              announcedNotifyStages:
+                description: |-
+                  AnnouncedNotifyStages lists notifySchedule stage keys already broadcast
+                  for the current PendingUpdateImage (e.g. "60m", "10s") so reconcile
+                  does not re-announce.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions represent the latest available observations.
                 items:
@@ -569,11 +589,17 @@ spec:
                 type: integer
               pendingUpdateImage:
                 description: |-
-                  PendingUpdateImage is the image announced (or queued) for apply after
-                  notifyLeadTime / maintenance-window gates. Cleared when applied or canceled.
+                  PendingUpdateImage is the image queued for apply after the notify schedule
+                  / maintenance-window gates. Cleared when applied or canceled.
                 type: string
               phase:
                 description: Phase is Pending, Running, or Failed.
+                type: string
+              plannedApplyTime:
+                description: |-
+                  PlannedApplyTime is when the pending image bump should apply (T=0).
+                  Stage announces are scheduled relative to this instant.
+                format: date-time
                 type: string
               playerCount:
                 description: PlayerCount is the last observed currentplayernum from

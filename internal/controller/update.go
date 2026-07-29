@@ -132,8 +132,7 @@ func (r *PalworldServerReconciler) maybeAutoUpdate(
 	updateAvail := shouldUpdateImage(desired, server.Status.RunningVersion, latest)
 	server.Status.UpdateAvailable = updateAvail
 	if !updateAvail {
-		server.Status.PendingUpdateImage = ""
-		server.Status.LastAnnounceTime = nil
+		clearNotifyStatus(server)
 		server.Status.Message = ""
 		return requeueAfter, false, nil
 	}
@@ -148,17 +147,29 @@ func (r *PalworldServerReconciler) maybeAutoUpdate(
 		return updateRequeueBusy, false, nil
 	}
 
-	inWindow, err := inApplyWindow(server.Spec, now)
-	if err != nil {
-		return 0, false, err
-	}
-	if !inWindow {
-		server.Status.Message = fmt.Sprintf("update available (%s); waiting for applySchedule window", latest)
-		return updateRequeueBusy, false, nil
+	// Staged notify: plan apply time and announce while players may still be
+	// online. onlyWhenEmpty gates the actual roll at T=0, not the warnings.
+	if server.Spec.Update.NotifyPlayers {
+		rq, ready, nErr := r.processNotifySchedule(ctx, server, names, adminPassword, latest, targetImage, now)
+		if nErr != nil {
+			return 0, false, nErr
+		}
+		if !ready {
+			return rq, false, nil
+		}
+	} else {
+		inWindow, wErr := inApplyWindow(server.Spec, now)
+		if wErr != nil {
+			return 0, false, wErr
+		}
+		if !inWindow {
+			server.Status.Message = fmt.Sprintf("update available (%s); waiting for applySchedule window", latest)
+			return updateRequeueBusy, false, nil
+		}
 	}
 
 	if updateOnlyWhenEmpty(server.Spec) && probe.ok && probe.metrics.CurrentPlayerNum > 0 {
-		server.Status.Message = fmt.Sprintf("update available (%s); deferring while %d player(s) online", latest, probe.metrics.CurrentPlayerNum)
+		server.Status.Message = fmt.Sprintf("update available (%s); deferring apply while %d player(s) online", latest, probe.metrics.CurrentPlayerNum)
 		return updateRequeueBusy, false, nil
 	}
 	if updateOnlyWhenEmpty(server.Spec) && !probe.ok && server.Status.Ready {
@@ -166,37 +177,17 @@ func (r *PalworldServerReconciler) maybeAutoUpdate(
 		return updateRequeueBusy, false, nil
 	}
 
-	// Notify path: announce then wait lead time.
-	if server.Spec.Update.NotifyPlayers {
-		lead := notifyLeadTime(server.Spec)
-		needAnnounce := server.Status.PendingUpdateImage != targetImage ||
-			server.Status.LastAnnounceTime == nil
-		if needAnnounce {
-			if !restEnabled(server.Spec) || adminPassword == "" {
-				return 0, false, fmt.Errorf("notifyPlayers requires REST API and admin password")
-			}
-			msg := formatNotifyMessage(server.Spec, latest, targetImage)
-			base := restBaseURL(names.serviceName, server.Namespace, restPort(server.Spec))
-			if annErr := r.restClient().Announce(ctx, base, adminPassword, msg); annErr != nil {
-				log.Error(annErr, "pre-update announce failed")
-				server.Status.Message = fmt.Sprintf("update announce failed: %v", annErr)
-				return updateRequeueBusy, false, nil
-			}
-			announced := metav1.NewTime(now)
-			server.Status.LastAnnounceTime = &announced
-			server.Status.PendingUpdateImage = targetImage
-			server.Status.Message = fmt.Sprintf("announced update to %s; applying after %s", latest, lead)
-			return lead, false, nil
-		}
-		if server.Status.LastAnnounceTime != nil && now.Before(server.Status.LastAnnounceTime.Add(lead)) {
-			remaining := server.Status.LastAnnounceTime.Add(lead).Sub(now)
-			server.Status.Message = fmt.Sprintf("announced update to %s; applying in %s", latest, remaining.Round(time.Second))
-			return remaining, false, nil
-		}
+	if desired == targetImage {
+		clearNotifyStatus(server)
+		return requeueAfter, false, nil
 	}
 
-	if desired == targetImage {
-		return requeueAfter, false, nil
+	if server.Spec.Update.NotifyPlayers {
+		if cErr := r.maybeFinalCountdown(ctx, server, names, adminPassword, latest, now); cErr != nil {
+			log.Error(cErr, "final countdown announce failed")
+			server.Status.Message = fmt.Sprintf("update countdown failed: %v", cErr)
+			return updateRequeueBusy, false, nil
+		}
 	}
 
 	log.Info("auto-updating serverImage", "from", desired, "to", targetImage)
@@ -207,8 +198,7 @@ func (r *PalworldServerReconciler) maybeAutoUpdate(
 	}
 	server.Spec.ServerImage = targetImage
 	server.Status.DesiredImage = targetImage
-	server.Status.PendingUpdateImage = ""
-	server.Status.LastAnnounceTime = nil
+	clearNotifyStatus(server)
 	server.Status.UpdateAvailable = false
 	server.Status.Message = fmt.Sprintf("auto-updated serverImage to %s", targetImage)
 	return updateRequeueSoon, true, nil

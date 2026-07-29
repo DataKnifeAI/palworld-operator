@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Opt-in `spec.update.autoUpdateImage`: GHCR tag discovery, pin `repo:vX.Y.Z.W`, status fields (`desiredImage`, `runningVersion`, `latestAvailableVersion`, `updateAvailable`), `onlyWhenEmpty`, optional cron `checkSchedule` / `applySchedule` + `timeZone` (default UTC), optional REST `/v1/api/announce` pre-roll notice (`notifyPlayers`).
+- Multi-stage pre-update announce schedule (`spec.update.notifySchedule`, default 60m→10s) with `status.plannedApplyTime` / `announcedNotifyStages`; non-blocking reconcile requeues at stage boundaries; short final countdown immediately before apply. Legacy `notifyLeadTime` remains a single-stage fallback.
 - `DedicatedServerName` persistence: learn REST `worldguid`, seed `GameUserSettings.ini` (spec or status pin) so Recreate / auto-update keeps the world.
 - [docs/FAQ.md](docs/FAQ.md) (+ site FAQ section): incapable version, passwords, world pin, image updates, local vs cluster, sizing.
 
 ### Changed
 
 - Sample CR / Compose default image pin: `ghcr.io/pocketpairjp/palserver:v1.0.1.100619` (prefer explicit tags over stale `:latest`).
+- `notifyLeadTime` deprecated in favor of `notifySchedule` (still honored as a single stage when schedule is empty).
 
 ### Planned / known gaps
 

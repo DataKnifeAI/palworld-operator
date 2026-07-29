@@ -53,8 +53,9 @@ spec:
   #   timeZone: UTC                     # IANA; default UTC
   #   onlyWhenEmpty: true               # defer while REST currentplayernum > 0
   #   notifyPlayers: true               # REST POST /v1/api/announce before roll
-  #   # notifyMessage: "Update to {version} soon — please disconnect"
-  #   notifyLeadTime: 2m
+  #   # notifySchedule: ["60m","30m","15m","5m","1m","30s","10s"]
+  #   # notifyMessage: "[Server] Update {version} — restart in {remaining}"
+  #   # notifyLeadTime: 2m              # deprecated single-stage fallback
   # dedicatedServerName: ""             # optional explicit world pin (SaveGames/0 folder)
 
   # Credentials — pick ONE mode:
