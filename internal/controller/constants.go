@@ -23,6 +23,15 @@ const (
 	updateRequeueBusy                = 2 * time.Minute
 	updateRequeueSoon                = 30 * time.Second
 
+	// Named notify-schedule keys (goconst); default timeline uses all of these.
+	notifyKey60m = "60m"
+	notifyKey30m = "30m"
+	notifyKey15m = "15m"
+	notifyKey5m  = "5m"
+	notifyKey1m  = "1m"
+	notifyKey30s = "30s"
+	notifyKey10s = "10s"
+
 	containerUser = int64(1000)
 
 	officialSavedMountPath  = "/pal/Package/Pal/Saved"

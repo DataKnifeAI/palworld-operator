@@ -23,7 +23,9 @@ type notifyStage struct {
 }
 
 // defaultNotifyScheduleKeys is the default multi-stage warning timeline.
-var defaultNotifyScheduleKeys = []string{"60m", "30m", "15m", "5m", "1m", "30s", "10s"}
+var defaultNotifyScheduleKeys = []string{
+	notifyKey60m, notifyKey30m, notifyKey15m, notifyKey5m, notifyKey1m, notifyKey30s, notifyKey10s,
+}
 
 func parseNotifySchedule(spec palworldv1alpha1.PalworldServerSpec) []notifyStage {
 	keys := spec.Update.NotifySchedule

@@ -25,7 +25,7 @@ func TestParseNotifyScheduleDefaultAndLeadTime(t *testing.T) {
 		t.Fatalf("leadTime single stage: %+v", stages)
 	}
 
-	spec.Update.NotifySchedule = []string{"30m", "5m", "10s"}
+	spec.Update.NotifySchedule = []string{notifyKey30m, notifyKey5m, notifyKey10s}
 	stages = parseNotifySchedule(spec)
 	if len(stages) != 3 || stages[0].At != 30*time.Minute {
 		t.Fatalf("explicit schedule: %+v", stages)
@@ -35,7 +35,7 @@ func TestParseNotifyScheduleDefaultAndLeadTime(t *testing.T) {
 func TestNextDueNotifyStageCatchUp(t *testing.T) {
 	stages := parseNotifySchedule(palworldv1alpha1.PalworldServerSpec{
 		Update: palworldv1alpha1.UpdateConfig{
-			NotifySchedule: []string{"60m", "30m", "15m", "5m", "1m", "30s", "10s"},
+			NotifySchedule: append([]string(nil), defaultNotifyScheduleKeys...),
 		},
 	})
 
@@ -62,7 +62,7 @@ func TestNextDueNotifyStageCatchUp(t *testing.T) {
 
 func TestNextDueNotifyStageExactBoundary(t *testing.T) {
 	stages := parseNotifySchedule(palworldv1alpha1.PalworldServerSpec{
-		Update: palworldv1alpha1.UpdateConfig{NotifySchedule: []string{"60m", "30m"}},
+		Update: palworldv1alpha1.UpdateConfig{NotifySchedule: []string{notifyKey60m, notifyKey30m}},
 	})
 	due, skip, ok := nextDueNotifyStage(stages, 60*time.Minute, nil)
 	if !ok || due.At != time.Hour || len(skip) != 0 {
@@ -76,7 +76,7 @@ func TestNextDueNotifyStageExactBoundary(t *testing.T) {
 
 func TestRequeueUntilNextNotifyStage(t *testing.T) {
 	stages := parseNotifySchedule(palworldv1alpha1.PalworldServerSpec{
-		Update: palworldv1alpha1.UpdateConfig{NotifySchedule: []string{"60m", "30m", "10s"}},
+		Update: palworldv1alpha1.UpdateConfig{NotifySchedule: []string{notifyKey60m, notifyKey30m, notifyKey10s}},
 	})
 	// After 60m announced, 50m remaining → next is 30m in 20m.
 	rq := requeueUntilNextNotifyStage(stages, 50*time.Minute, []string{(time.Hour).String()})
