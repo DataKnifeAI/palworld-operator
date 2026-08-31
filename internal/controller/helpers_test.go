@@ -40,6 +40,93 @@ func TestBuildPalWorldSettingsINI(t *testing.T) {
 	}
 }
 
+func TestBuildPalWorldSettingsINIOptionSettingsMerge(t *testing.T) {
+	spec := palworldv1alpha1.PalworldServerSpec{
+		Gateway:    palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
+		ServerName: "FromCR",
+		MaxPlayers: 8,
+		OptionSettings: map[string]string{
+			"ServerName":             "FromMap", // CR wins
+			"ServerPlayerMaxNum":     "32",      // CR wins
+			"ExpRate":                "2.0",
+			"WorkSpeedRate":          "1.5",
+			"bEnableNonLoginPenalty": "False",
+			"DeathPenalty":           "None",
+			"CustomNote":             `hello "world"`,
+		},
+	}
+
+	body := buildPalWorldSettingsINI(spec, "admin", "join")
+	for _, want := range []string{
+		`ServerName="FromCR"`,
+		`ServerPlayerMaxNum=8`,
+		`ExpRate=2.0`,
+		`WorkSpeedRate=1.5`,
+		`bEnableNonLoginPenalty=False`,
+		`DeathPenalty=None`,
+		`CustomNote="hello \"world\""`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %q in %s", want, body)
+		}
+	}
+	if strings.Contains(body, `ServerName="FromMap"`) {
+		t.Fatal("optionSettings ServerName must not override CR serverName")
+	}
+	if strings.Contains(body, "ServerPlayerMaxNum=32") {
+		t.Fatal("optionSettings ServerPlayerMaxNum must not override CR maxPlayers")
+	}
+}
+
+func TestFormatOptionSettingValue(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		{"true", "True"},
+		{"False", "False"},
+		{"1.5", "1.5"},
+		{"None", "None"},
+		{`(Steam,Xbox)`, `(Steam,Xbox)`},
+		{`"already"`, `"already"`},
+		{`say "hi"`, `"say \"hi\""`},
+		{"", `""`},
+	}
+	for _, tt := range tests {
+		if got := formatOptionSettingValue(tt.in); got != tt.want {
+			t.Fatalf("formatOptionSettingValue(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestCommunityOptionSettingsEnv(t *testing.T) {
+	spec := palworldv1alpha1.PalworldServerSpec{
+		OptionSettings: map[string]string{
+			"ExpRate":                "2.0",
+			"WorkSpeedRate":          "1.5",
+			"bEnableNonLoginPenalty": "False",
+			"UnknownFutureKey":       "1",
+		},
+	}
+	env := communityOptionSettingsEnv(spec)
+	got := map[string]string{}
+	for _, e := range env {
+		got[e.Name] = e.Value
+	}
+	want := map[string]string{
+		"EXP_RATE":                 "2.0",
+		"WORK_SPEED_RATE":          "1.5",
+		"ENABLE_NON_LOGIN_PENALTY": "false",
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Fatalf("env %s = %q, want %q (all=%v)", k, got[k], v, got)
+		}
+	}
+	if _, ok := got["UnknownFutureKey"]; ok {
+		t.Fatal("unmapped optionSettings keys must not become env vars")
+	}
+}
+
 func TestResourcesForPlayerCount(t *testing.T) {
 	tests := []struct {
 		players  int32

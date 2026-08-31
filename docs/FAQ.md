@@ -58,6 +58,21 @@ After any roll, confirm REST `worldguid` still matches the intended save folder.
 
 See [PALWORLD_SERVER.md — World selection](PALWORLD_SERVER.md#world-selection-across-restarts).
 
+## Game settings reset after restart / PVC INI wiped
+
+The `seed-settings` init **overwrites** `PalWorldSettings.ini` on the Saved PVC from the operator ConfigMap every start. Edits made only inside the PVC (or via REST) do not stick across rolls.
+
+Put lasting gameplay settings in `spec.optionSettings` (plus management fields like `serverName` / `maxPlayers`). The ConfigMap is rebuilt on reconcile and re-seeded on the next pod start. Official parameter list: [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/).
+
+```yaml
+spec:
+  optionSettings:
+    bEnableNonLoginPenalty: "False"
+    WorkSpeedRate: "1.5"
+```
+
+After patching the CR, roll the Deployment if the pod is already up so the init runs again.
+
 ## How do server updates work with Steam / game patches?
 
 | Image | How updates land |
@@ -92,6 +107,6 @@ More: [PALWORLD_SERVER.md](PALWORLD_SERVER.md) resources section, [LOCAL.md](LOC
 ## Related
 
 - [CONNECT.md](CONNECT.md) — join from the client
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, mounts, updates, world pin
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, mounts, optionSettings, updates, world pin
 - [LOCAL.md](LOCAL.md) — Compose on a PC
 - [ARCHITECTURE.md](ARCHITECTURE.md) — owned resources / Gateway

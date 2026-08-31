@@ -60,7 +60,7 @@ kubectl get palworldserver -n game-servers
 ```
 
 Connect with `.status.connectionAddress` / `.status.connectionPort` (default `8211` UDP).
-The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)).
+The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)). Game balance / feature INI keys: `spec.optionSettings` ([configuration docs](https://docs.palworldgame.com/settings-and-operation/configuration/), [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#game-balance--features-specoptionsettings)).
 Read join/admin passwords from the credentials Secret ([docs/CONNECT.md](docs/CONNECT.md)):
 
 ```shell
@@ -78,7 +78,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
-| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, updates, sizing |
+| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, settings reset, updates, sizing |
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |

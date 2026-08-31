@@ -53,4 +53,8 @@ const (
 	secretKeyServerPassword = "server-password"
 	credentialsSecretSuffix = "-secrets"
 	generatedPasswordBytes  = 24
+
+	// Boolean string forms used when parsing optionSettings / community env.
+	boolStrTrueLower  = "true"
+	boolStrFalseLower = "false"
 )

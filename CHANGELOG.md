@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `spec.optionSettings` (`map[string]string`): extra [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) merged into the ConfigMap INI and re-seeded on every pod start so balance/feature keys survive PVC overwrite. Management CR fields override the same keys; community images get best-effort env mapping (official image preferred for full INI).
 - Opt-in `spec.update.autoUpdateImage`: GHCR tag discovery, pin `repo:vX.Y.Z.W`, status fields (`desiredImage`, `runningVersion`, `latestAvailableVersion`, `updateAvailable`), `onlyWhenEmpty`, optional cron `checkSchedule` / `applySchedule` + `timeZone` (default UTC), optional REST `/v1/api/announce` pre-roll notice (`notifyPlayers`).
 - Multi-stage pre-update announce schedule (`spec.update.notifySchedule`, default 60m→10s) with `status.plannedApplyTime` / `announcedNotifyStages`; non-blocking reconcile requeues at stage boundaries; short final countdown immediately before apply. Legacy `notifyLeadTime` remains a single-stage fallback.
 - `DedicatedServerName` persistence: learn REST `worldguid`, seed `GameUserSettings.ini` (spec or status pin) so Recreate / auto-update keeps the world.
-- [docs/FAQ.md](docs/FAQ.md) (+ site FAQ section): incapable version, passwords, world pin, image updates, local vs cluster, sizing.
+- [docs/FAQ.md](docs/FAQ.md) (+ site FAQ section): incapable version, passwords, world pin, settings reset, image updates, local vs cluster, sizing.
 
 ### Changed
 

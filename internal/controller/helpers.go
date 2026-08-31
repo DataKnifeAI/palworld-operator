@@ -4,8 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	palworldv1alpha1 "github.com/DataKnifeAI/palworld-operator/api/v1alpha1"
 	egv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
@@ -13,6 +16,66 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+// managementOptionKeys are emitted first and always override spec.optionSettings.
+var managementOptionKeys = []string{
+	"ServerName",
+	"ServerDescription",
+	"ServerPlayerMaxNum",
+	"AdminPassword",
+	"ServerPassword",
+	"PublicPort",
+	"PublicIP",
+	"RCONEnabled",
+	"RCONPort",
+	"RESTAPIEnabled",
+	"RESTAPIPort",
+	"CrossplayPlatforms",
+}
+
+var iniNumberRE = regexp.MustCompile(`^-?\d+(\.\d+)?$`)
+
+// communityOptionEnv maps PalWorldSettings.ini OptionSettings keys to
+// thijsvanloef/palworld-server-docker environment variables. Unmapped keys
+// are skipped — full INI coverage is official-image-primary.
+var communityOptionEnv = map[string]string{
+	"DayTimeSpeedRate":                   "DAYTIME_SPEEDRATE",
+	"NightTimeSpeedRate":                 "NIGHTTIME_SPEEDRATE",
+	"ExpRate":                            "EXP_RATE",
+	"PalCaptureRate":                     "PAL_CAPTURE_RATE",
+	"PalSpawnNumRate":                    "PAL_SPAWN_NUM_RATE",
+	"PalDamageRateAttack":                "PAL_DAMAGE_RATE_ATTACK",
+	"PalDamageRateDefense":               "PAL_DAMAGE_RATE_DEFENSE",
+	"PlayerDamageRateAttack":             "PLAYER_DAMAGE_RATE_ATTACK",
+	"PlayerDamageRateDefense":            "PLAYER_DAMAGE_RATE_DEFENSE",
+	"PlayerStomachDecreaceRate":          "PLAYER_STOMACH_DECREASE_RATE",
+	"PlayerStaminaDecreaceRate":          "PLAYER_STAMINA_DECREASE_RATE",
+	"PlayerAutoHPRegeneRate":             "PLAYER_AUTO_HP_REGEN_RATE",
+	"PlayerAutoHpRegeneRateInSleep":      "PLAYER_AUTO_HP_REGEN_RATE_IN_SLEEP",
+	"PalStomachDecreaceRate":             "PAL_STOMACH_DECREASE_RATE",
+	"PalStaminaDecreaceRate":             "PAL_STAMINA_DECREASE_RATE",
+	"PalAutoHPRegeneRate":                "PAL_AUTO_HP_REGEN_RATE",
+	"PalAutoHpRegeneRateInSleep":         "PAL_AUTO_HP_REGEN_RATE_IN_SLEEP",
+	"BuildObjectDamageRate":              "BUILD_OBJECT_DAMAGE_RATE",
+	"BuildObjectDeteriorationDamageRate": "BUILD_OBJECT_DETERIORATION_DAMAGE_RATE",
+	"CollectionDropRate":                 "COLLECTION_DROP_RATE",
+	"CollectionObjectHpRate":             "COLLECTION_OBJECT_HP_RATE",
+	"CollectionObjectRespawnSpeedRate":   "COLLECTION_OBJECT_RESPAWN_SPEED_RATE",
+	"EnemyDropItemRate":                  "ENEMY_DROP_ITEM_RATE",
+	"DeathPenalty":                       "DEATH_PENALTY",
+	"bEnableInvaderEnemy":                "ENABLE_INVADER_ENEMY",
+	"bEnableNonLoginPenalty":             "ENABLE_NON_LOGIN_PENALTY",
+	"WorkSpeedRate":                      "WORK_SPEED_RATE",
+	"PalEggDefaultHatchingTime":          "PAL_EGG_DEFAULT_HATCHING_TIME",
+	"GuildPlayerMaxNum":                  "GUILD_PLAYER_MAX_NUM",
+	"BaseCampMaxNum":                     "BASE_CAMP_MAX_NUM",
+	"BaseCampWorkerMaxNum":               "BASE_CAMP_WORKER_MAX_NUM",
+	"bIsPvP":                             "IS_PVP",
+	"bHardcore":                          "HARDCORE",
+	"bPalLost":                           "PAL_LOST",
+	"bEnableFastTravel":                  "ENABLE_FAST_TRAVEL",
+	"bIsUseBackupSaveData":               "USE_BACKUP_SAVE_DATA",
+}
 
 type derivedNames struct {
 	pvcName        string
@@ -311,33 +374,106 @@ func escapeINI(value string) string {
 	return replacer.Replace(value)
 }
 
-func buildPalWorldSettingsINI(spec palworldv1alpha1.PalworldServerSpec, adminPassword, serverPassword string) string {
-	name := spec.ServerName
-	if name == "" {
-		name = "Palworld Server"
-	}
-	opts := []string{
-		fmt.Sprintf(`ServerName="%s"`, escapeINI(name)),
-		fmt.Sprintf(`ServerDescription="%s"`, escapeINI(spec.ServerDescription)),
-		fmt.Sprintf("ServerPlayerMaxNum=%d", maxPlayers(spec)),
-		fmt.Sprintf(`AdminPassword="%s"`, escapeINI(adminPassword)),
-		fmt.Sprintf(`ServerPassword="%s"`, escapeINI(serverPassword)),
-		fmt.Sprintf("PublicPort=%d", publicPort(spec)),
-		fmt.Sprintf(`PublicIP="%s"`, escapeINI(publicIP(spec))),
-		fmt.Sprintf("RCONEnabled=%s", boolINI(rconEnabled(spec))),
-		fmt.Sprintf("RCONPort=%d", rconPort(spec)),
-		fmt.Sprintf("RESTAPIEnabled=%s", boolINI(restEnabled(spec))),
-		fmt.Sprintf("RESTAPIPort=%d", restPort(spec)),
-		fmt.Sprintf(`CrossplayPlatforms="%s"`, escapeINI(crossplayPlatforms(spec))),
-	}
-	return fmt.Sprintf("[/Script/Pal.PalGameWorldSettings]\nOptionSettings=(%s)\n", strings.Join(opts, ","))
-}
-
 func boolINI(value bool) string {
 	if value {
 		return "True"
 	}
 	return "False"
+}
+
+// formatOptionSettingValue turns a map value into an OptionSettings literal.
+// Callers may pass bare tokens (None), numbers, booleans, quoted strings, or
+// parenthesized lists — unknown shapes are quoted and escaped.
+func formatOptionSettingValue(value string) string {
+	v := strings.TrimSpace(value)
+	if v == "" {
+		return `""`
+	}
+	switch strings.ToLower(v) {
+	case boolStrTrueLower:
+		return "True"
+	case boolStrFalseLower:
+		return "False"
+	}
+	if iniNumberRE.MatchString(v) {
+		return v
+	}
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v
+	}
+	if strings.HasPrefix(v, "(") {
+		return v
+	}
+	if isINIBareToken(v) {
+		return v
+	}
+	return `"` + escapeINI(v) + `"`
+}
+
+func isINIBareToken(value string) bool {
+	runes := []rune(value)
+	if len(runes) == 0 {
+		return false
+	}
+	if !unicode.IsLetter(runes[0]) && runes[0] != '_' {
+		return false
+	}
+	for _, r := range runes[1:] {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func buildPalWorldSettingsINI(spec palworldv1alpha1.PalworldServerSpec, adminPassword, serverPassword string) string {
+	merged := make(map[string]string, len(spec.OptionSettings)+len(managementOptionKeys))
+	for key, value := range spec.OptionSettings {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		merged[key] = formatOptionSettingValue(value)
+	}
+
+	name := spec.ServerName
+	if name == "" {
+		name = "Palworld Server"
+	}
+	merged["ServerName"] = `"` + escapeINI(name) + `"`
+	merged["ServerDescription"] = `"` + escapeINI(spec.ServerDescription) + `"`
+	merged["ServerPlayerMaxNum"] = fmt.Sprintf("%d", maxPlayers(spec))
+	merged["AdminPassword"] = `"` + escapeINI(adminPassword) + `"`
+	merged["ServerPassword"] = `"` + escapeINI(serverPassword) + `"`
+	merged["PublicPort"] = fmt.Sprintf("%d", publicPort(spec))
+	merged["PublicIP"] = `"` + escapeINI(publicIP(spec)) + `"`
+	merged["RCONEnabled"] = boolINI(rconEnabled(spec))
+	merged["RCONPort"] = fmt.Sprintf("%d", rconPort(spec))
+	merged["RESTAPIEnabled"] = boolINI(restEnabled(spec))
+	merged["RESTAPIPort"] = fmt.Sprintf("%d", restPort(spec))
+	merged["CrossplayPlatforms"] = `"` + escapeINI(crossplayPlatforms(spec)) + `"`
+
+	opts := make([]string, 0, len(merged))
+	seen := make(map[string]struct{}, len(managementOptionKeys))
+	for _, key := range managementOptionKeys {
+		if value, ok := merged[key]; ok {
+			opts = append(opts, key+"="+value)
+			seen[key] = struct{}{}
+		}
+	}
+	extras := make([]string, 0, len(merged))
+	for key := range merged {
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		extras = append(extras, key)
+	}
+	sort.Strings(extras)
+	for _, key := range extras {
+		opts = append(opts, key+"="+merged[key])
+	}
+	return fmt.Sprintf("[/Script/Pal.PalGameWorldSettings]\nOptionSettings=(%s)\n", strings.Join(opts, ","))
 }
 
 func officialCommandArgs(spec palworldv1alpha1.PalworldServerSpec) []string {
@@ -380,7 +516,47 @@ func communityEnv(spec palworldv1alpha1.PalworldServerSpec, adminPassword, serve
 		env = append(env, corev1.EnvVar{Name: "PUBLIC_IP", Value: ip})
 	}
 	env = append(env, corev1.EnvVar{Name: "PUBLIC_PORT", Value: fmt.Sprintf("%d", publicPort(spec))})
+	env = append(env, communityOptionSettingsEnv(spec)...)
 	return env
+}
+
+// communityOptionSettingsEnv maps known optionSettings keys to community-image
+// env vars. Management CR fields already set above win for overlapping concerns.
+func communityOptionSettingsEnv(spec palworldv1alpha1.PalworldServerSpec) []corev1.EnvVar {
+	if len(spec.OptionSettings) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(spec.OptionSettings))
+	for key := range spec.OptionSettings {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	var env []corev1.EnvVar
+	for _, key := range keys {
+		envName, ok := communityOptionEnv[key]
+		if !ok {
+			continue
+		}
+		env = append(env, corev1.EnvVar{
+			Name:  envName,
+			Value: communityEnvValue(spec.OptionSettings[key]),
+		})
+	}
+	return env
+}
+
+func communityEnvValue(value string) string {
+	v := strings.TrimSpace(value)
+	switch strings.ToLower(v) {
+	case boolStrTrueLower:
+		return boolStrTrueLower
+	case boolStrFalseLower:
+		return boolStrFalseLower
+	}
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return v[1 : len(v)-1]
+	}
+	return v
 }
 
 func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.ServicePort {

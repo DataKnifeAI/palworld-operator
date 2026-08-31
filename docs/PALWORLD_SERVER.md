@@ -72,11 +72,48 @@ Pin a version tag or digest in production. A separate DataKnifeAI game-image pro
 
 - **CLI args** for port / threading (`-port=8211`, `-UseMultithreadForDS`, …)
 - **INI** for name, passwords, RCON, crossplay, balance: `Pal/Saved/Config/LinuxServer/PalWorldSettings.ini`
-- Operator generates/mounts that INI (ConfigMap), not community env vars
+- Operator builds that INI in a ConfigMap and the `seed-settings` init copies it onto the PVC **every pod start** (overwrite is intentional — keep desired settings in the CR)
+
+### Game balance / features (`spec.optionSettings`)
+
+Set any [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) key as `map[string]string`. Values are INI literals (`"1.5"`, `"False"`, `None`, …). Unknown keys are kept for newer game versions.
+
+| Behavior | Detail |
+|----------|--------|
+| Source of truth | ConfigMap rebuilt each reconcile; PVC re-seeded on each roll |
+| Precedence | CR management fields (`serverName`, `maxPlayers`, passwords, `rcon`, `restAPI`, community public bind, `crossplayPlatforms`) **override** the same keys in the map |
+| Passwords | Never put join/admin passwords in `optionSettings` — use Secret refs or `generateSecrets` |
+| Official image | Full map → INI (recommended path) |
+| Community image | Best-effort env mapping for common keys only — prefer official image for full INI |
+
+Common keys (non-exhaustive):
+
+| Key | Example | Notes |
+|-----|---------|-------|
+| `bEnableNonLoginPenalty` | `"False"` | Offline-friendly (no logout penalty) |
+| `WorkSpeedRate` | `"1.5"` | Base work speed multiplier |
+| `ExpRate` | `"1.0"` | EXP gain |
+| `DeathPenalty` | `None` | `None` / `Item` / `ItemAndEquipment` / `All` |
+| `PalCaptureRate` | `"1.0"` | Capture rate |
+| `DayTimeSpeedRate` / `NightTimeSpeedRate` | `"1.0"` | Day/night length |
+
+Example:
+
+```yaml
+spec:
+  optionSettings:
+    bEnableNonLoginPenalty: "False"
+    WorkSpeedRate: "1.5"
+    ExpRate: "1.0"
+    DeathPenalty: None
+```
+
+After changing `optionSettings`, wait for reconcile (ConfigMap update) and roll the game pod if it is already running so the seed init re-copies the INI.
 
 ### Community image (optional)
 
 Env vars map to INI / launch options. Highly recommended: `PUID`, `PGID`, `PORT`, `PLAYERS`.
+`spec.optionSettings` maps only **known** keys to community env vars (e.g. `ExpRate` → `EXP_RATE`); unmapped keys are ignored. For complete OptionSettings coverage use the **official** Pocketpair image.
 
 | Variable | Default | Maps to |
 |----------|---------|---------|
@@ -139,6 +176,7 @@ For auto-gen, substitute the Secret name from
 | Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs **or** `spec.generateSecrets` |
 | Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
+| Balance / features | Extra `OptionSettings=(…)` keys | Known keys → env (partial) | `spec.optionSettings` |
 
 ## Resource guidance
 

@@ -270,6 +270,24 @@ type PalworldServerSpec struct {
 	// +optional
 	CrossplayPlatforms string `json:"crossplayPlatforms,omitempty"`
 
+	// OptionSettings are extra PalWorldSettings.ini OptionSettings keys
+	// (game balance, features, performance). Values are INI literals
+	// (e.g. "1.5", "False", "None"). Unknown keys are kept for forward
+	// compatibility across game versions.
+	//
+	// Management CR fields (serverName, maxPlayers, passwords, rcon, restAPI,
+	// community public bind, crossplayPlatforms) always override the same
+	// keys when both are set. Do not put passwords here — use Secret refs
+	// or generateSecrets.
+	//
+	// Official image: merged into the ConfigMap INI and re-seeded onto the
+	// PVC on every pod start (survives restarts). Community images: best-effort
+	// env mapping for common keys; prefer the official image for full INI.
+	// See docs/PALWORLD_SERVER.md and
+	// https://docs.palworldgame.com/settings-and-operation/configuration/
+	// +optional
+	OptionSettings map[string]string `json:"optionSettings,omitempty"`
+
 	// GenerateSecrets when true creates an Opaque Secret with random strong
 	// passwords for keys server-password (join) and admin-password (RCON/admin)
 	// if the Secret is missing or those keys are empty. Existing non-empty keys

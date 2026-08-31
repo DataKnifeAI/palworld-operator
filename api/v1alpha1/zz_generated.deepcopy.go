@@ -150,6 +150,13 @@ func (in *PalworldServerSpec) DeepCopyInto(out *PalworldServerSpec) {
 		**out = **in
 	}
 	in.Update.DeepCopyInto(&out.Update)
+	if in.OptionSettings != nil {
+		in, out := &in.OptionSettings, &out.OptionSettings
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.AdminPasswordSecretRef != nil {
 		in, out := &in.AdminPasswordSecretRef, &out.AdminPasswordSecretRef
 		*out = new(v1.SecretKeySelector)

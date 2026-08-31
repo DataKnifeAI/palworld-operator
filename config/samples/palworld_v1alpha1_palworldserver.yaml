@@ -40,6 +40,21 @@ spec:
   crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
   terminationGracePeriodSeconds: 60
 
+  # Extra PalWorldSettings.ini OptionSettings (balance / features / performance).
+  # Merged into the ConfigMap INI and re-seeded onto the PVC every pod start
+  # (survives restarts). CR management fields above always win over same keys.
+  # Full key list: https://docs.palworldgame.com/settings-and-operation/configuration/
+  # Do not put join/admin passwords here — use Secret refs / generateSecrets.
+  #
+  # optionSettings:
+  #   bEnableNonLoginPenalty: "False"   # offline-friendly: no logout penalty
+  #   WorkSpeedRate: "1.5"              # optional faster base work
+  #   ExpRate: "1.0"
+  #   DeathPenalty: None                # None | Item | ItemAndEquipment | All
+  #   PalCaptureRate: "1.0"
+  #   DayTimeSpeedRate: "1.0"
+  #   NightTimeSpeedRate: "1.0"
+
   # Opt-in: auto-bump official Pocketpair image tags (default off).
   # Discovers latest vX.Y.Z.W via anonymous GHCR tag list; pins repo:tag (not :latest).
   # Learns DedicatedServerName from REST worldguid and seeds GameUserSettings.ini
