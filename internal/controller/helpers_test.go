@@ -12,6 +12,8 @@ import (
 const (
 	testGatewayAddress = "192.168.14.187"
 	testMemLimitLarge  = "7Gi"
+	testRate15         = "1.5"
+	testRate20         = "2.0"
 )
 
 func TestBuildPalWorldSettingsINI(t *testing.T) {
@@ -31,8 +33,8 @@ func TestBuildPalWorldSettingsINI(t *testing.T) {
 		`ServerPlayerMaxNum=4`,
 		`AdminPassword="admin"`,
 		`ServerPassword="join"`,
-		`RCONEnabled=True`,
-		`RESTAPIEnabled=True`,
+		"RCONEnabled=" + boolStrTrueINI,
+		"RESTAPIEnabled=" + boolStrTrueINI,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected %q in %s", want, body)
@@ -46,13 +48,13 @@ func TestBuildPalWorldSettingsINIOptionSettingsMerge(t *testing.T) {
 		ServerName: "FromCR",
 		MaxPlayers: 8,
 		OptionSettings: map[string]string{
-			"ServerName":             "FromMap", // CR wins
-			"ServerPlayerMaxNum":     "32",      // CR wins
-			"ExpRate":                "2.0",
-			"WorkSpeedRate":          "1.5",
-			"bEnableNonLoginPenalty": "False",
-			"DeathPenalty":           "None",
-			"CustomNote":             `hello "world"`,
+			"ServerName":                   "FromMap", // CR wins
+			"ServerPlayerMaxNum":           "32",      // CR wins
+			optionKeyExpRate:               testRate20,
+			optionKeyWorkSpeedRate:         testRate15,
+			optionKeyEnableNonLoginPenalty: boolStrFalseINI,
+			"DeathPenalty":                 iniBareNone,
+			"CustomNote":                   `hello "world"`,
 		},
 	}
 
@@ -60,10 +62,10 @@ func TestBuildPalWorldSettingsINIOptionSettingsMerge(t *testing.T) {
 	for _, want := range []string{
 		`ServerName="FromCR"`,
 		`ServerPlayerMaxNum=8`,
-		`ExpRate=2.0`,
-		`WorkSpeedRate=1.5`,
-		`bEnableNonLoginPenalty=False`,
-		`DeathPenalty=None`,
+		optionKeyExpRate + "=" + testRate20,
+		optionKeyWorkSpeedRate + "=" + testRate15,
+		optionKeyEnableNonLoginPenalty + "=" + boolStrFalseINI,
+		"DeathPenalty=" + iniBareNone,
 		`CustomNote="hello \"world\""`,
 	} {
 		if !strings.Contains(body, want) {
@@ -82,10 +84,10 @@ func TestFormatOptionSettingValue(t *testing.T) {
 	tests := []struct {
 		in, want string
 	}{
-		{"true", "True"},
-		{"False", "False"},
-		{"1.5", "1.5"},
-		{"None", "None"},
+		{boolStrTrueLower, boolStrTrueINI},
+		{boolStrFalseINI, boolStrFalseINI},
+		{testRate15, testRate15},
+		{iniBareNone, iniBareNone},
 		{`(Steam,Xbox)`, `(Steam,Xbox)`},
 		{`"already"`, `"already"`},
 		{`say "hi"`, `"say \"hi\""`},
@@ -101,10 +103,10 @@ func TestFormatOptionSettingValue(t *testing.T) {
 func TestCommunityOptionSettingsEnv(t *testing.T) {
 	spec := palworldv1alpha1.PalworldServerSpec{
 		OptionSettings: map[string]string{
-			"ExpRate":                "2.0",
-			"WorkSpeedRate":          "1.5",
-			"bEnableNonLoginPenalty": "False",
-			"UnknownFutureKey":       "1",
+			optionKeyExpRate:               testRate20,
+			optionKeyWorkSpeedRate:         testRate15,
+			optionKeyEnableNonLoginPenalty: boolStrFalseINI,
+			"UnknownFutureKey":             "1",
 		},
 	}
 	env := communityOptionSettingsEnv(spec)
@@ -113,9 +115,9 @@ func TestCommunityOptionSettingsEnv(t *testing.T) {
 		got[e.Name] = e.Value
 	}
 	want := map[string]string{
-		"EXP_RATE":                 "2.0",
-		"WORK_SPEED_RATE":          "1.5",
-		"ENABLE_NON_LOGIN_PENALTY": "false",
+		"EXP_RATE":                 testRate20,
+		"WORK_SPEED_RATE":          testRate15,
+		"ENABLE_NON_LOGIN_PENALTY": boolStrFalseLower,
 	}
 	for k, v := range want {
 		if got[k] != v {

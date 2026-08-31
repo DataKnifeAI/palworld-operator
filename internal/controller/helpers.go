@@ -41,7 +41,7 @@ var iniNumberRE = regexp.MustCompile(`^-?\d+(\.\d+)?$`)
 var communityOptionEnv = map[string]string{
 	"DayTimeSpeedRate":                   "DAYTIME_SPEEDRATE",
 	"NightTimeSpeedRate":                 "NIGHTTIME_SPEEDRATE",
-	"ExpRate":                            "EXP_RATE",
+	optionKeyExpRate:                     "EXP_RATE",
 	"PalCaptureRate":                     "PAL_CAPTURE_RATE",
 	"PalSpawnNumRate":                    "PAL_SPAWN_NUM_RATE",
 	"PalDamageRateAttack":                "PAL_DAMAGE_RATE_ATTACK",
@@ -64,8 +64,8 @@ var communityOptionEnv = map[string]string{
 	"EnemyDropItemRate":                  "ENEMY_DROP_ITEM_RATE",
 	"DeathPenalty":                       "DEATH_PENALTY",
 	"bEnableInvaderEnemy":                "ENABLE_INVADER_ENEMY",
-	"bEnableNonLoginPenalty":             "ENABLE_NON_LOGIN_PENALTY",
-	"WorkSpeedRate":                      "WORK_SPEED_RATE",
+	optionKeyEnableNonLoginPenalty:       "ENABLE_NON_LOGIN_PENALTY",
+	optionKeyWorkSpeedRate:               "WORK_SPEED_RATE",
 	"PalEggDefaultHatchingTime":          "PAL_EGG_DEFAULT_HATCHING_TIME",
 	"GuildPlayerMaxNum":                  "GUILD_PLAYER_MAX_NUM",
 	"BaseCampMaxNum":                     "BASE_CAMP_MAX_NUM",
@@ -376,9 +376,9 @@ func escapeINI(value string) string {
 
 func boolINI(value bool) string {
 	if value {
-		return "True"
+		return boolStrTrueINI
 	}
-	return "False"
+	return boolStrFalseINI
 }
 
 // formatOptionSettingValue turns a map value into an OptionSettings literal.
@@ -391,9 +391,9 @@ func formatOptionSettingValue(value string) string {
 	}
 	switch strings.ToLower(v) {
 	case boolStrTrueLower:
-		return "True"
+		return boolStrTrueINI
 	case boolStrFalseLower:
-		return "False"
+		return boolStrFalseINI
 	}
 	if iniNumberRE.MatchString(v) {
 		return v

@@ -57,4 +57,13 @@ const (
 	// Boolean string forms used when parsing optionSettings / community env.
 	boolStrTrueLower  = "true"
 	boolStrFalseLower = "false"
+	// INI / OptionSettings boolean and bare-token literals (goconst).
+	boolStrTrueINI  = "True"
+	boolStrFalseINI = "False"
+	iniBareNone     = "None"
+
+	// OptionSettings keys referenced from maps and tests (goconst).
+	optionKeyExpRate               = "ExpRate"
+	optionKeyWorkSpeedRate         = "WorkSpeedRate"
+	optionKeyEnableNonLoginPenalty = "bEnableNonLoginPenalty"
 )
