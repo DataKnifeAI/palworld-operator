@@ -64,18 +64,19 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ### T1. Unit tests (controller)
 - [x] Helper tests (INI, resources, naming, community detection) with race
+- [ ] Fake-client `Reconcile` loop (owned resources, finalizers, status) — [#10](https://github.com/DataKnifeAI/palworld-operator/issues/10)
 
 ### T2. Envtest / integration (optional stretch)
-- [ ] controller-runtime envtest for CRD install + reconcile loop
+- [ ] controller-runtime envtest for CRD install + reconcile loop — [#11](https://github.com/DataKnifeAI/palworld-operator/issues/11)
 
 ### T3. Manual cluster smoke test
-- [~] Deploy on prd-apps `game-servers`; status Running + REST world verified ([#12](https://github.com/DataKnifeAI/palworld-operator/issues/12))
-- [ ] Client join via `.status.connectionAddress` / game port
-- [ ] PVC retains save across pod restart
-- [ ] RCON / graceful stop does not corrupt saves
+- [x] Deploy on prd-apps `game-servers`; status Running + REST world verified
+- [x] PVC retains save across Recreate (live auto-update + DedicatedServerName pin)
+- [ ] Client join via `.status.connectionAddress` / game port — [#12](https://github.com/DataKnifeAI/palworld-operator/issues/12)
+- [ ] Graceful stop / SIGTERM does not corrupt saves (RCON Broadcast deprecated; REST announce used)
 
 ### T4. Negative / ops tests
-- [ ] Wrong StorageClass / missing Secret / VIP reuse runbook coverage
+- [ ] Wrong StorageClass / missing Secret / VIP reuse runbook coverage — [#13](https://github.com/DataKnifeAI/palworld-operator/issues/13)
 
 ---
 
@@ -88,8 +89,9 @@ Shipped on `main` after the July 0.1.0 MVP; versioned as the first public beta.
 - [x] Multi-stage `notifySchedule` (legacy `notifyLeadTime` fallback)
 - [x] `DedicatedServerName` / `worldguid` pin across Recreate
 - [x] FAQ + site sections; sample/Compose pin `palserver:v1.0.1.100619`
+- [x] README slim — short entry point, detail under `docs/` ([#14](https://github.com/DataKnifeAI/palworld-operator/issues/14))
 
-Open follow-ups: T2–T4 (#10–#13), README slim (#14).
+Open follow-ups: T1 Reconcile fake-client (#10), T2 envtest (#11), T3 remaining smoke (#12), T4 negative/ops (#13).
 
 ---
 

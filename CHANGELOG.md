@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned / known gaps
 
-- Finish cluster smoke (#12): client join via Gateway, PVC retain across restart, graceful stop.
+- Finish cluster smoke (#12): client join via Gateway, graceful stop / SIGTERM save integrity (PVC retain observed on live auto-update Recreate).
 - Fake-client Reconcile unit tests (#10), optional envtest (#11), negative/ops status messages (#13).
 
 ## [0.2.0-beta.1] — 2026-08-31
