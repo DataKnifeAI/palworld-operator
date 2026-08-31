@@ -79,6 +79,20 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ---
 
+## Phase 4 — Post-MVP (beta `v0.2.0-beta.1`)
+
+Shipped on `main` after the July 0.1.0 MVP; versioned as the first public beta.
+
+- [x] `spec.optionSettings` passthrough + ConfigMap re-seed
+- [x] Opt-in `spec.update.autoUpdateImage` (GHCR tags, status, cron, REST announce)
+- [x] Multi-stage `notifySchedule` (legacy `notifyLeadTime` fallback)
+- [x] `DedicatedServerName` / `worldguid` pin across Recreate
+- [x] FAQ + site sections; sample/Compose pin `palserver:v1.0.1.100619`
+
+Open follow-ups: T2–T4 (#10–#13), README slim (#14).
+
+---
+
 ## Suggested issue labels
 
 | Label | Use |

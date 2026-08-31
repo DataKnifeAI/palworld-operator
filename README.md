@@ -4,7 +4,7 @@
 [![Lint](https://github.com/DataKnifeAI/palworld-operator/actions/workflows/lint.yml/badge.svg)](https://github.com/DataKnifeAI/palworld-operator/actions/workflows/lint.yml)
 [![Build](https://github.com/DataKnifeAI/palworld-operator/actions/workflows/build.yml/badge.svg)](https://github.com/DataKnifeAI/palworld-operator/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-informational)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.0--beta.1-informational)](CHANGELOG.md)
 
 <p align="center">
   <img src="docs/assets/hero-world-keeper.png" alt="World Keeper — Palworld Operator" width="640">

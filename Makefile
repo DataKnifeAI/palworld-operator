@@ -1,7 +1,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= harbor.dataknife.net/library/palworld-operator:latest
 
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0-beta.1
 
 # Resolve GOBIN lazily so compose-* targets work without a Go toolchain.
 GOBIN ?= $(shell go env GOBIN 2>/dev/null)

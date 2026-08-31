@@ -8,7 +8,10 @@ Reconciles `PalworldServer` into Deployment, PVC, ConfigMap, Secrets, Services, 
 | `helpers.go` | Naming, resource tiers, INI/CLI (+ community env) mapping |
 | `envoy_gateway.go` | Gateway, EnvoyProxy, UDPRoute, TCPRoute |
 | `palworldserver_controller.go` | Reconcile loop |
-| `*_test.go` | Unit tests (helpers, secrets); envtest / fake-client loop still backlog (#10–#11) |
+| `update.go` / `registry.go` / `version.go` | Opt-in GHCR tag discovery and image pin |
+| `notify.go` / `schedule.go` | Staged REST announce before apply |
+| `rest.go` | Palworld REST client (`info`, `announce`, `worldguid`) |
+| `*_test.go` | Unit tests (helpers, secrets, version, schedule, notify); envtest / fake-client loop still backlog (#10–#11) |
 
-Default game image: `ghcr.io/pocketpairjp/palserver:latest`.
+Fallback game image: `ghcr.io/pocketpairjp/palserver:latest` (samples pin a version tag).
 Saved mount (official): `/pal/Package/Pal/Saved`.

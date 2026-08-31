@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned / known gaps
+
+- Finish cluster smoke (#12): client join via Gateway, PVC retain across restart, graceful stop.
+- Fake-client Reconcile unit tests (#10), optional envtest (#11), negative/ops status messages (#13).
+
+## [0.2.0-beta.1] — 2026-08-31
+
+Public beta cut (`Makefile` `VERSION=0.2.0-beta.1`). First tagged release of the post-MVP operator: auto-update, `optionSettings`, and world-pin persistence. Usable for hosting, not production-hardened.
+
 ### Added
 
 - `spec.optionSettings` (`map[string]string`): extra [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) merged into the ConfigMap INI and re-seeded on every pod start so balance/feature keys survive PVC overwrite. Management CR fields override the same keys; community images get best-effort env mapping (official image preferred for full INI).
@@ -21,14 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample CR / Compose default image pin: `ghcr.io/pocketpairjp/palserver:v1.0.1.100619` (prefer explicit tags over stale `:latest`).
 - `notifyLeadTime` deprecated in favor of `notifySchedule` (still honored as a single stage when schedule is empty).
 
-### Planned / known gaps
+### Known limitations
 
-- Finish cluster smoke (#12): client join via Gateway, PVC retain across restart, graceful stop.
-- Fake-client Reconcile unit tests (#10), optional envtest (#11), negative/ops status messages (#13).
+See Unreleased planned gaps. Prefer pinning `spec.serverImage` to a Pocketpair version tag in any lasting world.
 
 ## [0.1.0] — 2026-07-13
 
-First public MVP cut (`Makefile` `VERSION=0.1.0`). Early release — usable for hosting, not production-hardened.
+First public MVP cut (`Makefile` `VERSION=0.1.0`). Early release — usable for hosting, not production-hardened. GitHub tag `v0.1.0-beta.1` later captured this cut plus in-progress post-MVP work; `v0.2.0-beta.1` is the versioned beta.
 
 ### Added
 
@@ -42,4 +50,8 @@ First public MVP cut (`Makefile` `VERSION=0.1.0`). Early release — usable for 
 
 ### Known limitations
 
-See Unreleased planned gaps above. Prefer pinning `spec.serverImage` to a Pocketpair version tag in any lasting world.
+See Unreleased planned gaps. Prefer pinning `spec.serverImage` to a Pocketpair version tag in any lasting world.
+
+[Unreleased]: https://github.com/DataKnifeAI/palworld-operator/compare/v0.2.0-beta.1...HEAD
+[0.2.0-beta.1]: https://github.com/DataKnifeAI/palworld-operator/compare/v0.1.0-beta.1...v0.2.0-beta.1
+[0.1.0]: https://github.com/DataKnifeAI/palworld-operator/releases/tag/v0.1.0-beta.1
