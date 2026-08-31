@@ -76,39 +76,49 @@ Pin a version tag or digest in production. A separate DataKnifeAI game-image pro
 
 ### Game balance / features (`spec.optionSettings`)
 
-Set any [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) key as `map[string]string`. Values are INI literals (`"1.5"`, `"False"`, `None`, …). Unknown keys are kept for newer game versions.
+`spec.optionSettings` is a **passthrough** `map[string]string` of [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) keys (balance, features, performance). Values are INI literals (`"True"`, `"1.5"`, `None`, …). Unknown keys are kept for newer game versions.
+
+**Official parameter list (source of truth):** [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/). Do not copy Pocketpair’s full key list into this repo.
 
 | Behavior | Detail |
 |----------|--------|
+| Passthrough | Any OptionSettings key → ConfigMap `PalWorldSettings.ini` |
 | Source of truth | ConfigMap rebuilt each reconcile; PVC re-seeded on each roll |
-| Precedence | CR management fields (`serverName`, `maxPlayers`, passwords, `rcon`, `restAPI`, community public bind, `crossplayPlatforms`) **override** the same keys in the map |
-| Passwords | Never put join/admin passwords in `optionSettings` — use Secret refs or `generateSecrets` |
-| Official image | Full map → INI (recommended path) |
-| Community image | Best-effort env mapping for common keys only — prefer official image for full INI |
+| Official image | Full map → INI (recommended) |
+| Community image | Best-effort env mapping for common keys only |
 
-Common keys (non-exhaustive):
+**Reserved / overridden** — these keys come from dedicated CR fields and **always win** over the same key in `optionSettings`:
 
-| Key | Example | Notes |
-|-----|---------|-------|
-| `bEnableNonLoginPenalty` | `"False"` | Offline-friendly (no logout penalty) |
-| `WorkSpeedRate` | `"1.5"` | Base work speed multiplier |
-| `ExpRate` | `"1.0"` | EXP gain |
-| `DeathPenalty` | `None` | `None` / `Item` / `ItemAndEquipment` / `All` |
-| `PalCaptureRate` | `"1.0"` | Capture rate |
-| `DayTimeSpeedRate` / `NightTimeSpeedRate` | `"1.0"` | Day/night length |
+| INI key | CR field |
+|---------|----------|
+| `ServerName` / `ServerDescription` / `ServerPlayerMaxNum` | `spec.serverName`, `serverDescription`, `maxPlayers` |
+| `ServerPassword` / `AdminPassword` | Secret refs or `spec.generateSecrets` — **never** put passwords in the map |
+| `PublicPort` / `PublicIP` | `spec.gamePort` / community public bind |
+| `RCONEnabled` / `RCONPort` | `spec.rcon` |
+| `RESTAPIEnabled` / `RESTAPIPort` | `spec.restAPI` |
+| `CrossplayPlatforms` | `spec.crossplayPlatforms` |
 
 Example:
 
 ```yaml
 spec:
   optionSettings:
-    bEnableNonLoginPenalty: "False"
+    bExistPlayerAfterLogout: "True"   # sleep in-place on logout
     WorkSpeedRate: "1.5"
-    ExpRate: "1.0"
     DeathPenalty: None
 ```
 
-After changing `optionSettings`, wait for reconcile (ConfigMap update) and roll the game pod if it is already running so the seed init re-copies the INI.
+**Apply** (world / PVC stay intact — do **not** delete the CR or PVC; keep `dedicatedServerName` / `worldguid`):
+
+1. Merge-patch the CR (`optionSettings` keys merge; other spec fields are left alone).
+2. Wait for reconcile to rebuild the ConfigMap.
+3. Roll the **game** Deployment so the `seed-settings` init re-copies `PalWorldSettings.ini` onto the PVC (required for the official image). Players disconnect briefly.
+
+```shell
+kubectl -n game-servers patch palworldserver palworld-server --type=merge \
+  -p '{"spec":{"optionSettings":{"bExistPlayerAfterLogout":"True"}}}'
+kubectl -n game-servers rollout restart deploy/palworld-server
+```
 
 ### Community image (optional)
 

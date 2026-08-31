@@ -60,7 +60,7 @@ kubectl get palworldserver -n game-servers
 ```
 
 Connect with `.status.connectionAddress` / `.status.connectionPort` (default `8211` UDP).
-The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)). Game balance / feature INI keys: `spec.optionSettings` ([configuration docs](https://docs.palworldgame.com/settings-and-operation/configuration/), [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#game-balance--features-specoptionsettings)).
+The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)).
 Read join/admin passwords from the credentials Secret ([docs/CONNECT.md](docs/CONNECT.md)):
 
 ```shell
@@ -70,6 +70,22 @@ kubectl get secret palworld-server-secrets -n game-servers \
 
 Tune the [sample CR](config/samples/palworld_v1alpha1_palworldserver.yaml) for VIP, StorageClass, and resources — BYO Secret or `generateSecrets: true`.
 
+### Game settings (`spec.optionSettings`)
+
+`spec.optionSettings` is a **passthrough** `map[string]string` of [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) keys. Pocketpair’s list is the source of truth — this repo does not copy it.
+
+Reserved keys (`ServerName`, passwords, ports, RCON/REST, `CrossplayPlatforms`) come from dedicated CR fields and **override** the same keys in the map. Never put passwords here.
+
+```yaml
+spec:
+  optionSettings:
+    bExistPlayerAfterLogout: "True"   # sleep in-place on logout
+```
+
+Apply: merge-patch the CR, wait for the ConfigMap, then **roll the game Deployment** so `seed-settings` re-copies the INI onto the PVC. The world save stays intact (do not delete the CR/PVC). Details: [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#game-balance--features-specoptionsettings).
+
+Teardown (deletes the world PVC if the sample uses Delete reclaim — do not run this to change settings):
+
 ```shell
 kubectl delete palworldserver palworld-server -n game-servers
 ```
@@ -78,11 +94,11 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
-| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, settings reset, updates, sizing |
+| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, updates, sizing |
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, INI/env, Steam updates |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Steam updates |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub CI + GitLab Harbor publish |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 

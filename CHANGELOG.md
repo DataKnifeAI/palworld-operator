@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Docs / site: `spec.optionSettings` as a passthrough map, official [OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) link, reserved CR keys, apply = patch + roll (world/PVC intact), example `bExistPlayerAfterLogout: "True"`.
 - Sample CR / Compose default image pin: `ghcr.io/pocketpairjp/palserver:v1.0.1.100619` (prefer explicit tags over stale `:latest`).
 - `notifyLeadTime` deprecated in favor of `notifySchedule` (still honored as a single stage when schedule is empty).
 

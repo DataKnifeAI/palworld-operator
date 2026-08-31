@@ -62,16 +62,16 @@ See [PALWORLD_SERVER.md — World selection](PALWORLD_SERVER.md#world-selection-
 
 The `seed-settings` init **overwrites** `PalWorldSettings.ini` on the Saved PVC from the operator ConfigMap every start. Edits made only inside the PVC (or via REST) do not stick across rolls.
 
-Put lasting gameplay settings in `spec.optionSettings` (plus management fields like `serverName` / `maxPlayers`). The ConfigMap is rebuilt on reconcile and re-seeded on the next pod start. Official parameter list: [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/).
+Put lasting gameplay settings in `spec.optionSettings` — a passthrough map of [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) keys (Pocketpair’s list is the source of truth). Management keys (`ServerName`, passwords, ports, RCON/REST, `CrossplayPlatforms`) come from dedicated CR fields and override the same keys in the map.
 
 ```yaml
 spec:
   optionSettings:
-    bEnableNonLoginPenalty: "False"
+    bExistPlayerAfterLogout: "True"
     WorkSpeedRate: "1.5"
 ```
 
-After patching the CR, roll the Deployment if the pod is already up so the init runs again.
+Apply with a **merge-patch** (so other spec fields stay), wait for the ConfigMap, then **roll the game Deployment** so `seed-settings` re-copies the INI onto the PVC. The world save stays intact — do not delete the CR/PVC; keep `dedicatedServerName` / `worldguid`. Players disconnect briefly during the roll.
 
 ## How do server updates work with Steam / game patches?
 

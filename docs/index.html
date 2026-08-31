@@ -46,6 +46,7 @@
         <a class="btn btn--primary" href="https://github.com/DataKnifeAI/palworld-operator">View on GitHub</a>
         <a class="btn btn--ghost" href="#local">Local / PC</a>
         <a class="btn btn--ghost" href="#connect">How to connect</a>
+        <a class="btn btn--ghost" href="#settings">Game settings</a>
         <a class="btn btn--ghost" href="#faq">FAQ</a>
       </div>
     </div>
@@ -280,6 +281,40 @@ kubectl get secret palworld-server-secrets -n game-servers \
       </div>
     </section>
 
+    <section class="section section--settings" id="settings" aria-labelledby="settings-heading">
+      <div class="wrap wrap--readable">
+        <h2 id="settings-heading">Game settings (<code>optionSettings</code>)</h2>
+        <p class="section__lede section__lede--wide">
+          <code>spec.optionSettings</code> is a passthrough map of
+          <code>PalWorldSettings.ini</code> OptionSettings keys.
+          Pocketpair’s list is the source of truth:
+          <a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Configuration parameters</a>.
+          Full operator notes:
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">docs/PALWORLD_SERVER.md</a>.
+        </p>
+
+        <pre class="codeblock"><code>spec:
+  optionSettings:
+    bExistPlayerAfterLogout: "True"</code></pre>
+
+        <p>
+          Reserved keys — <code>ServerName</code>, passwords, ports, RCON/REST,
+          <code>CrossplayPlatforms</code> — come from dedicated CR fields and
+          override the same keys in the map. Never put passwords here.
+        </p>
+        <p>
+          Apply with a merge-patch, then <strong>roll the game Deployment</strong>
+          so <code>seed-settings</code> re-copies the INI onto the PVC.
+          The world save stays intact (do not delete the CR/PVC).
+          Players disconnect briefly during the roll.
+        </p>
+        <p class="fineprint">
+          Do not dump Pocketpair’s full key list into the CR or this repo — link
+          the official docs and set only the keys you need.
+        </p>
+      </div>
+    </section>
+
     <section class="section section--faq" id="faq" aria-labelledby="faq-heading">
       <div class="wrap wrap--readable">
         <h2 id="faq-heading">FAQ</h2>
@@ -300,6 +335,15 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p>
           Enable <strong>Enter password</strong> and use the join Secret key <code>server-password</code>
           (not admin). Or set <code>spec.generateSecrets: true</code> and read the generated Secret.
+        </p>
+
+        <h3 class="subhead">Game settings reset after restart</h3>
+        <p>
+          The init overwrites <code>PalWorldSettings.ini</code> from the ConfigMap
+          every start. Put lasting keys in <code>spec.optionSettings</code>
+          (e.g. <code>bExistPlayerAfterLogout: "True"</code>), merge-patch the CR,
+          then roll the game pod. Official list:
+          <a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Configuration parameters</a>.
         </p>
 
         <h3 class="subhead">Empty / different world after restart</h3>
@@ -354,6 +398,10 @@ kubectl get secret palworld-server-secrets -n game-servers \
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/ARCHITECTURE.md">Architecture</a>
           ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">Server notes</a>
+          ·
+          <a href="https://dataknifeai.github.io/palworld-operator/#settings">optionSettings</a>
+          ·
+          <a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Official OptionSettings</a>
           ·
           <a href="https://docs.palworldgame.com/getting-started/deploy-dedicated-server">Official dedicated server docs</a>
           ·

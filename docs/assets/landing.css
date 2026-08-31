@@ -503,6 +503,19 @@ code {
     linear-gradient(180deg, #eef6f2 0%, var(--paper) 100%);
 }
 
+.section--settings {
+  background:
+    radial-gradient(ellipse 55% 45% at 8% 15%, rgba(232, 160, 48, 0.14), transparent 55%),
+    radial-gradient(ellipse 40% 50% at 92% 85%, rgba(42, 168, 160, 0.1), transparent 50%),
+    var(--sand);
+}
+
+.section--settings > .wrap > p {
+  margin: 0 0 0.75rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
 .subhead {
   margin: 2rem 0 0.65rem;
   font-family: var(--font-display);
