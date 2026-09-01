@@ -60,21 +60,24 @@ Do not put passwords in the CR or commit them to git. Auto-gen never writes
 plaintext passwords into `status` — only the Secret name and
 `credentialsGenerated: true`.
 
-## Optional mod manager (admins)
+## Optional Server Manager (admins)
 
-When `spec.modManager.enabled` is true (and `spec.mods.enabled`), an HTTP UI
-is published on the **same Gateway IP** as the game, default port **8088**:
+When `spec.serverManager.enabled` is true (`spec.modManager` is a deprecated
+alias), an HTTP admin UI is published on the **same Gateway IP** as the game,
+default port **8088**:
 
 ```text
 http://<connectionAddress>:8088/
 ```
 
 Sign in with basic auth: username `admin`, password = Secret key
-`admin-password` (not the join password). REST stays ClusterIP-internal; legacy RCON does too.
+`admin-password` (not the join password). Tabs: Overview (REST stats) →
+Controls (announce/save/shutdown + Recreate) → Saves (world zip) → Mods.
+REST stays ClusterIP-internal (the UI proxies localhost); legacy RCON does too.
 
 This is not a player-facing surface. Restart in the UI Recreate-rolls the
 game Deployment — everyone disconnects until Ready. Linux PalServer still
-does not load official Workshop packages; see [PALWORLD_SERVER.md](PALWORLD_SERVER.md#optional-mod-manager-specmodmanager).
+does not load official Workshop packages; see [PALWORLD_SERVER.md](PALWORLD_SERVER.md#optional-server-manager-specservermanager).
 
 ## In-game steps (PC / Steam — direct connect)
 

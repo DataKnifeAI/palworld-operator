@@ -130,20 +130,22 @@ spec:
   #   # activeModList:                       # optional PalModSettings.ini seed
   #   #   - GamingCattiva
 
-  # Optional HTTP mod manager on the Gateway VIP (same IP as game UDP).
-  # Requires mods.enabled. Enabling rolls the game pod (Recreate) — leave
-  # commented on a live world. Basic auth: user "admin" + admin-password
-  # Secret key. REST stays ClusterIP-internal; legacy RCON does too.
-  # Sidecar binary is /mod-manager from the operator image — rebuild/push
-  # harbor.dataknife.net/library/palworld-operator after this feature lands.
+  # Optional Server Manager on the Gateway VIP (same IP as game UDP).
+  # Enabling rolls the game pod (Recreate) — leave commented on a live
+  # world. Basic auth: user "admin" + admin-password Secret key.
+  # Tabs: Overview (REST stats) → Controls → Saves (zip) → Mods.
+  # REST stays ClusterIP-internal (UI proxies localhost); RCON is deprecated.
+  # Sidecar binary is /server-manager from the operator image (/mod-manager
+  # is kept as a copy). spec.modManager is a deprecated alias.
   # Linux PalServer still does not load official Workshop packages; use
   # paks/~WorkshopMods and paks/LogicMods for community .pak drops.
-  # Restart button Recreate-rolls the Deployment (players disconnect).
   #
-  # modManager:
+  # serverManager:
   #   enabled: true
   #   port: 8088
   #   # image: harbor.dataknife.net/library/palworld-operator:latest
+  # # modManager:            # deprecated alias — maps to the same sidecar
+  # #   enabled: true
 
   # Explicit modest resources for ~8Gi worker nodes.
   resources:

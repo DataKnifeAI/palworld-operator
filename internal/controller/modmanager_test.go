@@ -31,9 +31,9 @@ import (
 	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-func testServerForModManager(mods, manager bool) *palworldv1alpha1.PalworldServer {
+func testServerForServerManager(mods, manager bool) *palworldv1alpha1.PalworldServer {
 	server := testServerForMods(mods)
-	server.Spec.ModManager.Enabled = manager
+	server.Spec.ServerManager.Enabled = manager
 	server.Spec.AdminPasswordSecretRef = &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{Name: "palworld-test-secrets"},
 		Key:                  secretKeyAdminPassword,
@@ -41,42 +41,65 @@ func testServerForModManager(mods, manager bool) *palworldv1alpha1.PalworldServe
 	return server
 }
 
-func TestValidateModManagerRequiresMods(t *testing.T) {
-	server := testServerForModManager(false, true)
-	err := validateModManager(server)
+func TestValidateServerManagerRequiresPassword(t *testing.T) {
+	server := testServerForMods(false)
+	server.Spec.ServerManager.Enabled = true
+	err := validateServerManager(server)
 	if err == nil {
-		t.Fatal("expected error when modManager is enabled without mods")
+		t.Fatal("expected error when serverManager is enabled without admin credentials")
 	}
 
-	server.Spec.Mods.Enabled = true
-	if err := validateModManager(server); err != nil {
+	server.Spec.GenerateSecrets = true
+	if err := validateServerManager(server); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
 
-	disabled := testServerForModManager(false, false)
-	if err := validateModManager(disabled); err != nil {
+	disabled := testServerForServerManager(false, false)
+	if err := validateServerManager(disabled); err != nil {
 		t.Fatalf("disabled should be valid: %v", err)
 	}
 }
 
-func TestGameServicePortsModManager(t *testing.T) {
+func TestValidateServerManagerAllowsWithoutMods(t *testing.T) {
+	server := testServerForServerManager(false, true)
+	if err := validateServerManager(server); err != nil {
+		t.Fatalf("serverManager without mods should be valid: %v", err)
+	}
+}
+
+func TestServerManagerAliasFromModManager(t *testing.T) {
+	spec := palworldv1alpha1.PalworldServerSpec{
+		ModManager: palworldv1alpha1.ServerManagerConfig{Enabled: true, Port: 9099},
+	}
+	if !serverManagerEnabled(spec) {
+		t.Fatal("modManager alias must enable server manager")
+	}
+	if got := serverManagerPort(spec); got != 9099 {
+		t.Fatalf("alias port = %d", got)
+	}
+	spec.ServerManager.Port = 8081
+	if got := serverManagerPort(spec); got != 8081 {
+		t.Fatalf("serverManager port should win, got %d", got)
+	}
+}
+
+func TestGameServicePortsServerManager(t *testing.T) {
 	off := palworldv1alpha1.PalworldServerSpec{
 		Gateway: palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 	}
 	for _, p := range gameServicePorts(off) {
-		if p.Name == portNameModManager {
-			t.Fatal("disabled must not expose mod-manager port")
+		if p.Name == portNameServerManager {
+			t.Fatal("disabled must not expose server-manager port")
 		}
 	}
 
 	on := palworldv1alpha1.PalworldServerSpec{
-		Gateway:    palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
-		Mods:       palworldv1alpha1.ModsConfig{Enabled: true},
-		ModManager: palworldv1alpha1.ModManagerConfig{Enabled: true},
+		Gateway:       palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
+		ServerManager: palworldv1alpha1.ServerManagerConfig{Enabled: true},
 	}
 	found := false
 	for _, p := range gameServicePorts(on) {
-		if p.Name == portNameModManager && p.Port == defaultModManagerPort && p.Protocol == corev1.ProtocolTCP {
+		if p.Name == portNameServerManager && p.Port == defaultServerManagerPort && p.Protocol == corev1.ProtocolTCP {
 			found = true
 		}
 		if p.Name == gatewayListenerGameUDP && p.Protocol != corev1.ProtocolUDP {
@@ -88,11 +111,11 @@ func TestGameServicePortsModManager(t *testing.T) {
 	}
 }
 
-func TestReconcileDeploymentModManagerSidecar(t *testing.T) {
+func TestReconcileDeploymentServerManagerSidecar(t *testing.T) {
 	scheme := secretsTestScheme(t)
 	ctx := context.Background()
 
-	disabled := testServerForModManager(true, false)
+	disabled := testServerForServerManager(true, false)
 	rDisabled := &PalworldServerReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(disabled).Build(),
 		Scheme: scheme,
@@ -111,7 +134,7 @@ func TestReconcileDeploymentModManagerSidecar(t *testing.T) {
 		t.Fatalf("disabled SA = %q", dep.Spec.Template.Spec.ServiceAccountName)
 	}
 
-	enabled := testServerForModManager(true, true)
+	enabled := testServerForServerManager(true, true)
 	rEnabled := &PalworldServerReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(enabled).Build(),
 		Scheme: scheme,
@@ -126,13 +149,16 @@ func TestReconcileDeploymentModManagerSidecar(t *testing.T) {
 		t.Fatalf("enabled containers = %d, want 2", len(dep.Spec.Template.Spec.Containers))
 	}
 	side := dep.Spec.Template.Spec.Containers[1]
-	if side.Name != containerModManager || side.Command[0] != modManagerBinary {
+	if side.Name != containerServerManager || side.Command[0] != serverManagerBinary {
 		t.Fatalf("sidecar = %+v", side)
 	}
-	if mountByName(side.VolumeMounts, volumeMods) == nil {
-		t.Fatal("sidecar must mount mods PVC")
+	if mountByName(side.VolumeMounts, volumeSaves) == nil {
+		t.Fatal("sidecar must mount saves PVC")
 	}
-	if dep.Spec.Template.Spec.ServiceAccountName != "palworld-test-mod-manager" {
+	if mountByName(side.VolumeMounts, volumeMods) == nil {
+		t.Fatal("sidecar must mount mods PVC when mods enabled")
+	}
+	if dep.Spec.Template.Spec.ServiceAccountName != "palworld-test-manager" {
 		t.Fatalf("SA = %q", dep.Spec.Template.Spec.ServiceAccountName)
 	}
 	if dep.Spec.Strategy.Type != appsv1.RecreateDeploymentStrategyType {
@@ -140,11 +166,35 @@ func TestReconcileDeploymentModManagerSidecar(t *testing.T) {
 	}
 }
 
-func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
+func TestReconcileDeploymentServerManagerWithoutMods(t *testing.T) {
+	scheme := secretsTestScheme(t)
+	ctx := context.Background()
+	enabled := testServerForServerManager(false, true)
+	r := &PalworldServerReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(enabled).Build(),
+		Scheme: scheme,
+	}
+	if err := r.reconcileDeployment(ctx, enabled, deriveNames(enabled), "admin", "join"); err != nil {
+		t.Fatal(err)
+	}
+	dep := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: enabled.Name, Namespace: enabled.Namespace}, dep); err != nil {
+		t.Fatal(err)
+	}
+	side := dep.Spec.Template.Spec.Containers[1]
+	if mountByName(side.VolumeMounts, volumeSaves) == nil {
+		t.Fatal("saves mount required")
+	}
+	if mountByName(side.VolumeMounts, volumeMods) != nil {
+		t.Fatal("mods must not be mounted when spec.mods is off")
+	}
+}
+
+func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	scheme := secretsTestScheme(t)
 	ctx := context.Background()
 
-	disabled := testServerForModManager(true, false)
+	disabled := testServerForServerManager(true, false)
 	rDisabled := &PalworldServerReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(disabled).Build(),
 		Scheme: scheme,
@@ -157,12 +207,12 @@ func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
 		t.Fatal(err)
 	}
 	sa := &corev1.ServiceAccount{}
-	err := rDisabled.Get(ctx, types.NamespacedName{Name: names.modManagerSA, Namespace: disabled.Namespace}, sa)
+	err := rDisabled.Get(ctx, types.NamespacedName{Name: names.serverManagerSA, Namespace: disabled.Namespace}, sa)
 	if !apierrors.IsNotFound(err) {
 		t.Fatalf("SA should be absent when disabled, got %v", err)
 	}
 	httpRoute := &gatewayv1.HTTPRoute{}
-	err = rDisabled.Get(ctx, types.NamespacedName{Name: names.modManagerHTTPRoute, Namespace: disabled.Namespace}, httpRoute)
+	err = rDisabled.Get(ctx, types.NamespacedName{Name: names.serverManagerHTTPRoute, Namespace: disabled.Namespace}, httpRoute)
 	if !apierrors.IsNotFound(err) {
 		t.Fatalf("HTTPRoute should be absent when disabled, got %v", err)
 	}
@@ -171,7 +221,7 @@ func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
 		t.Fatalf("game UDPRoute must still exist: %v", err)
 	}
 
-	enabled := testServerForModManager(true, true)
+	enabled := testServerForServerManager(true, true)
 	rEnabled := &PalworldServerReconciler{
 		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(enabled).Build(),
 		Scheme: scheme,
@@ -183,17 +233,17 @@ func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
 	if err := rEnabled.reconcileEnvoyGateway(ctx, enabled, enNames); err != nil {
 		t.Fatal(err)
 	}
-	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.modManagerSA, Namespace: enabled.Namespace}, sa); err != nil {
+	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerSA, Namespace: enabled.Namespace}, sa); err != nil {
 		t.Fatalf("SA missing: %v", err)
 	}
 	role := &rbacv1.Role{}
-	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.modManagerRole, Namespace: enabled.Namespace}, role); err != nil {
+	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerRole, Namespace: enabled.Namespace}, role); err != nil {
 		t.Fatalf("Role missing: %v", err)
 	}
 	if len(role.Rules) != 1 || len(role.Rules[0].ResourceNames) != 1 || role.Rules[0].ResourceNames[0] != enabled.Name {
 		t.Fatalf("Role must be least-privilege for %s, got %+v", enabled.Name, role.Rules)
 	}
-	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.modManagerHTTPRoute, Namespace: enabled.Namespace}, httpRoute); err != nil {
+	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerHTTPRoute, Namespace: enabled.Namespace}, httpRoute); err != nil {
 		t.Fatalf("HTTPRoute missing: %v", err)
 	}
 	gw := &gatewayv1.Gateway{}
@@ -202,7 +252,7 @@ func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
 	}
 	var hasHTTP, hasUDP bool
 	for _, l := range gw.Spec.Listeners {
-		if l.Name == gatewayListenerModManagerHTTP && l.Protocol == gatewayv1.HTTPProtocolType && l.Port == defaultModManagerPort {
+		if l.Name == gatewayListenerServerManagerHTTP && l.Protocol == gatewayv1.HTTPProtocolType && l.Port == defaultServerManagerPort {
 			hasHTTP = true
 		}
 		if l.Name == gatewayListenerGameUDP && l.Protocol == gatewayv1.UDPProtocolType {
@@ -210,26 +260,26 @@ func TestReconcileModManagerRBACAndHTTPRoute(t *testing.T) {
 		}
 	}
 	if !hasHTTP {
-		t.Fatal("gateway missing HTTP listener for mod manager")
+		t.Fatal("gateway missing HTTP listener for server manager")
 	}
 	if !hasUDP {
 		t.Fatal("gateway must keep game UDP listener")
 	}
 	udpEnabled := &gatewayv1alpha2.UDPRoute{}
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.gameUDPRoute, Namespace: enabled.Namespace}, udpEnabled); err != nil {
-		t.Fatalf("game UDPRoute must remain when mod manager is on: %v", err)
+		t.Fatalf("game UDPRoute must remain when server manager is on: %v", err)
 	}
 }
 
-func TestModManagerDefaults(t *testing.T) {
+func TestServerManagerDefaults(t *testing.T) {
 	spec := palworldv1alpha1.PalworldServerSpec{}
-	if modManagerEnabled(spec) {
+	if serverManagerEnabled(spec) {
 		t.Fatal("must default disabled")
 	}
-	if got := modManagerPort(spec); got != defaultModManagerPort {
+	if got := serverManagerPort(spec); got != defaultServerManagerPort {
 		t.Fatalf("port = %d", got)
 	}
-	if got := modManagerImage(spec); got != defaultModManagerImage {
+	if got := serverManagerImage(spec); got != defaultServerManagerImage {
 		t.Fatalf("image = %q", got)
 	}
 }

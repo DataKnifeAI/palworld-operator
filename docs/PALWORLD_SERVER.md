@@ -46,7 +46,7 @@ Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (
 | 27015 | UDP | Steam query | Community browser / Steam; UDPRoute when listing |
 | 25575 | TCP | RCON (deprecated) | Legacy listener; ClusterIP default-on until Pocketpair removes it. Operator does **not** use RCON commands. Not required for stop/save. |
 | 8212 | TCP | REST API | Replacement for RCON. Operator uses REST announce + admin basic auth. **Do not** public-forward casually |
-| 8088 | TCP/HTTP | Optional mod manager | `spec.modManager`; same Gateway VIP; **basic auth required** |
+| 8088 | TCP/HTTP | Optional Server Manager | `spec.serverManager` (`spec.modManager` alias); same Gateway VIP; **basic auth required** |
 
 Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings. REST is the documented admin API; RCON remains ClusterIP-internal as a legacy listener.
 
@@ -150,36 +150,39 @@ kubectl -n game-servers delete pod palworld-mods-copy
 
 Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image starts. Restart the game Deployment after changing packages.
 
-### Optional mod manager (`spec.modManager`)
+### Optional Server Manager (`spec.serverManager`)
 
-Authenticated HTTP UI/API for the mods PVC. **Off by default.** Requires `spec.mods.enabled`. Enabling adds a sidecar and an HTTP listener on the **same Gateway VIP** as game UDP (not a LoadBalancer on the game pod). REST stays ClusterIP-internal (legacy RCON does too).
+Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a LoadBalancer on the game pod). **Off by default.** Journey: **Overview → Controls → Saves → Mods**. The sidecar shares the game pod and proxies Palworld REST on `http://127.0.0.1:8212/v1/api` — REST is **not** public-routed. RCON is [deprecated](https://docs.palworldgame.com/api/rcon/); use REST ([official docs](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — Pocketpair’s spelling). `spec.modManager` is a deprecated alias for the same sidecar.
 
 | Item | Value |
 |------|-------|
-| Enable | `spec.modManager.enabled: true` (also needs `spec.mods.enabled`) |
-| URL | `http://<gateway.address>:<port>/` — default port **8088** (`spec.modManager.port`) |
+| Enable | `spec.serverManager.enabled: true` (or `spec.modManager.enabled`) |
+| URL | `http://<gateway.address>:<port>/` — default port **8088** (`spec.serverManager.port`) |
 | Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password` |
-| Sidecar | `/mod-manager` from the **operator** image (`harbor.dataknife.net/library/palworld-operator`) |
-| PVC root | Sidecar mounts `{name}-mods` at `/mods` (same files as `Mods/` + `paks/~WorkshopMods` + `paks/LogicMods`) |
+| Sidecar | `/server-manager` from the **operator** image (`/mod-manager` is kept as a copy) |
+| Overview | REST `GET /info`, `/metrics`, `/players` (version, worldguid, FPS, players, days/uptime/basecamps when present) |
+| Controls | REST announce / save / shutdown (confirm); Recreate-roll restart |
+| Saves | Zip of `SaveGames/` (optional `Config/LinuxServer`; INI passwords redacted). Upload replaces the live world (confirm). Mounts the game PVC at `/saves`. |
+| Mods tab | List/upload/download/delete on the mods PVC (`/mods`). Needs `spec.mods.enabled`. |
 | Restart | UI button PATCHes the game Deployment (Recreate). **Players disconnect** until Ready. The UI pod restarts too. |
 | RBAC | Namespaced Role: `get`/`patch`/`update` **only** that Deployment |
 
 **Do not enable on a live CR without a maintenance window** — adding the sidecar Recreate-rolls the game pod.
 
-The operator image must include the `mod-manager` binary (Dockerfile copies both `/manager` and `/mod-manager`). After this feature lands, rebuild/push Harbor so the sidecar command works. Pin `spec.modManager.image` to a digest/tag if the game namespace cannot pull `:latest`. Private Harbor may need `spec.imagePullSecrets`.
+The operator image must include `/server-manager` (Dockerfile also copies `/mod-manager`). Rebuild/push Harbor so the sidecar command works. Pin `spec.serverManager.image` to a digest/tag if the game namespace cannot pull `:latest`. Private Harbor may need `spec.imagePullSecrets`.
 
-Linux PalServer still does **not** load official Workshop / `PalModSettings.ini`. Use the manager to drop version-matched `.pak` files under `paks/~WorkshopMods` and `paks/LogicMods`. Path traversal outside the PVC root is rejected. There is no unauthenticated mode.
+Linux PalServer still does **not** load official Workshop / `PalModSettings.ini`. Use the Mods tab to drop version-matched `.pak` files under `paks/~WorkshopMods` and `paks/LogicMods`. Path traversal outside the mods and saves mounts is rejected. There is no unauthenticated mode.
 
 ```yaml
 spec:
-  mods:
-    enabled: true
-    storage:
-      size: 10Gi
-  modManager:
+  serverManager:
     enabled: true
     port: 8088
     # image: harbor.dataknife.net/library/palworld-operator:latest
+  # mods:
+  #   enabled: true          # needed only for the Mods tab
+  #   storage:
+  #     size: 10Gi
 ```
 
 **Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + `PalModSettings.ini` + `-workshopdir` + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
@@ -318,7 +321,7 @@ For auto-gen, substitute the Secret name from
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 | Balance / features | Extra `OptionSettings=(…)` keys | Known keys → env (partial) | `spec.optionSettings` |
 | Workshop / mods | `/pal/Package/Mods` + Paks subpath overlays | `/palworld/Mods` + `/palworld/Pal/Content/Paks/…` | `spec.mods` (opt-in) |
-| Mod manager UI | HTTP on Gateway VIP (sidecar) | same | `spec.modManager` (requires mods) |
+| Server Manager UI | HTTP on Gateway VIP (sidecar) | same | `spec.serverManager` (`spec.modManager` alias) |
 
 ## Resource guidance
 

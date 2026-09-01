@@ -81,7 +81,7 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	names := deriveNames(server)
 
-	if err := validateModManager(server); err != nil {
+	if err := validateServerManager(server); err != nil {
 		return r.failStatus(ctx, server, err)
 	}
 
@@ -174,10 +174,16 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	server.Status.Ready = ready
 	server.Status.ConnectionPort = gamePort(server.Spec)
 	server.Status.ConnectionAddress = connectionAddressFromGateway(server, gateway)
-	if modManagerEnabled(server.Spec) {
-		server.Status.ModManagerAddress = server.Status.ConnectionAddress
-		server.Status.ModManagerPort = modManagerPort(server.Spec)
+	if serverManagerEnabled(server.Spec) {
+		addr := server.Status.ConnectionAddress
+		port := serverManagerPort(server.Spec)
+		server.Status.ServerManagerAddress = addr
+		server.Status.ServerManagerPort = port
+		server.Status.ModManagerAddress = addr
+		server.Status.ModManagerPort = port
 	} else {
+		server.Status.ServerManagerAddress = ""
+		server.Status.ServerManagerPort = 0
 		server.Status.ModManagerAddress = ""
 		server.Status.ModManagerPort = 0
 	}
@@ -459,13 +465,13 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 			Volumes:                       volumes,
 		}
 
-		if modManagerEnabled(server.Spec) {
+		if serverManagerEnabled(server.Spec) {
 			ref := adminPasswordSelector(server)
 			if ref == nil {
-				return fmt.Errorf("mod manager requires adminPasswordSecretRef or generateSecrets")
+				return fmt.Errorf("server manager requires adminPasswordSecretRef or generateSecrets")
 			}
-			podSpec.Containers = append(podSpec.Containers, modManagerSidecar(server.Spec, names, ref))
-			podSpec.ServiceAccountName = names.modManagerSA
+			podSpec.Containers = append(podSpec.Containers, serverManagerSidecar(server.Spec, names, ref))
+			podSpec.ServiceAccountName = names.serverManagerSA
 		}
 
 		if len(server.Spec.ImagePullSecrets) > 0 {

@@ -42,19 +42,21 @@ func (r *PalworldServerReconciler) reconcileEnvoyGateway(
 			return err
 		}
 	}
-	if modManagerEnabled(server.Spec) {
+	if serverManagerEnabled(server.Spec) {
 		if err := r.reconcileHTTPRoute(ctx, server, names); err != nil {
 			return err
 		}
 	} else {
-		httpRoute := &gatewayv1.HTTPRoute{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      names.modManagerHTTPRoute,
-				Namespace: server.Namespace,
-			},
-		}
-		if err := r.deleteIfExists(ctx, httpRoute); err != nil {
-			return fmt.Errorf("delete mod-manager HTTPRoute: %w", err)
+		for _, routeName := range []string{names.serverManagerHTTPRoute, gatewayBaseName(server.Name) + "-mod-manager"} {
+			httpRoute := &gatewayv1.HTTPRoute{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      routeName,
+					Namespace: server.Namespace,
+				},
+			}
+			if err := r.deleteIfExists(ctx, httpRoute); err != nil {
+				return fmt.Errorf("delete server-manager HTTPRoute: %w", err)
+			}
 		}
 	}
 	return nil
@@ -143,10 +145,10 @@ func (r *PalworldServerReconciler) reconcileGateway(
 			},
 		})
 	}
-	if modManagerEnabled(server.Spec) {
+	if serverManagerEnabled(server.Spec) {
 		listeners = append(listeners, gatewayv1.Listener{
-			Name:     gatewayv1.SectionName(gatewayListenerModManagerHTTP),
-			Port:     modManagerPort(server.Spec),
+			Name:     gatewayv1.SectionName(gatewayListenerServerManagerHTTP),
+			Port:     serverManagerPort(server.Spec),
 			Protocol: gatewayv1.HTTPProtocolType,
 			AllowedRoutes: &gatewayv1.AllowedRoutes{
 				Namespaces: &gatewayv1.RouteNamespaces{

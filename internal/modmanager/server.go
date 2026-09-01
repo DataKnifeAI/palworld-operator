@@ -34,27 +34,35 @@ const (
 	maxUploadBytes  = 2 << 30
 	maxMultipartMem = 32 << 20
 	healthzPath     = "/healthz"
-	basicAuthRealm  = `Basic realm="Palworld Mod Manager"`
+	basicAuthRealm  = `Basic realm="Palworld Server Manager"`
+	errModsDisabled = "mods PVC is not mounted; enable spec.mods"
+	errRESTDisabled = "Palworld REST is not configured on this sidecar"
 	headerWWWAuth   = "WWW-Authenticate"
 	// DefaultUser is the basic-auth username (same as Palworld REST admin).
 	DefaultUser = "admin"
 )
 
-// Config is the HTTP file-manager configuration. Password must be non-empty.
+// Config is the HTTP admin UI configuration. Password must be non-empty.
 type Config struct {
 	Root      string
+	SavesRoot string
 	User      string
 	Password  string
+	RESTBase  string
 	Restarter Restarter
+	Client    *http.Client
 }
 
-// Server is an authenticated HTTP UI/API over a mods PVC root.
+// Server is an authenticated HTTP UI/API (stats, controls, saves, mods).
 type Server struct {
-	root      string
-	user      string
-	password  string
-	restarter Restarter
-	mux       *http.ServeMux
+	root       string
+	savesRoot  string
+	user       string
+	password   string
+	restBase   string
+	restarter  Restarter
+	httpClient *http.Client
+	mux        *http.ServeMux
 }
 
 type fileEntry struct {
@@ -81,21 +89,35 @@ type restartResponse struct {
 // New returns a handler. Password must be set — unauthenticated mode is rejected.
 func New(cfg Config) (*Server, error) {
 	if strings.TrimSpace(cfg.Password) == "" {
-		return nil, errors.New("mod manager password is required")
+		return nil, errors.New("server manager password is required")
 	}
 	if cfg.User == "" {
 		cfg.User = DefaultUser
 	}
-	root, err := filepath.Abs(cfg.Root)
-	if err != nil {
-		return nil, err
-	}
 	s := &Server{
-		root:      root,
-		user:      cfg.User,
-		password:  cfg.Password,
-		restarter: cfg.Restarter,
-		mux:       http.NewServeMux(),
+		user:       cfg.User,
+		password:   cfg.Password,
+		restBase:   strings.TrimSpace(cfg.RESTBase),
+		restarter:  cfg.Restarter,
+		httpClient: cfg.Client,
+		mux:        http.NewServeMux(),
+	}
+	if s.httpClient == nil {
+		s.httpClient = &http.Client{Timeout: defaultRESTClient}
+	}
+	if strings.TrimSpace(cfg.Root) != "" {
+		root, err := filepath.Abs(cfg.Root)
+		if err != nil {
+			return nil, err
+		}
+		s.root = root
+	}
+	if strings.TrimSpace(cfg.SavesRoot) != "" {
+		saves, err := filepath.Abs(cfg.SavesRoot)
+		if err != nil {
+			return nil, err
+		}
+		s.savesRoot = saves
 	}
 	s.mux.HandleFunc("GET "+healthzPath, s.handleHealthz)
 	s.mux.HandleFunc("GET /{$}", s.handleUI)
@@ -104,6 +126,13 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /api/upload", s.handleUpload)
 	s.mux.HandleFunc("DELETE /api/files", s.handleDelete)
 	s.mux.HandleFunc("POST /api/restart", s.handleRestart)
+	s.mux.HandleFunc("GET /api/stats", s.handleStats)
+	s.mux.HandleFunc("POST /api/announce", s.handleAnnounce)
+	s.mux.HandleFunc("POST /api/save", s.handleSave)
+	s.mux.HandleFunc("POST /api/shutdown", s.handleShutdown)
+	s.mux.HandleFunc("GET /api/saves", s.handleSavesList)
+	s.mux.HandleFunc("GET /api/saves/download", s.handleSavesDownload)
+	s.mux.HandleFunc("POST /api/saves/upload", s.handleSavesUpload)
 	return s, nil
 }
 
@@ -140,6 +169,10 @@ func (s *Server) handleUI(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
+	if s.root == "" {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
+		return
+	}
 	rel := r.URL.Query().Get("path")
 	abs, err := SafeJoin(s.root, rel)
 	if err != nil {
@@ -184,6 +217,10 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
+	if s.root == "" {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
+		return
+	}
 	rel := r.URL.Query().Get("path")
 	abs, err := SafeJoin(s.root, rel)
 	if err != nil {
@@ -205,6 +242,10 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
+	if s.root == "" {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxMultipartMem); err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid upload"})
@@ -250,6 +291,10 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
+	if s.root == "" {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
+		return
+	}
 	rel := r.URL.Query().Get("path")
 	if rel == "" || rel == "." {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "cannot delete mods root"})
@@ -278,7 +323,7 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.restarter.Restart(r.Context()); err != nil {
-		log.Printf("mod manager restart failed: %v", err)
+		log.Printf("server manager restart failed: %v", err)
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "restart failed"})
 		return
 	}
@@ -292,6 +337,6 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		log.Printf("mod manager write json: %v", err)
+		log.Printf("server manager write json: %v", err)
 	}
 }

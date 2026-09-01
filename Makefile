@@ -24,7 +24,7 @@ manifests: controller-gen
 .PHONY: build
 build: generate
 	go build -o bin/manager cmd/main.go
-	go build -o bin/mod-manager cmd/mod-manager/main.go
+	go build -o bin/server-manager cmd/server-manager/main.go
 
 .PHONY: test
 test: generate

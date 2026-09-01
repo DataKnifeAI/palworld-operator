@@ -21,84 +21,433 @@ const uiHTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Palworld Mod Manager</title>
+  <title>Palworld Server Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --ink:#1c2e28; --muted:#3d554c; --paper:#f2f7f4; --sand:#fff3d6; --teal:#2aa8a0; --coral:#c44b28; --line:rgba(28,46,40,.12); }
+    :root {
+      --sky: #3eb4c8;
+      --sky-deep: #0e6b78;
+      --grass: #3a9a48;
+      --grass-deep: #1f5a32;
+      --sun: #f0b429;
+      --amber: #d4891a;
+      --cream: #f6eedc;
+      --paper: #fff9ee;
+      --ink: #1c2e22;
+      --muted: #4a6356;
+      --coral: #c44b28;
+      --line: rgba(28,46,34,.14);
+      --font-display: "Bricolage Grotesque", "Segoe UI", sans-serif;
+      --font-body: "Figtree", "Trebuchet MS", sans-serif;
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background: var(--paper); color: var(--ink); }
-    header { background: #1a6f78; color: #fff; padding: 1rem 1.25rem; }
-    header h1 { margin:0; font-size:1.25rem; }
-    header p { margin:.35rem 0 0; opacity:.9; font-size:.9rem; }
-    main { max-width: 56rem; margin: 0 auto; padding: 1.25rem; }
-    .warn { background: var(--sand); border: 1px solid var(--line); border-radius:.5rem; padding:.75rem 1rem; margin-bottom:1rem; font-size:.9rem; }
-    nav { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
-    button, .btn { cursor:pointer; border:0; border-radius:.4rem; padding:.45rem .8rem; font: inherit; }
-    .btn { background: var(--teal); color:#fff; text-decoration:none; display:inline-block; }
-    .btn-danger { background: var(--coral); color:#fff; }
-    .btn-ghost { background:#fff; border:1px solid var(--line); color: var(--ink); }
-    table { width:100%; border-collapse: collapse; background:#fff; border-radius:.5rem; overflow:hidden; }
-    th, td { text-align:left; padding:.55rem .75rem; border-bottom:1px solid var(--line); }
-    th { background: #e8f4f2; font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; }
-    .muted { color: var(--muted); font-size:.85rem; }
-    .row { display:flex; flex-wrap:wrap; gap:.75rem; align-items:end; margin:1rem 0; }
-    label { display:block; font-size:.8rem; color: var(--muted); margin-bottom:.25rem; }
-    input[type=file] { font: inherit; }
-    .err { color: var(--coral); margin:.5rem 0; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background:
+        radial-gradient(ellipse 80% 40% at 10% -10%, rgba(62,180,200,.18), transparent 50%),
+        radial-gradient(ellipse 50% 30% at 100% 0%, rgba(240,180,41,.12), transparent 45%),
+        var(--cream);
+      color: var(--ink);
+    }
+    .sky {
+      position: relative;
+      background: linear-gradient(180deg, #7ec8d6 0%, #4aa8b8 42%, #e8f4c8 78%, #6bb35a 100%);
+      color: #0a3a32;
+      padding: 0.85rem 1.15rem 1.15rem;
+      overflow: hidden;
+    }
+    .sky svg.scene { position: absolute; inset: auto 0 0; width: 100%; height: 52px; pointer-events: none; }
+    .sky h1 {
+      position: relative;
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .sky p { position: relative; margin: .28rem 0 0; font-size: .88rem; color: #14382e; max-width: 46rem; }
+    main { max-width: 58rem; margin: 0 auto; padding: 1rem 1.15rem 2rem; }
+    .trail {
+      display: flex; flex-wrap: wrap; gap: 0; margin: 0 0 1rem;
+      border-bottom: 3px solid var(--grass-deep);
+    }
+    .trail button {
+      appearance: none; border: 0; background: transparent;
+      font: 700 .92rem var(--font-display); color: var(--muted);
+      padding: .55rem .9rem .45rem; cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -3px;
+    }
+    .trail button[aria-selected="true"] {
+      color: var(--grass-deep);
+      border-bottom-color: var(--sun);
+      background: linear-gradient(180deg, transparent, rgba(240,180,41,.16));
+    }
+    .trail button:focus-visible { outline: 2px solid var(--sky-deep); outline-offset: 2px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .warn, .note {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--sun);
+      border-radius: 0 .4rem .4rem 0;
+      padding: .65rem .85rem;
+      margin: 0 0 1rem;
+      font-size: .88rem;
+    }
+    .note { border-left-color: var(--sky-deep); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+      gap: .65rem;
+      margin: 0 0 1rem;
+    }
+    .stat {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: .35rem;
+      padding: .55rem .7rem;
+    }
+    .stat b { display: block; font-family: var(--font-display); font-size: 1.15rem; color: var(--sky-deep); word-break: break-all; }
+    .stat span { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); }
+    th, td { text-align: left; padding: .45rem .65rem; border-bottom: 1px solid var(--line); font-size: .9rem; }
+    th { background: #e4f3ea; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; font-family: var(--font-display); }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .row { display: flex; flex-wrap: wrap; gap: .65rem; align-items: end; margin: .85rem 0; }
+    label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: .2rem; font-weight: 600; }
+    input[type=text], input[type=number], input[type=file], textarea {
+      font: inherit; padding: .4rem .5rem; border: 1px solid var(--line); background: #fff; border-radius: .25rem; min-width: 12rem;
+    }
+    textarea { width: 100%; min-height: 3.2rem; }
+    button, .btn { cursor: pointer; border: 0; border-radius: .3rem; padding: .42rem .75rem; font: 600 .9rem var(--font-body); }
+    .btn { background: var(--sky-deep); color: #fff; text-decoration: none; display: inline-block; }
+    .btn-sun { background: var(--amber); color: #1c2e22; }
+    .btn-grass { background: var(--grass-deep); color: #fff; }
+    .btn-danger { background: var(--coral); color: #fff; }
+    .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+    .err { color: var(--coral); margin: .4rem 0; min-height: 1.1em; }
+    .ok { color: var(--grass-deep); margin: .4rem 0; }
+    code { font-size: .86em; background: rgba(14,107,120,.1); padding: .05em .3em; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Palworld Mod Manager</h1>
-    <p>Authenticated admin UI for the mods PVC. Game UDP is unchanged.</p>
+  <header class="sky">
+    <svg class="scene" viewBox="0 0 800 52" preserveAspectRatio="none" aria-hidden="true">
+      <circle cx="720" cy="8" r="14" fill="#ffd56a"/>
+      <path d="M0 38 C80 18 160 44 240 28 C320 12 400 40 480 24 C560 10 640 36 800 22 L800 52 L0 52 Z" fill="#2f7a3c"/>
+      <path d="M0 44 C120 30 220 48 340 36 C460 24 580 46 800 34 L800 52 L0 52 Z" fill="#1f5a32"/>
+    </svg>
+    <h1>Server Manager</h1>
+    <p>World pulse, then actions, then the save chest, then workshop PAKs. Authenticated admin — REST stays on the pod, not the public VIP.</p>
   </header>
   <main>
-    <div class="warn">
-      Official Linux PalServer does <strong>not</strong> load Pocketpair Workshop /
-      <code>PalModSettings.ini</code>. Community <code>.pak</code> files go under
-      <code>paks/~WorkshopMods</code> and <code>paks/LogicMods</code>.
-      Restart uses Deployment Recreate — players disconnect until Ready.
-      <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods (Windows)</a>
-      ·
-      <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a>
-    </div>
-    <nav>
-      <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
-      <button class="btn-ghost" type="button" data-path="paks/~WorkshopMods">paks/~WorkshopMods</button>
-      <button class="btn-ghost" type="button" data-path="paks/LogicMods">paks/LogicMods</button>
-      <button class="btn-ghost" type="button" data-path="Workshop">Workshop</button>
-      <button class="btn-danger" type="button" id="restart">Restart server</button>
+    <nav class="trail" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="controls">Controls</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
     </nav>
-    <p class="muted" id="crumb"></p>
-    <div class="err" id="error"></div>
-    <table>
-      <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <form class="row" id="upload">
-      <div>
-        <label for="file">Upload into current folder</label>
-        <input id="file" name="file" type="file" required />
+
+    <section id="overview" class="panel active" role="tabpanel">
+      <div class="note">Stats come from Palworld REST on localhost (<code>/v1/api/info</code>, <code>/metrics</code>, <code>/players</code>). RCON is deprecated — use REST. Official API: <a href="https://docs.palworldgame.com/api/rest-api/palwold-rest-api">palwold-rest-api</a> (Pocketpair’s spelling).</div>
+      <div class="err" id="ov-err"></div>
+      <div class="stats" id="stats"></div>
+      <p class="muted" id="ov-stamp"></p>
+      <table>
+        <thead><tr><th>Player</th><th>Level</th><th>Ping</th><th>ID</th></tr></thead>
+        <tbody id="players"></tbody>
+      </table>
+    </section>
+
+    <section id="controls" class="panel" role="tabpanel">
+      <div class="note">Announce and save call Palworld REST. Restart Recreate-rolls the Kubernetes Deployment (downtime). Shutdown asks the game to exit after a wait — confirm first. REST is not public-routed.</div>
+      <div class="err" id="ctl-err"></div>
+      <div class="ok" id="ctl-ok"></div>
+      <form id="announce" class="row">
+        <div style="flex:1;min-width:16rem">
+          <label for="announce-msg">Broadcast to the world</label>
+          <textarea id="announce-msg" required placeholder="Dinner raid in ten minutes…"></textarea>
+        </div>
+        <button class="btn" type="submit">Announce</button>
+      </form>
+      <div class="row">
+        <button class="btn-grass" type="button" id="save-world">Save world (REST)</button>
+        <button class="btn-sun" type="button" id="restart">Restart pod (Recreate)</button>
       </div>
-      <button class="btn" type="submit">Upload</button>
-    </form>
+      <form id="shutdown" class="row">
+        <div>
+          <label for="shut-wait">Shutdown wait (seconds)</label>
+          <input id="shut-wait" type="number" min="0" max="600" value="30" />
+        </div>
+        <div style="flex:1;min-width:14rem">
+          <label for="shut-msg">Shutdown message</label>
+          <input id="shut-msg" type="text" placeholder="World closing — grab your Pals." />
+        </div>
+        <button class="btn-danger" type="submit">Shutdown…</button>
+      </form>
+    </section>
+
+    <section id="saves" class="panel" role="tabpanel">
+      <div class="warn">
+        Saves live on the game PVC (<code>SaveGames/</code>, optional <code>Config/LinuxServer</code>).
+        Download is a zip. Upload <strong>replaces the live world</strong> — confirm twice.
+        Save via REST first so the zip matches disk. After restore, restart so PalServer reloads.
+        Config listings never show INI secret values; downloaded Config INIs have passwords redacted.
+      </div>
+      <div class="err" id="sv-err"></div>
+      <div class="ok" id="sv-ok"></div>
+      <p class="muted" id="sv-meta"></p>
+      <table>
+        <thead><tr><th>SaveGames</th><th>Size</th></tr></thead>
+        <tbody id="sv-rows"></tbody>
+      </table>
+      <p class="muted" style="margin-top:.75rem">Config (names only — no password values)</p>
+      <table>
+        <thead><tr><th>Config/LinuxServer</th><th>Size</th></tr></thead>
+        <tbody id="cfg-rows"></tbody>
+      </table>
+      <div class="row">
+        <label><input type="checkbox" id="sv-save-first" checked /> REST save before download</label>
+        <label><input type="checkbox" id="sv-cfg" /> Include Config INIs (passwords redacted)</label>
+        <button class="btn" type="button" id="sv-dl">Download world zip</button>
+      </div>
+      <form id="sv-up" class="row">
+        <div>
+          <label for="sv-file">Restore archive (.zip / .tar.gz)</label>
+          <input id="sv-file" type="file" accept=".zip,.tar,.tar.gz,.tgz" required />
+        </div>
+        <label><input type="checkbox" id="sv-up-cfg" /> Also replace Config from archive</label>
+        <button class="btn-danger" type="submit">Upload &amp; replace world…</button>
+      </form>
+    </section>
+
+    <section id="mods" class="panel" role="tabpanel">
+      <div class="warn">
+        Official Linux PalServer does <strong>not</strong> load Pocketpair Workshop /
+        <code>PalModSettings.ini</code>. Community <code>.pak</code> files go under
+        <code>paks/~WorkshopMods</code> and <code>paks/LogicMods</code>.
+        <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods (Windows)</a>
+        ·
+        <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a>
+      </div>
+      <div class="row">
+        <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
+        <button class="btn-ghost" type="button" data-path="paks/~WorkshopMods">paks/~WorkshopMods</button>
+        <button class="btn-ghost" type="button" data-path="paks/LogicMods">paks/LogicMods</button>
+        <button class="btn-ghost" type="button" data-path="Workshop">Workshop</button>
+      </div>
+      <p class="muted" id="crumb"></p>
+      <div class="err" id="mod-err"></div>
+      <table>
+        <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <form class="row" id="upload">
+        <div>
+          <label for="file">Upload into current folder</label>
+          <input id="file" name="file" type="file" required />
+        </div>
+        <button class="btn" type="submit">Upload</button>
+      </form>
+    </section>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
-    let current = "";
     const opts = { credentials: "same-origin" };
-    function showErr(m) { $("error").textContent = m || ""; }
+    let current = "";
+    let statsTimer = null;
+
+    function show(el, msg) { if (el) el.textContent = msg || ""; }
     async function api(url, init) {
       const r = await fetch(url, Object.assign({}, opts, init));
-      if (r.status === 401) { showErr("Unauthorized"); throw new Error("401"); }
+      if (r.status === 401) { throw new Error("Unauthorized"); }
       const ct = r.headers.get("content-type") || "";
       const body = ct.includes("json") ? await r.json() : await r.text();
       if (!r.ok) {
-        const msg = (body && body.error) ? body.error : r.statusText;
-        showErr(msg);
-        throw new Error(msg);
+        throw new Error((body && body.error) ? body.error : r.statusText);
       }
       return body;
     }
+    function fmt(n) {
+      if (n == null) return "—";
+      const x = Number(n);
+      if (x < 1024) return x + " B";
+      const u = ["KiB","MiB","GiB"];
+      let i = -1, v = x;
+      do { v /= 1024; i++; } while (v >= 1024 && i < u.length-1);
+      return v.toFixed(1) + " " + u[i];
+    }
+    function pick(obj, keys) {
+      if (!obj) return undefined;
+      for (const k of keys) {
+        if (obj[k] != null && obj[k] !== "") return obj[k];
+      }
+      return undefined;
+    }
+    function setTab(id) {
+      document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === id));
+      document.querySelectorAll(".trail button").forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === id ? "true" : "false"));
+      if (id === "overview") refreshStats();
+      if (id === "saves") loadSaves();
+      if (id === "mods") list(current);
+    }
+    document.querySelectorAll(".trail button").forEach((b) => {
+      b.onclick = () => setTab(b.getAttribute("data-tab"));
+    });
+
+    function statCard(label, value) {
+      const d = document.createElement("div");
+      d.className = "stat";
+      const b = document.createElement("b");
+      b.textContent = (value == null || value === "") ? "—" : String(value);
+      const s = document.createElement("span");
+      s.textContent = label;
+      d.append(b, s);
+      return d;
+    }
+    function uptimeLabel(sec) {
+      if (sec == null || sec === "") return "—";
+      const n = Number(sec);
+      if (!Number.isFinite(n)) return String(sec);
+      const h = Math.floor(n / 3600);
+      const m = Math.floor((n % 3600) / 60);
+      return h + "h " + m + "m";
+    }
+    async function refreshStats() {
+      show($("ov-err"), "");
+      try {
+        const data = await api("/api/stats");
+        const info = data.info || {};
+        const metrics = data.metrics || {};
+        const box = $("stats");
+        box.replaceChildren(
+          statCard("Version", pick(info, ["version"])),
+          statCard("World GUID", pick(info, ["worldguid", "worldGuid"])),
+          statCard("Server", pick(info, ["servername", "serverName"])),
+          statCard("Players", (pick(metrics, ["currentplayernum", "currentPlayerNum"]) ?? "—") + " / " + (pick(metrics, ["maxplayernum", "maxPlayerNum"]) ?? "—")),
+          statCard("FPS", pick(metrics, ["serverfps", "fps"])),
+          statCard("Days", pick(metrics, ["days"])),
+          statCard("Uptime", uptimeLabel(pick(metrics, ["uptime"]))),
+          statCard("Basecamps", pick(metrics, ["basecamps", "basecampnum", "numbasecamps"]))
+        );
+        const rows = $("players");
+        rows.replaceChildren();
+        const list = (data.players && (data.players.players || data.players)) || [];
+        (Array.isArray(list) ? list : []).forEach((p) => {
+          const tr = document.createElement("tr");
+          [pick(p, ["name"]), pick(p, ["level"]), pick(p, ["ping"]), pick(p, ["userId", "userid", "playerId", "playerId"])].forEach((v) => {
+            const td = document.createElement("td");
+            td.textContent = v == null ? "—" : String(v);
+            tr.appendChild(td);
+          });
+          rows.appendChild(tr);
+        });
+        if (data.errors && data.errors.length) show($("ov-err"), data.errors.join(" · "));
+        $("ov-stamp").textContent = "Refreshed " + new Date().toLocaleTimeString();
+      } catch (e) {
+        show($("ov-err"), e.message);
+      }
+    }
+
+    $("announce").onsubmit = async (ev) => {
+      ev.preventDefault();
+      show($("ctl-err"), ""); show($("ctl-ok"), "");
+      try {
+        const out = await api("/api/announce", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ message: $("announce-msg").value }) });
+        show($("ctl-ok"), out.message || "Sent.");
+        $("announce-msg").value = "";
+      } catch (e) { show($("ctl-err"), e.message); }
+    };
+    $("save-world").onclick = async () => {
+      show($("ctl-err"), ""); show($("ctl-ok"), "");
+      try {
+        const out = await api("/api/save", { method: "POST" });
+        show($("ctl-ok"), out.message || "Saved.");
+      } catch (e) { show($("ctl-err"), e.message); }
+    };
+    $("restart").onclick = async () => {
+      if (!confirm("Restart the Palworld server? Players disconnect. Recreate strategy — downtime until Ready. This UI restarts too.")) return;
+      show($("ctl-err"), ""); show($("ctl-ok"), "");
+      try {
+        const out = await api("/api/restart", { method: "POST" });
+        show($("ctl-ok"), out.message || "Restart requested.");
+      } catch (e) { show($("ctl-err"), e.message); }
+    };
+    $("shutdown").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const wait = Number($("shut-wait").value || 0);
+      if (!confirm("Shutdown the Palworld process in " + wait + "s? Players are kicked. Kubernetes will start a new pod. This cannot be undone from here.")) return;
+      show($("ctl-err"), ""); show($("ctl-ok"), "");
+      try {
+        const out = await api("/api/shutdown", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ waittime: wait, message: $("shut-msg").value }) });
+        show($("ctl-ok"), out.message || "Shutdown requested.");
+      } catch (e) { show($("ctl-err"), e.message); }
+    };
+
+    function fillSaveRows(tbody, entries) {
+      tbody.replaceChildren();
+      (entries || []).forEach((e) => {
+        const tr = document.createElement("tr");
+        const n = document.createElement("td");
+        n.textContent = e.dir ? e.name + "/" : e.name;
+        const s = document.createElement("td");
+        s.className = "muted";
+        s.textContent = e.dir ? fmt(e.size) : fmt(e.size);
+        tr.append(n, s);
+        tbody.appendChild(tr);
+      });
+    }
+    async function loadSaves() {
+      show($("sv-err"), "");
+      try {
+        const data = await api("/api/saves");
+        fillSaveRows($("sv-rows"), data.saveGames);
+        fillSaveRows($("cfg-rows"), data.config);
+        $("sv-meta").textContent = (data.warning || ("SaveGames " + fmt(data.totalBytes))) + (data.saveGamesRel ? " · " + data.saveGamesRel : "");
+      } catch (e) { show($("sv-err"), e.message); }
+    }
+    $("sv-dl").onclick = async () => {
+      show($("sv-err"), ""); show($("sv-ok"), "");
+      try {
+        if ($("sv-save-first").checked) {
+          await api("/api/save", { method: "POST" });
+        }
+        const q = $("sv-cfg").checked ? "?includeConfig=1" : "";
+        const r = await fetch("/api/saves/download" + q, opts);
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error || r.statusText);
+        }
+        const blob = await r.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "palworld-save.zip";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        show($("sv-ok"), "Download started.");
+      } catch (e) { show($("sv-err"), e.message); }
+    };
+    $("sv-up").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const f = $("sv-file").files[0];
+      if (!f) return;
+      if (!confirm("Replace the LIVE world with " + f.name + "? This wipes the current SaveGames tree. Players will see the uploaded world only after restart.")) return;
+      if (!confirm("Last chance: restore " + f.name + " over the current world?")) return;
+      show($("sv-err"), ""); show($("sv-ok"), "");
+      const fd = new FormData();
+      fd.append("file", f);
+      if ($("sv-up-cfg").checked) fd.append("includeConfig", "1");
+      try {
+        const out = await api("/api/saves/upload", { method: "POST", body: fd });
+        show($("sv-ok"), out.message || "Restored.");
+        $("sv-file").value = "";
+        loadSaves();
+      } catch (e) { show($("sv-err"), e.message); }
+    };
+
     function joinPath(dir, name) {
       if (!dir) return name;
       return dir.replace(/\/$/, "") + "/" + name;
@@ -106,57 +455,58 @@ const uiHTML = `<!DOCTYPE html>
     async function list(path) {
       current = path || "";
       $("crumb").textContent = "Path: /" + (current || "");
-      showErr("");
-      const q = encodeURIComponent(current);
-      const data = await api("/api/files?path=" + q);
-      const rows = $("rows");
-      rows.replaceChildren();
-      if (current) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 3;
-        const a = document.createElement("button");
-        a.className = "btn-ghost";
-        a.textContent = ".. (parent)";
-        a.onclick = () => {
-          const i = current.lastIndexOf("/");
-          list(i < 0 ? "" : current.slice(0, i));
-        };
-        td.appendChild(a);
-        tr.appendChild(td);
-        rows.appendChild(tr);
-      }
-      (data.entries || []).forEach((e) => {
-        const tr = document.createElement("tr");
-        const nameTd = document.createElement("td");
-        if (e.dir) {
-          const b = document.createElement("button");
-          b.className = "btn-ghost";
-          b.textContent = e.name + "/";
-          b.onclick = () => list(e.path);
-          nameTd.appendChild(b);
-        } else {
-          const a = document.createElement("a");
-          a.href = "/api/download?path=" + encodeURIComponent(e.path);
-          a.textContent = e.name;
-          nameTd.appendChild(a);
+      show($("mod-err"), "");
+      try {
+        const data = await api("/api/files?path=" + encodeURIComponent(current));
+        const rows = $("rows");
+        rows.replaceChildren();
+        if (current) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 3;
+          const a = document.createElement("button");
+          a.className = "btn-ghost";
+          a.textContent = ".. (parent)";
+          a.onclick = () => {
+            const i = current.lastIndexOf("/");
+            list(i < 0 ? "" : current.slice(0, i));
+          };
+          td.appendChild(a);
+          tr.appendChild(td);
+          rows.appendChild(tr);
         }
-        const sizeTd = document.createElement("td");
-        sizeTd.className = "muted";
-        sizeTd.textContent = e.dir ? "dir" : e.size;
-        const act = document.createElement("td");
-        const del = document.createElement("button");
-        del.className = "btn-danger";
-        del.textContent = "Delete";
-        del.onclick = async () => {
-          if (!confirm("Delete " + e.path + "? This cannot be undone.")) return;
-          await api("/api/files?path=" + encodeURIComponent(e.path), { method: "DELETE" });
-          list(current);
-        };
-        act.appendChild(del);
-        tr.append(nameTd, sizeTd, act);
-        rows.appendChild(tr);
-      });
+        (data.entries || []).forEach((e) => {
+          const tr = document.createElement("tr");
+          const nameTd = document.createElement("td");
+          if (e.dir) {
+            const b = document.createElement("button");
+            b.className = "btn-ghost";
+            b.textContent = e.name + "/";
+            b.onclick = () => list(e.path);
+            nameTd.appendChild(b);
+          } else {
+            const a = document.createElement("a");
+            a.href = "/api/download?path=" + encodeURIComponent(e.path);
+            a.textContent = e.name;
+            nameTd.appendChild(a);
+          }
+          const sizeTd = document.createElement("td");
+          sizeTd.className = "muted";
+          sizeTd.textContent = e.dir ? "dir" : e.size;
+          const act = document.createElement("td");
+          const del = document.createElement("button");
+          del.className = "btn-danger";
+          del.textContent = "Delete";
+          del.onclick = async () => {
+            if (!confirm("Delete " + e.path + "? This cannot be undone.")) return;
+            await api("/api/files?path=" + encodeURIComponent(e.path), { method: "DELETE" });
+            list(current);
+          };
+          act.appendChild(del);
+          tr.append(nameTd, sizeTd, act);
+          rows.appendChild(tr);
+        });
+      } catch (e) { show($("mod-err"), e.message); }
     }
     document.querySelectorAll("button[data-path]").forEach((b) => {
       b.onclick = () => list(b.getAttribute("data-path") || "");
@@ -168,16 +518,17 @@ const uiHTML = `<!DOCTYPE html>
       const fd = new FormData();
       fd.append("path", current);
       fd.append("file", f);
-      await api("/api/upload", { method: "POST", body: fd });
-      $("file").value = "";
-      list(current);
+      try {
+        await api("/api/upload", { method: "POST", body: fd });
+        $("file").value = "";
+        list(current);
+      } catch (e) { show($("mod-err"), e.message); }
     };
-    $("restart").onclick = async () => {
-      if (!confirm("Restart the Palworld server? Players will disconnect. Recreate strategy — downtime until the pod is Ready again. The mod manager UI will also restart.")) return;
-      const out = await api("/api/restart", { method: "POST" });
-      showErr(out.message || "Restart requested.");
-    };
-    list("");
+
+    refreshStats();
+    statsTimer = setInterval(() => {
+      if (document.getElementById("overview").classList.contains("active") && !document.hidden) refreshStats();
+    }, 8000);
   </script>
 </body>
 </html>

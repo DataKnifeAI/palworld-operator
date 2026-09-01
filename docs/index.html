@@ -47,6 +47,7 @@
         <a class="btn btn--ghost" href="#local">Local / PC</a>
         <a class="btn btn--ghost" href="#connect">How to connect</a>
         <a class="btn btn--ghost" href="#settings">Game settings</a>
+        <a class="btn btn--ghost" href="#manager">Server Manager</a>
         <a class="btn btn--ghost" href="#mods">Mods / Linux</a>
         <a class="btn btn--ghost" href="#faq">FAQ</a>
       </div>
@@ -320,6 +321,58 @@ kubectl get secret palworld-server-secrets -n game-servers \
       </div>
     </section>
 
+    <section class="section section--manager" id="manager" aria-labelledby="manager-heading">
+      <div class="wrap wrap--readable">
+        <h2 id="manager-heading">Optional Server Manager</h2>
+        <p class="section__lede section__lede--wide">
+          An authenticated admin UI on the same Gateway VIP as the game (default port 8088).
+          World pulse first, then actions, then the save chest, then workshop PAKs —
+          not a generic ops dashboard. REST stays on the pod; the UI proxies it.
+          Leave it off on a live world (enabling Recreate-rolls the game pod).
+        </p>
+        <ol class="journey">
+          <li>
+            <span class="journey__step">1</span>
+            <div>
+              <h3>Overview</h3>
+              <p>Version, world GUID, FPS, player count, days/uptime/basecamps, who is online — from Palworld REST on localhost.</p>
+            </div>
+          </li>
+          <li>
+            <span class="journey__step">2</span>
+            <div>
+              <h3>Controls</h3>
+              <p>Announce, save, Recreate restart. Optional shutdown with a confirm. RCON is deprecated; use REST.</p>
+            </div>
+          </li>
+          <li>
+            <span class="journey__step">3</span>
+            <div>
+              <h3>Saves</h3>
+              <p>Download a zip of <code>SaveGames/</code> (optional Config, passwords redacted). Upload replaces the live world — confirm twice, then restart.</p>
+            </div>
+          </li>
+          <li>
+            <span class="journey__step">4</span>
+            <div>
+              <h3>Mods</h3>
+              <p>List / upload / delete on the mods PVC. Linux PalServer still does not load official Workshop — community <code>.pak</code> overlays only.</p>
+            </div>
+          </li>
+        </ol>
+        <p class="fineprint">
+          Enable with <code>spec.serverManager.enabled</code> (<code>spec.modManager</code> is a deprecated alias).
+          Basic auth: <code>admin</code> + <code>admin-password</code>.
+          Sidecar binary <code>/server-manager</code> in the operator image (rebuild Harbor).
+          Official REST:
+          <a href="https://docs.palworldgame.com/api/rest-api/palwold-rest-api">palwold-rest-api</a>
+          (Pocketpair’s spelling).
+          Details:
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
+        </p>
+      </div>
+    </section>
+
     <section class="section section--mods" id="mods" aria-labelledby="mods-heading">
       <div class="wrap wrap--readable">
         <h2 id="mods-heading">Mods on Linux vs Windows</h2>
@@ -379,11 +432,9 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p class="fineprint">
           Caveats: an incompatible <code>.pak</code> can fail startup — backup the saves PVC
           and pin <code>spec.serverImage</code> first.
-          Optional <code>spec.modManager</code> exposes an authenticated HTTP UI on the
-          Gateway VIP (default port 8088, basic auth <code>admin</code> +
-          <code>admin-password</code>). Restart Recreate-rolls the game pod (downtime).
-          Leave it off on a live world. Operator image must include
-          <code>/mod-manager</code> (rebuild Harbor after this feature).
+          Optional <a href="#manager">Server Manager</a> (<code>spec.serverManager</code>)
+          is an authenticated admin UI on the Gateway VIP (port 8088) with stats,
+          REST controls, save zip, and this Mods tab. Leave it off on a live world.
           <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair server mods (Windows)</a>
           ·
           <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS (Linux vs Win64)</a>
@@ -436,7 +487,7 @@ kubectl get secret palworld-server-secrets -n game-servers \
           Official Workshop is <strong>Windows-only</strong> — this image is Linux PalServer.
           Community <code>.pak</code> drops may load under <code>Paks/~WorkshopMods</code> /
           <code>LogicMods</code>. UE4SS/Win64 is not this image.
-          Optional <code>spec.modManager</code> is an authenticated admin UI on port 8088
+          Optional <a href="#manager">Server Manager</a> is an authenticated admin UI on port 8088
           (same VIP); it does not make official Workshop load on Linux.
           Client join policy is <code>bAllowClientMod</code> only; consoles cannot load PC client mods.
           Full comparison: <a href="#mods">Mods on Linux vs Windows</a>.

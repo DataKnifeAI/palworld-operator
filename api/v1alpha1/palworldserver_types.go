@@ -251,13 +251,17 @@ type ModsConfig struct {
 	ActiveModList []string `json:"activeModList,omitempty"`
 }
 
-// ModManagerConfig is an optional authenticated HTTP UI/API for the mods PVC.
-// Requires spec.mods.enabled. Traffic lands on the same Gateway VIP as the
-// game server (HTTPRoute), not a LoadBalancer on the game pod. REST/RCON stay
-// ClusterIP-internal. Enabling rolls the game Deployment (Recreate).
-type ModManagerConfig struct {
-	// Enabled starts a sidecar file manager in the game pod and an HTTPRoute
-	// on the game Gateway. Requires spec.mods.enabled. Default false.
+// ServerManagerConfig is an optional authenticated HTTP admin UI on the
+// game Gateway VIP (not a LoadBalancer on the game pod). Tabs: Overview
+// (REST stats), Controls (announce/save/shutdown + Recreate restart),
+// Saves (world zip download/restore), Mods (PVC file manager). The sidecar
+// proxies Palworld REST on localhost (http://127.0.0.1:8212/v1/api) and
+// does not public-route REST or RCON. RCON is deprecated — use REST via
+// this UI. Enabling Recreate-rolls the game Deployment. The Mods tab
+// needs spec.mods.enabled for the PVC mount.
+type ServerManagerConfig struct {
+	// Enabled starts the Server Manager sidecar and an HTTPRoute on the
+	// game Gateway. Default false.
 	// +optional
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -268,8 +272,9 @@ type ModManagerConfig struct {
 	// +optional
 	Port int32 `json:"port,omitempty"`
 
-	// Image is the container image that provides the /mod-manager binary
-	// (the operator image). Default: harbor.dataknife.net/library/palworld-operator:latest
+	// Image is the container image that provides the /server-manager binary
+	// (the operator image; /mod-manager is kept as a copy). Default:
+	// harbor.dataknife.net/library/palworld-operator:latest
 	// Rebuild/push the operator image so the sidecar binary is present.
 	// +optional
 	Image string `json:"image,omitempty"`
@@ -437,11 +442,19 @@ type PalworldServerSpec struct {
 	// +optional
 	Mods ModsConfig `json:"mods,omitempty"`
 
-	// ModManager is an optional HTTP file manager for the mods PVC, exposed
-	// on the Gateway VIP (separate port from the game). Requires mods.enabled.
-	// Basic auth uses the admin-password Secret key. Default disabled.
+	// ServerManager is an optional authenticated admin UI on the Gateway VIP
+	// (default port 8088): world stats, REST controls, save download/restore,
+	// and a Mods tab. Basic auth uses the admin-password Secret key. Default
+	// disabled. Do not enable on a live world without a maintenance window
+	// (Recreate).
 	// +optional
-	ModManager ModManagerConfig `json:"modManager,omitempty"`
+	ServerManager ServerManagerConfig `json:"serverManager,omitempty"`
+
+	// ModManager is a deprecated alias for serverManager. Either field
+	// enables the same sidecar; serverManager wins for port/image when both
+	// are set. Kept so existing samples and CRs keep working.
+	// +optional
+	ModManager ServerManagerConfig `json:"modManager,omitempty"`
 
 	// Resources overrides auto-selected CPU/memory. When unset, tiers derive from maxPlayers.
 	// +optional
@@ -540,12 +553,22 @@ type PalworldServerStatus struct {
 	// +optional
 	LastAnnounceTime *metav1.Time `json:"lastAnnounceTime,omitempty"`
 
-	// ModManagerAddress is the Gateway IP for the optional mod manager UI.
-	// Empty when spec.modManager.enabled is false. Never contains passwords.
+	// ServerManagerAddress is the Gateway IP for the optional Server Manager UI.
+	// Empty when disabled. Never contains passwords.
+	// +optional
+	ServerManagerAddress string `json:"serverManagerAddress,omitempty"`
+
+	// ServerManagerPort is the HTTP port for the optional Server Manager UI.
+	// Empty/zero when disabled.
+	// +optional
+	ServerManagerPort int32 `json:"serverManagerPort,omitempty"`
+
+	// ModManagerAddress is a compatibility copy of ServerManagerAddress.
+	// Empty when disabled. Never contains passwords.
 	// +optional
 	ModManagerAddress string `json:"modManagerAddress,omitempty"`
 
-	// ModManagerPort is the HTTP port for the optional mod manager UI.
+	// ModManagerPort is a compatibility copy of ServerManagerPort.
 	// Empty/zero when disabled.
 	// +optional
 	ModManagerPort int32 `json:"modManagerPort,omitempty"`

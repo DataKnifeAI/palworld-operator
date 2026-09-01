@@ -213,19 +213,20 @@ spec:
                 type: integer
               modManager:
                 description: |-
-                  ModManager is an optional HTTP file manager for the mods PVC, exposed
-                  on the Gateway VIP (separate port from the game). Requires mods.enabled.
-                  Basic auth uses the admin-password Secret key. Default disabled.
+                  ModManager is a deprecated alias for serverManager. Either field
+                  enables the same sidecar; serverManager wins for port/image when both
+                  are set. Kept so existing samples and CRs keep working.
                 properties:
                   enabled:
                     description: |-
-                      Enabled starts a sidecar file manager in the game pod and an HTTPRoute
-                      on the game Gateway. Requires spec.mods.enabled. Default false.
+                      Enabled starts the Server Manager sidecar and an HTTPRoute on the
+                      game Gateway. Default false.
                     type: boolean
                   image:
                     description: |-
-                      Image is the container image that provides the /mod-manager binary
-                      (the operator image). Default: harbor.dataknife.net/library/palworld-operator:latest
+                      Image is the container image that provides the /server-manager binary
+                      (the operator image; /mod-manager is kept as a copy). Default:
+                      harbor.dataknife.net/library/palworld-operator:latest
                       Rebuild/push the operator image so the sidecar binary is present.
                     type: string
                   port:
@@ -449,6 +450,35 @@ spec:
                   Defaults to the official Pocketpair image. Override with a Harbor mirror
                   or a community image (e.g. thijsvanloef/palworld-server-docker) if needed.
                 type: string
+              serverManager:
+                description: |-
+                  ServerManager is an optional authenticated admin UI on the Gateway VIP
+                  (default port 8088): world stats, REST controls, save download/restore,
+                  and a Mods tab. Basic auth uses the admin-password Secret key. Default
+                  disabled. Do not enable on a live world without a maintenance window
+                  (Recreate).
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled starts the Server Manager sidecar and an HTTPRoute on the
+                      game Gateway. Default false.
+                    type: boolean
+                  image:
+                    description: |-
+                      Image is the container image that provides the /server-manager binary
+                      (the operator image; /mod-manager is kept as a copy). Default:
+                      harbor.dataknife.net/library/palworld-operator:latest
+                      Rebuild/push the operator image so the sidecar binary is present.
+                    type: string
+                  port:
+                    default: 8088
+                    description: Port is the HTTP listen port on the Gateway VIP and
+                      sidecar.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1024
+                    type: integer
+                type: object
               serverName:
                 description: ServerName is the display name for the dedicated server.
                 type: string
@@ -704,12 +734,12 @@ spec:
                 type: string
               modManagerAddress:
                 description: |-
-                  ModManagerAddress is the Gateway IP for the optional mod manager UI.
-                  Empty when spec.modManager.enabled is false. Never contains passwords.
+                  ModManagerAddress is a compatibility copy of ServerManagerAddress.
+                  Empty when disabled. Never contains passwords.
                 type: string
               modManagerPort:
                 description: |-
-                  ModManagerPort is the HTTP port for the optional mod manager UI.
+                  ModManagerPort is a compatibility copy of ServerManagerPort.
                   Empty/zero when disabled.
                 format: int32
                 type: integer
@@ -743,6 +773,17 @@ spec:
                 description: RunningVersion is the game version reported by REST /v1/api/info
                   when Ready.
                 type: string
+              serverManagerAddress:
+                description: |-
+                  ServerManagerAddress is the Gateway IP for the optional Server Manager UI.
+                  Empty when disabled. Never contains passwords.
+                type: string
+              serverManagerPort:
+                description: |-
+                  ServerManagerPort is the HTTP port for the optional Server Manager UI.
+                  Empty/zero when disabled.
+                format: int32
+                type: integer
               updateAvailable:
                 description: |-
                   UpdateAvailable is true when LatestAvailableVersion is newer than the

@@ -89,7 +89,7 @@ Apply with a **merge-patch** (so other spec fields stay), wait for the ConfigMap
 
 `spec.mods.enabled: true` creates `{name}-mods` and (by default) those Paks **subpath** overlays. Enabling rolls the game pod; leave it off on a live world unless you accept the Recreate. **Back up the saves PVC and pin `spec.serverImage` first** — a bad PAK can stop the server from starting. Server content mods can also **lock consoles out** of a crossplay world.
 
-Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods](PALWORLD_SERVER.md#mods--linux-vs-windows-honest)), or enable the optional **mod manager** (`spec.modManager.enabled`, requires `spec.mods.enabled`) — HTTP UI on `http://<gateway.address>:8088/` with basic auth (`admin` + `admin-password`). Restart from the UI Recreate-rolls the game Deployment (downtime). Linux Workshop still does not load; drop `.pak` files under `paks/~WorkshopMods` / `paks/LogicMods`. Optional `activeModList` seeds `PalModSettings.ini` (Windows loader / future Linux). `-workshopdir` stays off unless `useWorkshopDirArg: true`.
+Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods](PALWORLD_SERVER.md#mods--linux-vs-windows-honest)), or enable the optional **Server Manager** (`spec.serverManager.enabled`; `spec.modManager` is a deprecated alias) — HTTP UI on `http://<gateway.address>:8088/` with basic auth (`admin` + `admin-password`). Overview/Controls/Saves work without mods; the Mods tab needs `spec.mods.enabled`. Restart Recreate-rolls the game Deployment (downtime). Save zip download/restore lives on the Saves tab. Linux Workshop still does not load; drop `.pak` files under `paks/~WorkshopMods` / `paks/LogicMods`. Optional `activeModList` seeds `PalModSettings.ini` (Windows loader / future Linux). `-workshopdir` stays off unless `useWorkshopDirArg: true`.
 
 ## How do server updates work with Steam / game patches?
 
@@ -131,6 +131,6 @@ More: [PALWORLD_SERVER.md](PALWORLD_SERVER.md) resources section, [LOCAL.md](LOC
 ## Related
 
 - [CONNECT.md](CONNECT.md) — join from the client
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, REST vs deprecated RCON, mounts, optionSettings, Linux vs Windows mods, optional mod manager, updates, world pin, crossplay
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, REST vs deprecated RCON, mounts, optionSettings, Linux vs Windows mods, optional Server Manager, updates, world pin, crossplay
 - [LOCAL.md](LOCAL.md) — Compose on a PC
 - [ARCHITECTURE.md](ARCHITECTURE.md) — owned resources / Gateway

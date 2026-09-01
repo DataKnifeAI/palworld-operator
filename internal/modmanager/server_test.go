@@ -17,6 +17,7 @@ limitations under the License.
 package modmanager
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -48,7 +49,7 @@ func testServer(t *testing.T, restarter Restarter) (*Server, string) {
 	if err := os.MkdirAll(filepath.Join(root, "paks", "~WorkshopMods"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	s, err := New(Config{Root: root, User: DefaultUser, Password: testPassword, Restarter: restarter})
+	s, err := New(Config{Root: root, SavesRoot: t.TempDir(), User: DefaultUser, Password: testPassword, Restarter: restarter})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +191,206 @@ func TestUIRequiresAuth(t *testing.T) {
 		t.Fatalf("status = %d", rec.Code)
 	}
 	rec = doAuth(t, s, http.MethodGet, "/", nil, "")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Palworld Mod Manager") {
-		t.Fatalf("ui status=%d", rec.Code)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Palworld Server Manager") {
+		t.Fatalf("ui status=%d body missing title", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "data-tab=\"saves\"") {
+		t.Fatal("ui must include Saves tab")
+	}
+}
+
+func TestStatsProxiesREST(t *testing.T) {
+	game := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != DefaultUser || pass != testPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/v1/api/info":
+			_, _ = w.Write([]byte(`{"version":"v1.0.0","servername":"Isle","worldguid":"abc"}`))
+		case "/v1/api/metrics":
+			_, _ = w.Write([]byte(`{"currentplayernum":2,"maxplayernum":8,"serverfps":30,"days":4,"uptime":3661}`))
+		case "/v1/api/players":
+			_, _ = w.Write([]byte(`{"players":[{"name":"Lee","level":12}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(game.Close)
+	s, err := New(Config{Root: t.TempDir(), Password: testPassword, RESTBase: game.URL, Client: game.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodGet, "/api/stats", nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("stats status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "worldguid") || !strings.Contains(rec.Body.String(), "Lee") {
+		t.Fatalf("stats body = %s", rec.Body.String())
+	}
+}
+
+func TestAnnounceAndSave(t *testing.T) {
+	var announce, save int
+	game := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		switch r.URL.Path {
+		case "/v1/api/announce":
+			announce++
+		case "/v1/api/save":
+			save++
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(game.Close)
+	s, err := New(Config{Password: testPassword, RESTBase: game.URL, Client: game.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodPost, "/api/announce", strings.NewReader(`{"message":"hi"}`), "application/json")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("announce = %d %s", rec.Code, rec.Body.String())
+	}
+	rec = doAuth(t, s, http.MethodPost, "/api/save", nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("save = %d %s", rec.Code, rec.Body.String())
+	}
+	if announce != 1 || save != 1 {
+		t.Fatalf("announce=%d save=%d", announce, save)
+	}
+}
+
+func TestSavesDownloadUploadAndTraversal(t *testing.T) {
+	saves := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(saves, "SaveGames", "0", "world"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(saves, "SaveGames", "0", "world", "WorldOption.sav"), []byte("sav"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(saves, "Config", "LinuxServer"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(saves, "Config", "LinuxServer", "PalWorldSettings.ini"), []byte(`AdminPassword="secret",ServerPassword="join"`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(Config{SavesRoot: saves, Password: testPassword})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := doAuth(t, s, http.MethodGet, "/api/saves", nil, "")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "SaveGames") {
+		t.Fatalf("list = %d %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "secret") || strings.Contains(rec.Body.String(), "join") {
+		t.Fatal("listings must not include INI password values")
+	}
+
+	rec = doAuth(t, s, http.MethodGet, "/api/saves/download?includeConfig=1", nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("download = %d %s", rec.Code, rec.Body.String())
+	}
+	zr, err := zip.NewReader(bytes.NewReader(rec.Body.Bytes()), int64(rec.Body.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawSav, sawINI bool
+	for _, f := range zr.File {
+		if strings.Contains(f.Name, "WorldOption.sav") {
+			sawSav = true
+		}
+		if strings.Contains(f.Name, "PalWorldSettings.ini") {
+			sawINI = true
+			rc, err := f.Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, _ := io.ReadAll(rc)
+			_ = rc.Close()
+			if bytes.Contains(raw, []byte("secret")) {
+				t.Fatal("downloaded INI must redact AdminPassword")
+			}
+			if !bytes.Contains(raw, []byte("REDACTED")) {
+				t.Fatalf("expected redaction, got %s", raw)
+			}
+		}
+	}
+	if !sawSav || !sawINI {
+		t.Fatal("zip missing save or config")
+	}
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.Create("SaveGames/0/world/WorldOption.sav")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("restored")); err != nil {
+		t.Fatal(err)
+	}
+	evil, err := zw.Create("../etc/passwd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = evil.Write([]byte("nope"))
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var mp bytes.Buffer
+	mw := multipart.NewWriter(&mp)
+	fw, err := mw.CreateFormFile("file", "world.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write(buf.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rec = doAuth(t, s, http.MethodPost, "/api/saves/upload", &mp, mw.FormDataContentType())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("zip slip upload status = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	buf.Reset()
+	zw = zip.NewWriter(&buf)
+	w, err = zw.Create("SaveGames/0/world/WorldOption.sav")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("restored")); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	mp.Reset()
+	mw = multipart.NewWriter(&mp)
+	fw, err = mw.CreateFormFile("file", "world.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write(buf.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rec = doAuth(t, s, http.MethodPost, "/api/saves/upload", &mp, mw.FormDataContentType())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("upload = %d %s", rec.Code, rec.Body.String())
+	}
+	got, err := os.ReadFile(filepath.Join(saves, "SaveGames", "0", "world", "WorldOption.sav"))
+	if err != nil || string(got) != "restored" {
+		t.Fatalf("restored = %q err=%v", got, err)
 	}
 }

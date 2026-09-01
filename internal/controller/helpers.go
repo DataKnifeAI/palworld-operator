@@ -78,21 +78,21 @@ var communityOptionEnv = map[string]string{
 }
 
 type derivedNames struct {
-	pvcName             string
-	modsPVCName         string
-	configMapName       string
-	deploymentName      string
-	serviceName         string
-	envoyService        string
-	gatewayName         string
-	envoyProxyName      string
-	gameUDPRoute        string
-	queryUDPRoute       string
-	rconTCPRoute        string
-	restTCPRoute        string
-	modManagerHTTPRoute string
-	modManagerSA        string
-	modManagerRole      string
+	pvcName                string
+	modsPVCName            string
+	configMapName          string
+	deploymentName         string
+	serviceName            string
+	envoyService           string
+	gatewayName            string
+	envoyProxyName         string
+	gameUDPRoute           string
+	queryUDPRoute          string
+	rconTCPRoute           string
+	restTCPRoute           string
+	serverManagerHTTPRoute string
+	serverManagerSA        string
+	serverManagerRole      string
 }
 
 func boolValue(value *bool, fallback bool) bool {
@@ -112,21 +112,21 @@ func gatewayBaseName(name string) string {
 func deriveNames(server *palworldv1alpha1.PalworldServer) derivedNames {
 	base := gatewayBaseName(server.Name)
 	names := derivedNames{
-		pvcName:             server.Name + "-files",
-		modsPVCName:         server.Name + modsPVCSuffix,
-		configMapName:       server.Name + "-config",
-		deploymentName:      server.Name,
-		serviceName:         server.Name,
-		envoyService:        server.Name + "-envoy",
-		gatewayName:         base + "-gateway",
-		envoyProxyName:      "game-" + base + "-kubevip",
-		gameUDPRoute:        base + "-game-udp",
-		queryUDPRoute:       base + "-query-udp",
-		rconTCPRoute:        base + "-rcon-tcp",
-		restTCPRoute:        base + "-rest-tcp",
-		modManagerHTTPRoute: base + "-mod-manager",
-		modManagerSA:        server.Name + modManagerSASuffix,
-		modManagerRole:      server.Name + modManagerSASuffix,
+		pvcName:                server.Name + "-files",
+		modsPVCName:            server.Name + modsPVCSuffix,
+		configMapName:          server.Name + "-config",
+		deploymentName:         server.Name,
+		serviceName:            server.Name,
+		envoyService:           server.Name + "-envoy",
+		gatewayName:            base + "-gateway",
+		envoyProxyName:         "game-" + base + "-kubevip",
+		gameUDPRoute:           base + "-game-udp",
+		queryUDPRoute:          base + "-query-udp",
+		rconTCPRoute:           base + "-rcon-tcp",
+		restTCPRoute:           base + "-rest-tcp",
+		serverManagerHTTPRoute: base + "-server-manager",
+		serverManagerSA:        server.Name + serverManagerSASuffix,
+		serverManagerRole:      server.Name + serverManagerSASuffix,
 	}
 	if server.Spec.Gateway.GatewayName != "" {
 		names.gatewayName = server.Spec.Gateway.GatewayName
@@ -475,22 +475,28 @@ func restExposeViaGateway(spec palworldv1alpha1.PalworldServerSpec) bool {
 	return boolValue(spec.RESTAPI.ExposeViaGateway, false)
 }
 
-func modManagerEnabled(spec palworldv1alpha1.PalworldServerSpec) bool {
-	return spec.ModManager.Enabled
+func serverManagerEnabled(spec palworldv1alpha1.PalworldServerSpec) bool {
+	return spec.ServerManager.Enabled || spec.ModManager.Enabled
 }
 
-func modManagerPort(spec palworldv1alpha1.PalworldServerSpec) int32 {
+func serverManagerPort(spec palworldv1alpha1.PalworldServerSpec) int32 {
+	if spec.ServerManager.Port != 0 {
+		return spec.ServerManager.Port
+	}
 	if spec.ModManager.Port != 0 {
 		return spec.ModManager.Port
 	}
-	return defaultModManagerPort
+	return defaultServerManagerPort
 }
 
-func modManagerImage(spec palworldv1alpha1.PalworldServerSpec) string {
+func serverManagerImage(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.ServerManager.Image != "" {
+		return spec.ServerManager.Image
+	}
 	if spec.ModManager.Image != "" {
 		return spec.ModManager.Image
 	}
-	return defaultModManagerImage
+	return defaultServerManagerImage
 }
 
 func adminPasswordSelector(server *palworldv1alpha1.PalworldServer) *corev1.SecretKeySelector {
@@ -503,15 +509,12 @@ func adminPasswordSelector(server *palworldv1alpha1.PalworldServer) *corev1.Secr
 	return nil
 }
 
-func validateModManager(server *palworldv1alpha1.PalworldServer) error {
-	if !modManagerEnabled(server.Spec) {
+func validateServerManager(server *palworldv1alpha1.PalworldServer) error {
+	if !serverManagerEnabled(server.Spec) {
 		return nil
 	}
-	if !modsEnabled(server.Spec) {
-		return fmt.Errorf("spec.modManager.enabled requires spec.mods.enabled")
-	}
 	if adminPasswordSelector(server) == nil {
-		return fmt.Errorf("spec.modManager.enabled requires adminPasswordSecretRef or generateSecrets")
+		return fmt.Errorf("spec.serverManager.enabled requires adminPasswordSecretRef or generateSecrets")
 	}
 	return nil
 }
@@ -828,11 +831,11 @@ func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.Service
 			Protocol:   corev1.ProtocolTCP,
 		})
 	}
-	if modManagerEnabled(spec) {
+	if serverManagerEnabled(spec) {
 		ports = append(ports, corev1.ServicePort{
-			Name:       portNameModManager,
-			Port:       modManagerPort(spec),
-			TargetPort: intstr.FromInt32(modManagerPort(spec)),
+			Name:       portNameServerManager,
+			Port:       serverManagerPort(spec),
+			TargetPort: intstr.FromInt32(serverManagerPort(spec)),
 			Protocol:   corev1.ProtocolTCP,
 		})
 	}
