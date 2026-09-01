@@ -119,11 +119,6 @@ const uiHTML = `<!DOCTYPE html>
       background: linear-gradient(180deg, transparent, rgba(255,213,106,.18));
     }
     .trail button:focus-visible { outline: 2px solid var(--sky-deep); outline-offset: 2px; }
-    .trail__logout {
-      margin-left: auto;
-      color: var(--coral);
-    }
-    .trail__logout:hover { color: var(--ink); }
     .btn-logout {
       flex: 0 0 auto;
       background: rgba(255,250,240,.16);
@@ -215,6 +210,30 @@ const uiHTML = `<!DOCTYPE html>
     .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
     .err { color: var(--coral); margin: .4rem 0; min-height: 1.1em; }
     .ok { color: var(--grass-deep); margin: .4rem 0; }
+    .upload-status { margin: .75rem 0 0; max-width: 28rem; }
+    .upload-status[hidden] { display: none; }
+    .upload-status__track {
+      height: .55rem;
+      background: rgba(28,46,40,.1);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      overflow: hidden;
+    }
+    .upload-status__bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--teal), var(--grass));
+      border-radius: .4rem;
+      transition: width .12s ease-out;
+    }
+    .upload-status__bar.is-indeterminate {
+      width: 32%;
+      animation: upload-slide 1.05s ease-in-out infinite;
+    }
+    @keyframes upload-slide {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(380%); }
+    }
     code { font-size: .86em; background: rgba(42,168,160,.14); padding: .05em .3em; border-radius: .25rem; }
   </style>
 </head>
@@ -247,7 +266,6 @@ const uiHTML = `<!DOCTYPE html>
       <button type="button" role="tab" aria-selected="false" data-tab="controls">Controls</button>
       <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
       <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
-      <button type="button" class="trail__logout js-logout">Log out</button>
     </nav>
 
     <section id="overview" class="panel active" role="tabpanel">
@@ -357,6 +375,13 @@ const uiHTML = `<!DOCTYPE html>
       </div>
       <p class="muted" id="crumb"></p>
       <div class="err" id="mod-err"></div>
+      <div class="ok" id="mod-ok"></div>
+      <div class="upload-status" id="mod-progress" hidden>
+        <div class="upload-status__track">
+          <div class="upload-status__bar" id="mod-progress-bar"></div>
+        </div>
+        <p class="muted" id="mod-progress-label"></p>
+      </div>
       <table>
         <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
@@ -601,6 +626,8 @@ const uiHTML = `<!DOCTYPE html>
       current = path || "";
       $("crumb").textContent = "Path: /" + (current || "");
       show($("mod-err"), "");
+      show($("mod-ok"), "");
+      if ($("mod-progress")) $("mod-progress").hidden = true;
       try {
         const data = await api("/api/files?path=" + encodeURIComponent(current));
         const rows = $("rows");
@@ -656,18 +683,82 @@ const uiHTML = `<!DOCTYPE html>
     document.querySelectorAll("button[data-path]").forEach((b) => {
       b.onclick = () => list(b.getAttribute("data-path") || "");
     });
+    function setUploadProgress(loaded, total) {
+      const wrap = $("mod-progress");
+      const bar = $("mod-progress-bar");
+      const label = $("mod-progress-label");
+      if (!wrap || !bar || !label) return;
+      wrap.hidden = false;
+      if (total > 0) {
+        const pct = Math.min(100, Math.round((loaded / total) * 100));
+        bar.classList.remove("is-indeterminate");
+        bar.style.width = pct + "%";
+        label.textContent = "Uploading " + fmt(loaded) + " / " + fmt(total) + " (" + pct + "%)";
+        return;
+      }
+      bar.classList.add("is-indeterminate");
+      bar.style.width = "";
+      label.textContent = loaded > 0 ? ("Uploading " + fmt(loaded) + "…") : "Uploading…";
+    }
+    function uploadWithProgress(url, fd, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url);
+        xhr.withCredentials = true;
+        if (xhr.upload) {
+          xhr.upload.onprogress = (ev) => {
+            onProgress(ev.loaded, ev.lengthComputable ? ev.total : 0);
+          };
+        }
+        xhr.onload = () => {
+          const ct = xhr.getResponseHeader("content-type") || "";
+          let body = xhr.responseText;
+          if (ct.includes("json")) {
+            try { body = JSON.parse(xhr.responseText); } catch (e) { /* keep text */ }
+          }
+          if (xhr.status === 401) {
+            reject(new Error("Unauthorized"));
+            return;
+          }
+          if (xhr.status < 200 || xhr.status >= 300) {
+            const msg = (body && body.error) ? body.error : (xhr.statusText || "Upload failed");
+            reject(new Error(msg));
+            return;
+          }
+          resolve(body);
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.onabort = () => reject(new Error("Upload aborted"));
+        xhr.send(fd);
+      });
+    }
     $("upload").onsubmit = async (ev) => {
       ev.preventDefault();
       const f = $("file").files[0];
       if (!f) return;
+      const btn = ev.target.querySelector("button[type=submit]");
+      show($("mod-err"), "");
+      show($("mod-ok"), "");
+      setUploadProgress(0, f.size || 0);
+      if (btn) btn.disabled = true;
       const fd = new FormData();
       fd.append("path", current);
       fd.append("file", f);
       try {
-        await api("/api/upload", { method: "POST", body: fd });
+        const out = await uploadWithProgress("/api/upload", fd, setUploadProgress);
         $("file").value = "";
-        list(current);
-      } catch (e) { show($("mod-err"), e.message); }
+        await list(current);
+        $("mod-progress").hidden = false;
+        $("mod-progress-bar").classList.remove("is-indeterminate");
+        $("mod-progress-bar").style.width = "100%";
+        $("mod-progress-label").textContent = "Uploaded " + (out && out.name ? out.name : f.name);
+        show($("mod-ok"), "Uploaded " + (out && out.name ? out.name : f.name) + ".");
+      } catch (e) {
+        $("mod-progress").hidden = true;
+        show($("mod-err"), e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     };
 
     refreshStats();

@@ -33,6 +33,10 @@ import (
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
+// Envoy Gateway defaults HTTPRoute request timeout to 15s. Mods .pak uploads
+// exceed that and reset with "connection termination" before response headers.
+const serverManagerHTTPTimeout gatewayv1.Duration = "3600s"
+
 func serverManagerSidecar(
 	spec palworldv1alpha1.PalworldServerSpec,
 	names derivedNames,
@@ -81,7 +85,7 @@ func serverManagerSidecar(
 		},
 		Env:          env,
 		VolumeMounts: mounts,
-		Resources:    podResources("10m", "32Mi", "200m", "256Mi"),
+		Resources:    podResources("10m", "64Mi", "200m", "1Gi"),
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser:                &runAsUser,
 			RunAsNonRoot:             boolPtr(true),
@@ -222,6 +226,10 @@ func (r *PalworldServerReconciler) reconcileHTTPRoute(
 			},
 			Rules: []gatewayv1.HTTPRouteRule{
 				{
+					Timeouts: &gatewayv1.HTTPRouteTimeouts{
+						Request:        ptr.To(serverManagerHTTPTimeout),
+						BackendRequest: ptr.To(serverManagerHTTPTimeout),
+					},
 					BackendRefs: []gatewayv1.HTTPBackendRef{
 						{
 							BackendRef: gatewayv1.BackendRef{

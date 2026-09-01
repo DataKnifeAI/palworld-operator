@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -38,6 +39,8 @@ const (
 	basicAuthRealm  = `Basic realm="Palworld Server Manager"`
 	errModsDisabled = "mods PVC is not mounted; enable spec.mods"
 	errRESTDisabled = "Palworld REST is not configured on this sidecar"
+	errUploadWrite  = "write failed"
+	errUploadMkdir  = "create directory failed"
 	headerWWWAuth   = "WWW-Authenticate"
 	// DefaultUser is the basic-auth username (same as Palworld REST admin).
 	DefaultUser = "admin"
@@ -262,47 +265,152 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
-	if err := r.ParseMultipartForm(maxMultipartMem); err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid upload"})
+	reader, err := r.MultipartReader()
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: uploadErrorMessage(err)})
 		return
 	}
-	file, hdr, err := r.FormFile("file")
-	if err != nil {
+
+	var dirRel string
+	var written *fileEntry
+	var stagedAbs string
+	for {
+		part, nextErr := reader.NextPart()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			writeJSON(w, uploadStatus(nextErr), errorResponse{Error: uploadErrorMessage(nextErr)})
+			return
+		}
+		switch part.FormName() {
+		case "path":
+			b, readErr := io.ReadAll(io.LimitReader(part, 4096))
+			_ = part.Close()
+			if readErr != nil {
+				writeJSON(w, uploadStatus(readErr), errorResponse{Error: uploadErrorMessage(readErr)})
+				return
+			}
+			dirRel = strings.TrimSpace(string(b))
+			if written != nil && stagedAbs != "" {
+				moved, moveErr := s.relocateUpload(*written, stagedAbs, dirRel)
+				if moveErr != nil {
+					writeJSON(w, uploadStatus(moveErr), errorResponse{Error: moveErr.Error()})
+					return
+				}
+				written = &moved.entry
+				stagedAbs = moved.abs
+			}
+		case "file":
+			entry, abs, writeErr := s.streamUploadPart(dirRel, part)
+			_ = part.Close()
+			if writeErr != nil {
+				writeJSON(w, uploadStatus(writeErr), errorResponse{Error: writeErr.Error()})
+				return
+			}
+			written = &entry
+			stagedAbs = abs
+		default:
+			_, _ = io.Copy(io.Discard, io.LimitReader(part, 1<<20))
+			_ = part.Close()
+		}
+	}
+	if written == nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "file is required"})
 		return
 	}
-	defer func() { _ = file.Close() }()
-	base, err := safeBaseName(hdr.Filename)
+	writeJSON(w, http.StatusCreated, *written)
+}
+
+func uploadErrorMessage(err error) string {
+	var maxErr *http.MaxBytesError
+	if errors.As(err, &maxErr) {
+		return "upload too large"
+	}
+	return "invalid upload"
+}
+
+func uploadStatus(err error) int {
+	var maxErr *http.MaxBytesError
+	if errors.As(err, &maxErr) {
+		return http.StatusRequestEntityTooLarge
+	}
+	if errors.Is(err, errPathEscape) || errors.Is(err, errEmptyName) {
+		return http.StatusBadRequest
+	}
+	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir) {
+		return http.StatusInternalServerError
+	}
+	return http.StatusBadRequest
+}
+
+func joinUploadRel(dirRel, base string) string {
+	if dirRel == "" || dirRel == "." {
+		return base
+	}
+	return strings.TrimSuffix(dirRel, "/") + "/" + base
+}
+
+func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntry, string, error) {
+	base, err := safeBaseName(part.FileName())
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
-		return
+		return fileEntry{}, "", err
 	}
-	dirRel := r.FormValue("path")
-	destRel := base
-	if dirRel != "" && dirRel != "." {
-		destRel = strings.TrimSuffix(dirRel, "/") + "/" + base
-	}
+	destRel := joinUploadRel(dirRel, base)
 	abs, err := SafeJoin(s.root, destRel)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
-		return
+		return fileEntry{}, "", err
 	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "create directory failed"})
-		return
+		return fileEntry{}, "", errors.New(errUploadMkdir)
 	}
-	dst, err := os.OpenFile(abs, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	tmp := abs + ".partial"
+	dst, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "write failed"})
-		return
+		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	defer func() { _ = dst.Close() }()
-	if _, err := io.Copy(dst, file); err != nil {
-		_ = os.Remove(abs)
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "write failed"})
-		return
+	n, copyErr := io.Copy(dst, part)
+	closeErr := dst.Close()
+	if copyErr != nil || closeErr != nil {
+		_ = os.Remove(tmp)
+		if copyErr != nil {
+			var maxErr *http.MaxBytesError
+			if errors.As(copyErr, &maxErr) {
+				return fileEntry{}, "", copyErr
+			}
+		}
+		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	writeJSON(w, http.StatusCreated, fileEntry{Name: base, Path: destRel, Size: hdr.Size})
+	if err := os.Rename(tmp, abs); err != nil {
+		_ = os.Remove(tmp)
+		return fileEntry{}, "", errors.New(errUploadWrite)
+	}
+	return fileEntry{Name: base, Path: destRel, Size: n}, abs, nil
+}
+
+type relocatedUpload struct {
+	entry fileEntry
+	abs   string
+}
+
+func (s *Server) relocateUpload(current fileEntry, stagedAbs, dirRel string) (relocatedUpload, error) {
+	destRel := joinUploadRel(dirRel, current.Name)
+	abs, err := SafeJoin(s.root, destRel)
+	if err != nil {
+		return relocatedUpload{}, err
+	}
+	if abs == stagedAbs {
+		current.Path = destRel
+		return relocatedUpload{entry: current, abs: abs}, nil
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		return relocatedUpload{}, errors.New(errUploadMkdir)
+	}
+	if err := os.Rename(stagedAbs, abs); err != nil {
+		return relocatedUpload{}, errors.New(errUploadWrite)
+	}
+	current.Path = destRel
+	return relocatedUpload{entry: current, abs: abs}, nil
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {

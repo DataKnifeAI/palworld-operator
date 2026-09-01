@@ -102,11 +102,6 @@
       background: linear-gradient(180deg, transparent, rgba(255,213,106,.18));
     }
     .trail button:focus-visible { outline: 2px solid var(--sky-deep); outline-offset: 2px; }
-    .trail__logout {
-      margin-left: auto;
-      color: var(--coral);
-    }
-    .trail__logout:hover { color: var(--ink); }
     .btn-logout {
       flex: 0 0 auto;
       background: rgba(255,250,240,.16);
@@ -198,6 +193,30 @@
     .btn-ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
     .err { color: var(--coral); margin: .4rem 0; min-height: 1.1em; }
     .ok { color: var(--grass-deep); margin: .4rem 0; }
+    .upload-status { margin: .75rem 0 0; max-width: 28rem; }
+    .upload-status[hidden] { display: none; }
+    .upload-status__track {
+      height: .55rem;
+      background: rgba(28,46,40,.1);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      overflow: hidden;
+    }
+    .upload-status__bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--teal), var(--grass));
+      border-radius: .4rem;
+      transition: width .12s ease-out;
+    }
+    .upload-status__bar.is-indeterminate {
+      width: 32%;
+      animation: upload-slide 1.05s ease-in-out infinite;
+    }
+    @keyframes upload-slide {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(380%); }
+    }
     code { font-size: .86em; background: rgba(42,168,160,.14); padding: .05em .3em; border-radius: .25rem; }
     .mock-banner {
       background: #1c2e22;
@@ -239,7 +258,6 @@
       <button type="button" role="tab" aria-selected="false" data-tab="controls">Controls</button>
       <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
       <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
-      <button type="button" class="trail__logout js-logout">Log out</button>
     </nav>
 
     <section id="overview" class="panel active" role="tabpanel">
@@ -349,6 +367,13 @@
       </div>
       <p class="muted" id="crumb"></p>
       <div class="err" id="mod-err"></div>
+      <div class="ok" id="mod-ok"></div>
+      <div class="upload-status" id="mod-progress" hidden>
+        <div class="upload-status__track">
+          <div class="upload-status__bar" id="mod-progress-bar"></div>
+        </div>
+        <p class="muted" id="mod-progress-label"></p>
+      </div>
       <table>
         <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
@@ -586,14 +611,33 @@
       ev.preventDefault();
       const f = $("file").files[0];
       if (!f) return;
-      const fd = new FormData();
-      fd.append("path", current);
-      fd.append("file", f);
+      const btn = ev.target.querySelector("button[type=submit]");
+      show($("mod-err"), "");
+      show($("mod-ok"), "");
+      const wrap = $("mod-progress");
+      const bar = $("mod-progress-bar");
+      const label = $("mod-progress-label");
+      wrap.hidden = false;
+      bar.classList.remove("is-indeterminate");
+      if (btn) btn.disabled = true;
+      let p = 0;
+      const tick = setInterval(() => {
+        p = Math.min(p + 14, 90);
+        bar.style.width = p + "%";
+        label.textContent = "Uploading " + f.name + "… " + p + "% (preview)";
+      }, 70);
+      await new Promise((r) => setTimeout(r, 650));
+      clearInterval(tick);
+      bar.style.width = "100%";
       try {
-        await api("/api/upload", { method: "POST", body: fd });
-        $("file").value = "";
-        list(current);
-      } catch (e) { show($("mod-err"), e.message); }
+        await api("/api/upload");
+      } catch (e) {
+        show($("mod-err"), e.message);
+        label.textContent = "Preview — upload not sent.";
+        show($("mod-ok"), "");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     };
 
     refreshStats();

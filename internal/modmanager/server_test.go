@@ -149,6 +149,34 @@ func TestListUploadDownloadDelete(t *testing.T) {
 	}
 }
 
+func TestUploadRelocatesWhenPathFollowsFile(t *testing.T) {
+	s, root := testServer(t, nil)
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, err := mw.CreateFormFile("file", "later.pak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write([]byte("later-bytes")); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.WriteField("path", "paks/LogicMods"); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", &buf, mw.FormDataContentType())
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("upload status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	onDisk := filepath.Join(root, "paks", "LogicMods", "later.pak")
+	got, err := os.ReadFile(onDisk)
+	if err != nil || string(got) != "later-bytes" {
+		t.Fatalf("on disk = %q err=%v", got, err)
+	}
+}
+
 func TestRejectTraversalOnAPI(t *testing.T) {
 	s, _ := testServer(t, nil)
 	for _, path := range []string{"../etc/passwd", "/etc/passwd", "foo/../../../etc/passwd"} {
@@ -208,6 +236,15 @@ func TestUIRequiresAuth(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "Log out") || !strings.Contains(rec.Body.String(), "/logout") {
 		t.Fatal("ui must include Log out that calls /logout")
+	}
+	if strings.Count(rec.Body.String(), `class="btn-logout js-logout"`) != 1 {
+		t.Fatal("ui must have exactly one logout control")
+	}
+	if strings.Contains(rec.Body.String(), "trail__logout") {
+		t.Fatal("nav logout duplicate must be removed")
+	}
+	if !strings.Contains(rec.Body.String(), "mod-progress") || !strings.Contains(rec.Body.String(), "uploadWithProgress") {
+		t.Fatal("ui must show mods upload progress")
 	}
 }
 

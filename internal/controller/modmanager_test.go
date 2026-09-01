@@ -188,6 +188,9 @@ func TestReconcileDeploymentServerManagerSidecar(t *testing.T) {
 	if dep.Spec.Strategy.Type != appsv1.RecreateDeploymentStrategyType {
 		t.Fatal("must keep Recreate")
 	}
+	if side.Resources.Limits.Memory().String() != "1Gi" {
+		t.Fatalf("sidecar memory limit = %s, want 1Gi so large uploads do not OOM", side.Resources.Limits.Memory().String())
+	}
 }
 
 func TestReconcileDeploymentServerManagerWithoutMods(t *testing.T) {
@@ -303,6 +306,12 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	}
 	if httpRoute.Spec.ParentRefs[0].SectionName == nil || string(*httpRoute.Spec.ParentRefs[0].SectionName) != gatewayListenerServerManagerHTTPS {
 		t.Fatalf("HTTPRoute parent = %+v", httpRoute.Spec.ParentRefs)
+	}
+	if len(httpRoute.Spec.Rules) == 0 || httpRoute.Spec.Rules[0].Timeouts == nil {
+		t.Fatal("HTTPRoute must set upload-safe timeouts")
+	}
+	if httpRoute.Spec.Rules[0].Timeouts.Request == nil || *httpRoute.Spec.Rules[0].Timeouts.Request != serverManagerHTTPTimeout {
+		t.Fatalf("HTTPRoute request timeout = %v", httpRoute.Spec.Rules[0].Timeouts)
 	}
 	redirect := &gatewayv1.HTTPRoute{}
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerRedirectHTTPRoute, Namespace: enabled.Namespace}, redirect); err != nil {

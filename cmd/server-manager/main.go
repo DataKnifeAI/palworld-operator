@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/DataKnifeAI/palworld-operator/internal/modmanager"
 )
@@ -66,7 +67,13 @@ func main() {
 	}
 
 	log.Printf("server manager listening on %s mods=%s saves=%s rest=%s", *listen, *root, *saves, *restBase)
-	if err := http.ListenAndServe(*listen, srv); err != nil {
+	httpSrv := &http.Server{
+		Addr:              *listen,
+		Handler:           srv,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	if err := httpSrv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
