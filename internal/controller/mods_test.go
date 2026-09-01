@@ -56,7 +56,7 @@ func TestModsDisabledNoVolume(t *testing.T) {
 		t.Fatal("mods must default disabled")
 	}
 	server := &palworldv1alpha1.PalworldServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "palworld-server"},
+		ObjectMeta: metav1.ObjectMeta{Name: testCRName},
 		Spec:       spec,
 	}
 	names := deriveNames(server)
@@ -85,7 +85,7 @@ func TestModsEnabledVolumeAndMount(t *testing.T) {
 		},
 	}
 	server := &palworldv1alpha1.PalworldServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "palworld-server"},
+		ObjectMeta: metav1.ObjectMeta{Name: testCRName},
 		Spec:       spec,
 	}
 	names := deriveNames(server)

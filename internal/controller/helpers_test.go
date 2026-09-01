@@ -14,6 +14,7 @@ const (
 	testMemLimitLarge  = "7Gi"
 	testRate15         = "1.5"
 	testRate20         = "2.0"
+	testCRName         = "palworld-server"
 )
 
 func TestBuildPalWorldSettingsINI(t *testing.T) {
@@ -178,7 +179,7 @@ func TestDefaultResourcesAutoSelectAndOverride(t *testing.T) {
 
 func TestDeriveNamesPalworldServer(t *testing.T) {
 	server := &palworldv1alpha1.PalworldServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "palworld-server"},
+		ObjectMeta: metav1.ObjectMeta{Name: testCRName},
 		Spec: palworldv1alpha1.PalworldServerSpec{
 			Gateway: palworldv1alpha1.GatewayConfig{Address: testGatewayAddress},
 		},
