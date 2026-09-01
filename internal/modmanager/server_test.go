@@ -206,6 +206,34 @@ func TestUIRequiresAuth(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "Replace world") {
 		t.Fatal("ui must isolate replace-world")
 	}
+	if !strings.Contains(rec.Body.String(), "Log out") || !strings.Contains(rec.Body.String(), "/logout") {
+		t.Fatal("ui must include Log out that calls /logout")
+	}
+}
+
+func TestLogoutReturns401WithWWWAuthenticate(t *testing.T) {
+	s, _ := testServer(t, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unauth logout status = %d", rec.Code)
+	}
+	if rec.Header().Get(headerWWWAuth) != basicAuthRealm {
+		t.Fatalf("WWW-Authenticate = %q", rec.Header().Get(headerWWWAuth))
+	}
+
+	rec = doAuth(t, s, http.MethodGet, "/logout", nil, "")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("authed logout status = %d, want 401 so browsers drop cached basic auth", rec.Code)
+	}
+	if rec.Header().Get(headerWWWAuth) != basicAuthRealm {
+		t.Fatalf("authed WWW-Authenticate = %q", rec.Header().Get(headerWWWAuth))
+	}
+	if !strings.Contains(rec.Body.String(), "logged out") {
+		t.Fatalf("logout body = %q", rec.Body.String())
+	}
 }
 
 func TestStatsProxiesREST(t *testing.T) {

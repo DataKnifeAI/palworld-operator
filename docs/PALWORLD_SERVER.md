@@ -161,7 +161,7 @@ Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a
 | URL | `https://<spec.serverManager.hostname>/` — Gateway HTTPS **443** (`httpsPort`); hostname must match the reused TLS cert SAN |
 | TLS | `tlsSecretRef` → existing `kubernetes.io/tls` Secret (e.g. Let's Encrypt wildcard). Operator copies a cross-namespace Secret locally; it does **not** issue certs |
 | HTTP | `:8088` on the VIP redirects to HTTPS (set `exposeHTTP: false` for ClusterIP-only). Sidecar still listens on `port` (default 8088) |
-| Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password` |
+| Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password`. **Log out** in the UI (`GET /logout` 401 + bogus-credential fetch) so the browser prompts again |
 | Sidecar | `/server-manager` from the **operator** image (`/mod-manager` is kept as a copy) |
 | Overview | REST `GET /info`, `/metrics`, `/players` (version, worldguid, FPS, players, days/uptime/basecamps when present) |
 | Controls | REST announce / save / shutdown (confirm); Recreate-roll restart |

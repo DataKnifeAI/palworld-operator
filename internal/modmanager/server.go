@@ -34,6 +34,7 @@ const (
 	maxUploadBytes  = 2 << 30
 	maxMultipartMem = 32 << 20
 	healthzPath     = "/healthz"
+	logoutPath      = "/logout"
 	basicAuthRealm  = `Basic realm="Palworld Server Manager"`
 	errModsDisabled = "mods PVC is not mounted; enable spec.mods"
 	errRESTDisabled = "Palworld REST is not configured on this sidecar"
@@ -120,6 +121,7 @@ func New(cfg Config) (*Server, error) {
 		s.savesRoot = saves
 	}
 	s.mux.HandleFunc("GET "+healthzPath, s.handleHealthz)
+	s.mux.HandleFunc("GET "+logoutPath, s.handleLogout)
 	s.mux.HandleFunc("GET /{$}", s.handleUI)
 	s.mux.HandleFunc("GET /api/files", s.handleList)
 	s.mux.HandleFunc("GET /api/download", s.handleDownload)
@@ -136,9 +138,9 @@ func New(cfg Config) (*Server, error) {
 	return s, nil
 }
 
-// ServeHTTP applies basic auth to every path except /healthz.
+// ServeHTTP applies basic auth to every path except /healthz and /logout.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != healthzPath {
+	if r.URL.Path != healthzPath && r.URL.Path != logoutPath {
 		if !s.authorized(r) {
 			if _, _, ok := r.BasicAuth(); !ok {
 				log.Printf("unauthorized %s %s (no basic auth)", r.Method, r.URL.Path)
@@ -166,6 +168,14 @@ func (s *Server) authorized(r *http.Request) bool {
 func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
+}
+
+// handleLogout always 401s with WWW-Authenticate so browsers drop cached basic auth.
+func (s *Server) handleLogout(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set(headerWWWAuth, basicAuthRealm)
+	http.Error(w, "logged out", http.StatusUnauthorized)
 }
 
 func (s *Server) handleUI(w http.ResponseWriter, _ *http.Request) {

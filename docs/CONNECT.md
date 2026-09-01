@@ -75,7 +75,9 @@ https://<spec.serverManager.hostname>/
 
 Sign in with basic auth: username `admin`, password = Secret key
 `admin-password` (not the join password). Use the hostname, not a raw IP, so
-the browser accepts the certificate. Tabs: Overview (REST stats) →
+the browser accepts the certificate. **Log out** (header/nav) hits `GET /logout`
+(401 + `WWW-Authenticate`) and clears cached basic auth so the next visit
+prompts again. Tabs: Overview (REST stats) →
 Controls (announce/save/shutdown + Recreate) → Saves (world zip) → Mods.
 REST stays ClusterIP-internal (the UI proxies localhost); legacy RCON does too.
 

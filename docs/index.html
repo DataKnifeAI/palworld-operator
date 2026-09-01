@@ -363,6 +363,8 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p class="fineprint">
           Enable with <code>spec.serverManager.enabled</code> (<code>spec.modManager</code> is a deprecated alias).
           Basic auth: <code>admin</code> + <code>admin-password</code>.
+          <strong>Log out</strong> in the header/nav clears the browser cache
+          (<code>GET /logout</code>).
           Sidecar binary <code>/server-manager</code> in the operator image (rebuild Harbor).
           Official REST:
           <a href="https://docs.palworldgame.com/api/rest-api/palwold-rest-api">palwold-rest-api</a>.

@@ -86,6 +86,10 @@ const uiHTML = `<!DOCTYPE html>
       width: min(100% - 2.3rem, 64rem);
       margin: 0 auto;
       padding: 2.6rem 0 1.7rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
     }
     .hero h1 {
       margin: 0;
@@ -115,6 +119,21 @@ const uiHTML = `<!DOCTYPE html>
       background: linear-gradient(180deg, transparent, rgba(255,213,106,.18));
     }
     .trail button:focus-visible { outline: 2px solid var(--sky-deep); outline-offset: 2px; }
+    .trail__logout {
+      margin-left: auto;
+      color: var(--coral);
+    }
+    .trail__logout:hover { color: var(--ink); }
+    .btn-logout {
+      flex: 0 0 auto;
+      background: rgba(255,250,240,.16);
+      color: #fffaf0;
+      border: 1px solid rgba(255,250,240,.5);
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    .btn-logout:hover { background: rgba(255,250,240,.3); }
+    .btn-logout:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
     .panel { display: none; }
     .panel.active { display: block; }
     .lede { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; max-width: 42rem; }
@@ -215,6 +234,7 @@ const uiHTML = `<!DOCTYPE html>
     </div>
     <div class="hero__content">
       <h1>Server Manager</h1>
+      <button type="button" class="btn-logout js-logout">Log out</button>
     </div>
   </header>
   <svg class="wave" viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true">
@@ -227,6 +247,7 @@ const uiHTML = `<!DOCTYPE html>
       <button type="button" role="tab" aria-selected="false" data-tab="controls">Controls</button>
       <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
       <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
+      <button type="button" class="trail__logout js-logout">Log out</button>
     </nav>
 
     <section id="overview" class="panel active" role="tabpanel">
@@ -384,13 +405,42 @@ const uiHTML = `<!DOCTYPE html>
     }
     function setTab(id) {
       document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === id));
-      document.querySelectorAll(".trail button").forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === id ? "true" : "false"));
+      document.querySelectorAll(".trail button[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === id ? "true" : "false"));
       if (id === "overview") refreshStats();
       if (id === "saves") loadSaves();
       if (id === "mods") list(current);
     }
-    document.querySelectorAll(".trail button").forEach((b) => {
+    document.querySelectorAll(".trail button[data-tab]").forEach((b) => {
       b.onclick = () => setTab(b.getAttribute("data-tab"));
+    });
+    function logout() {
+      if (logout.busy) return;
+      logout.busy = true;
+      const nonce = "logout:" + Date.now();
+      const bogus = "Basic " + btoa(nonce);
+      const goHome = () => { window.location.replace("/"); };
+      const timer = setTimeout(goHome, 2000);
+      const done = () => { clearTimeout(timer); goHome(); };
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/logout", true, "logout", String(Date.now()));
+        xhr.setRequestHeader("Authorization", bogus);
+        xhr.withCredentials = true;
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) done();
+        };
+        xhr.send();
+      } catch (e) {
+        fetch("/logout", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+          headers: { Authorization: bogus }
+        }).catch(function () {}).finally(done);
+      }
+    }
+    document.querySelectorAll(".js-logout").forEach((b) => {
+      b.onclick = () => logout();
     });
 
     function statCard(label, value) {
