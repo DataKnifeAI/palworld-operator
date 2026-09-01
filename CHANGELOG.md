@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Opt-in `spec.mods`: dedicated `{name}-mods` PVC at `/pal/Package/Mods` plus default Paks **subpath** overlays (`~WorkshopMods`, `LogicMods`) so Linux `.pak` files do not hide `Pal-LinuxServer.pak`. Official Workshop loader remains Windows-only; UE4SS/Win64 is not this image. Optional `activeModList`; `-workshopdir` off unless `useWorkshopDirArg`.
 
+### Changed
+
+- Docs / GitHub Pages: honest Linux vs Windows mods — official Workshop / `PalModSettings.ini` / `-workshopdir` are Windows-only on this Linux `palserver` image; client `bAllowClientMod` is join policy; community PAK overlays vs UE4SS; consoles cannot load PC client mods; server content mods can lock consoles out. Visible site section `#mods` (Pocketpair + Yorkhost links).
+
 ### Planned / known gaps
 
 - Finish cluster smoke (#12): client join via Gateway, graceful stop / SIGTERM save integrity (PVC retain observed on live auto-update Recreate).

@@ -84,6 +84,10 @@ spec:
 
 Apply: merge-patch the CR, wait for the ConfigMap, then **roll the game Deployment** so `seed-settings` re-copies the INI onto the PVC. The world save stays intact (do not delete the CR/PVC). Details: [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#game-balance--features-specoptionsettings).
 
+### Mods (Linux vs Windows)
+
+Official Pocketpair [server mods](https://docs.palworldgame.com/settings-and-operation/mod/) are **Windows-only**. This operator’s default image is Linux `ghcr.io/pocketpairjp/palserver` — Workshop / `PalModSettings.ini` / `-workshopdir` are not loaded. Opt-in `spec.mods` mounts a PVC for a future Pocketpair path plus community `.pak` overlays (`Paks/~WorkshopMods`, `LogicMods`); UE4SS is not this image. Client join policy is `spec.optionSettings.bAllowClientMod` only. Details: [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#mods--linux-vs-windows-honest) · [site § Mods](https://dataknifeai.github.io/palworld-operator/#mods).
+
 Teardown (deletes the world PVC if the sample uses Delete reclaim — do not run this to change settings):
 
 ```shell
@@ -94,11 +98,11 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
-| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, mods PVC, updates, sizing |
+| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, Linux mods, updates, sizing |
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, mods PVC, Steam updates |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Linux vs Windows mods, Steam updates |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub CI + GitLab Harbor publish |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 

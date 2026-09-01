@@ -516,6 +516,19 @@ code {
   font-weight: 500;
 }
 
+.section--mods {
+  background:
+    radial-gradient(ellipse 50% 45% at 92% 10%, rgba(240, 120, 72, 0.12), transparent 55%),
+    radial-gradient(ellipse 45% 50% at 8% 85%, rgba(42, 168, 160, 0.12), transparent 50%),
+    var(--paper);
+}
+
+.section--mods > .wrap > p {
+  margin: 0 0 0.75rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
 .subhead {
   margin: 2rem 0 0.65rem;
   font-family: var(--font-display);

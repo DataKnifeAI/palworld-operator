@@ -5,6 +5,8 @@ Operator-relevant detail for the official Pocketpair image and optional communit
 Sources:
 - [Deploy dedicated server](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
 - [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
+- [Installing mods on a server](https://docs.palworldgame.com/settings-and-operation/mod/) — **Windows-only** official Workshop loader
+- [Yorkhost PAK / UE4SS notes](https://yorkhost.fr/docs/en/palworld/mods-ue4ss) — community Linux vs Win64 (not Pocketpair)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker) — `ghcr.io/pocketpairjp/palserver`
 - [thijsvanloef/palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker) (community alternative)
 
@@ -56,15 +58,32 @@ Official compose examples often expose **8211/UDP** only; query/RCON/REST still 
 
 Recommended PVC size: start at **50–100Gi** (worlds grow with bases/Pals). Stop the server before mutating settings files; shutdown overwrites in-memory settings.
 
+### Mods — Linux vs Windows (honest)
+
+This operator’s **default image is Linux** [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker). Pocketpair’s [official dedicated-server mods](https://docs.palworldgame.com/settings-and-operation/mod/) (Workshop loader, `Mods/PalModSettings.ini`, `-workshopdir`) are **Windows-only**. They do **not** load on Linux PalServer.
+
+Live filesystem: the image has **no** `Mods/` directory. The saves PVC is **`/pal/Package/Pal/Saved` only**. Opt-in `spec.mods` is a *second* PVC so files never mix into world saves.
+
+| Kind | Linux (this operator) | Windows PalServer |
+|------|----------------------|-------------------|
+| Official Workshop (`Mods/`, `PalModSettings.ini`, `-workshopdir`) | **Not loaded** — mount is forward-looking for a future Pocketpair Linux path | **Yes** — [Pocketpair](https://docs.palworldgame.com/settings-and-operation/mod/) |
+| Client mods (`bAllowClientMod`) | Join **policy** only — does not install or host client mods | Same INI flag |
+| Community `.pak` / `.sig` under `Pal/Content/Paks/` | **Possible** if version-matched ([Yorkhost](https://yorkhost.fr/docs/en/palworld/mods-ue4ss)) | Yes |
+| UE4SS (`UE4SS.dll`, Lua under `Pal/Binaries/Win64/`) | **No** — needs Windows/Win64 DLL injection / Proton. Not `PalServer-Linux-Shipping` | Yes (different stack) |
+
+**Client mods** are a join policy, not server content. Set `spec.optionSettings.bAllowClientMod` (`"True"` / `"False"`) so PC clients may or may not connect with their own mods. The server does not download, store, or inject those files. Consoles cannot load PC client mods.
+
+**Server content mods** (Workshop on Windows, or Linux PAK drops) change what the dedicated process serves. They can **lock consoles out** of a crossplay world — keep `spec.crossplayPlatforms` and community listing in mind before adding PAKs.
+
 ### Mods PVC (`spec.mods`) — opt-in, two layouts
 
-Two different “mod” stories exist. This operator mounts **one** dedicated PVC so you can stage files at the real paths without mixing them into the saves volume. Enabling `spec.mods` rolls the game pod (Recreate). Leave it off on a live world unless you accept that roll.
+One dedicated PVC stages files at the real paths without mixing them into the saves volume. Enabling `spec.mods` rolls the game pod (Recreate). Leave it off on a live world unless you accept that roll.
 
 | Kind | Works on official Linux image? | Path |
 |------|--------------------------------|------|
-| **Pocketpair Workshop** (`Mods/`, `PalModSettings.ini`, `Info.json`) | **No** — [official docs](https://docs.palworldgame.com/settings-and-operation/mod/) say **Windows-only**. Live `palserver` has no `/pal/Package/Mods`; `PalServer.sh` does not pass `-workshopdir`. | PVC root → `/pal/Package/Mods` |
-| **PAK files** (`.pak` + optional `.sig`) | **Yes (community)** — native Linux loads version-matched PAKs under `Pal/Content/Paks/` ([Yorkhost](https://yorkhost.fr/docs/en/palworld/mods-ue4ss)). Config-only tweaks are `PalWorldSettings.ini` (`spec.optionSettings`), not this PVC. | PVC `paks/~WorkshopMods` and `paks/LogicMods` overlay those **subfolders only** |
-| **UE4SS** (`UE4SS.dll`, Lua under `Pal/Binaries/Win64/Mods/`) | **No** — DLL inject / Proton / Win64. Not `PalServer-Linux-Shipping`. Do not mount Win64 over this image. | n/a |
+| **Pocketpair Workshop** (`Mods/`, `PalModSettings.ini`, `Info.json`) | **No today** — Windows-only loader. PVC still creates `/pal/Package/Mods` (image does not ship it). `PalServer.sh` does not pass `-workshopdir`. | PVC root → `/pal/Package/Mods` |
+| **PAK files** (`.pak` + optional `.sig`) | **Yes (community)** — native Linux loads version-matched PAKs under `Pal/Content/Paks/`. Config-only tweaks are `PalWorldSettings.ini` (`spec.optionSettings`), not this PVC. | PVC `paks/~WorkshopMods` and `paks/LogicMods` overlay those **subfolders only** |
+| **UE4SS** | **No** — do not mount Win64 over this image. | n/a |
 
 The image already has `Pal/Content/Paks/Pal-LinuxServer.pak`. We **never** replace the whole `Paks/` directory (that would hide the official pak and the server would not start). Overlays are `~WorkshopMods` and `LogicMods` only — the same subfolders Pocketpair’s Windows loader deploys into.
 
@@ -128,7 +147,7 @@ kubectl -n game-servers delete pod palworld-mods-copy
 
 Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image starts. Restart the game Deployment after changing packages.
 
-**Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
+**Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + `PalModSettings.ini` + `-workshopdir` + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
 
 ## Container image options
 
@@ -181,6 +200,7 @@ spec:
     bExistPlayerAfterLogout: "True"   # sleep in-place on logout
     WorkSpeedRate: "1.5"
     DeathPenalty: None
+    # bAllowClientMod: "True"         # join policy only — does not install mods
 ```
 
 **Apply** (world / PVC stay intact — do **not** delete the CR or PVC; keep `dedicatedServerName` / `worldguid`):
@@ -347,7 +367,14 @@ The operator seeds `GameUserSettings.ini` from `spec.dedicatedServerName` or lea
 
 ## Crossplay
 
-Dedicated servers support Steam / Xbox / PS5 / Mac via `CrossplayPlatforms` (INI) or community image `CROSSPLAY_PLATFORMS`.
+Dedicated servers support Steam / Xbox / PS5 / Mac via `CrossplayPlatforms` (INI) or community image `CROSSPLAY_PLATFORMS` (`spec.crossplayPlatforms`).
+
+Mods and crossplay interact:
+
+- **Consoles cannot load PC client mods.** `spec.optionSettings.bAllowClientMod` is a PC join policy. If PC players join with client mods, console players still cannot use those mods — and a mismatch can look like a failed join.
+- **Server content mods can lock consoles out.** A Linux `.pak` (or Windows Workshop package) that changes world content may make the dedicated server unjoinable from Xbox / PS5 even when those platforms are in `crossplayPlatforms`. Prefer a vanilla world if you host consoles.
+
+Console clients usually still need community listing (`spec.community.enabled`) even when crossplay is on. See [CONNECT.md](CONNECT.md).
 
 ## Connecting from the game client
 

@@ -53,6 +53,7 @@ spec:
   #   bExistPlayerAfterLogout: "True"  # sleep in-place on logout
   #   WorkSpeedRate: "1.5"
   #   DeathPenalty: None               # None | Item | ItemAndEquipment | All
+  #   # bAllowClientMod: "True"        # join policy only; does not install mods
 
   # Opt-in: auto-bump official Pocketpair image tags (default off).
   # Discovers latest vX.Y.Z.W via anonymous GHCR tag list; pins repo:tag (not :latest).
@@ -100,13 +101,21 @@ spec:
   storageClassName: truenas-csi-nfs
 
   # Dedicated mods PVC (default off). Enabling rolls the game pod — leave
-  # commented on a live world.
-  # Official Workshop loader is Windows-only:
+  # commented on a live world. Do not enable on a lasting CR without a
+  # maintenance window.
+  # Official Pocketpair server mods are Windows-only:
   #   https://docs.palworldgame.com/settings-and-operation/mod/
-  # Native Linux PAK drops (community; not UE4SS/Win64):
+  # This image is Linux PalServer — Workshop / PalModSettings.ini /
+  # -workshopdir are not loaded. Live FS has no Mods/; saves PVC is
+  # /pal/Package/Pal/Saved only.
+  # Native Linux community PAK drops (not UE4SS / Win64 DLL injection):
   #   https://yorkhost.fr/docs/en/palworld/mods-ue4ss
-  # Mounts /pal/Package/Mods plus Paks/~WorkshopMods and Paks/LogicMods
-  # subpaths (does not replace Pal/Content/Paks or hide Pal-LinuxServer.pak).
+  # Client mods: optionSettings.bAllowClientMod is join policy only.
+  # Crossplay: consoles cannot load PC client mods; server content mods
+  # can lock consoles out.
+  # Mounts /pal/Package/Mods (forward-looking Pocketpair path) plus
+  # Paks/~WorkshopMods and Paks/LogicMods overlays (does not replace
+  # Pal/Content/Paks or hide Pal-LinuxServer.pak).
   # Back up saves and pin serverImage before adding PAKs.
   #
   # mods:

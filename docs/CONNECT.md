@@ -104,6 +104,8 @@ crossplayPlatforms: "(Steam,Xbox,PS5,Mac)"
 
 Crossplay does not remove the join-path difference: Steam PC can usually direct-connect; many console clients still need community listing. Align platform allow-list, community listing, and which address you share with each player group.
 
+Consoles **cannot load PC client mods**. `spec.optionSettings.bAllowClientMod` is a PC join policy only. Server content mods (Linux `.pak` drops or Windows Workshop) can **lock consoles out** of a crossplay world. See [PALWORLD_SERVER.md — Mods](PALWORLD_SERVER.md#mods--linux-vs-windows-honest).
+
 ## Ports players care about
 
 | Port | Proto | Player-facing? |
@@ -125,8 +127,8 @@ Notes: Update Palworld first. Use Join Multiplayer Game → direct connect.
 
 ## Related
 
-- [FAQ.md](FAQ.md) — incapable version, “no password entered”, world drift, updates
+- [FAQ.md](FAQ.md) — incapable version, “no password entered”, world drift, updates, Linux mods
 - [LOCAL.md](LOCAL.md) — Docker Compose on a PC (no Kubernetes)
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, INI/env, `spec.optionSettings`, persistence, resources
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, INI/env, `spec.optionSettings`, mods / Linux limits, persistence, resources
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Gateway / UDPRoute layout
 - Sample CR: [`config/samples/palworld_v1alpha1_palworldserver.yaml`](../config/samples/palworld_v1alpha1_palworldserver.yaml)

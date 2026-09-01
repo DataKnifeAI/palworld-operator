@@ -47,6 +47,7 @@
         <a class="btn btn--ghost" href="#local">Local / PC</a>
         <a class="btn btn--ghost" href="#connect">How to connect</a>
         <a class="btn btn--ghost" href="#settings">Game settings</a>
+        <a class="btn btn--ghost" href="#mods">Mods / Linux</a>
         <a class="btn btn--ghost" href="#faq">FAQ</a>
       </div>
     </div>
@@ -264,6 +265,8 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p>
           Crossplay (Steam / Xbox / PS5 / Mac) is controlled by <code>spec.crossplayPlatforms</code>.
           Console clients usually still need community listing even when crossplay is on.
+          Consoles cannot load PC client mods; server content mods can lock consoles out —
+          see <a href="#mods">Mods on Linux</a>.
         </p>
 
         <h3 class="subhead">Ports</h3>
@@ -311,6 +314,76 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p class="fineprint">
           Do not dump Pocketpair’s full key list into the CR or this repo — link
           the official docs and set only the keys you need.
+          <code>bAllowClientMod</code> is a join policy only (see
+          <a href="#mods">Mods</a>); it does not install client mods on the server.
+        </p>
+      </div>
+    </section>
+
+    <section class="section section--mods" id="mods" aria-labelledby="mods-heading">
+      <div class="wrap wrap--readable">
+        <h2 id="mods-heading">Mods on Linux vs Windows</h2>
+        <p class="section__lede section__lede--wide">
+          This operator’s default image is Linux
+          <code>ghcr.io/pocketpairjp/palserver</code>.
+          Pocketpair’s official dedicated-server mods are
+          <strong>Windows-only</strong>.
+          Operator notes:
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">docs/PALWORLD_SERVER.md</a>.
+        </p>
+
+        <ul class="ports ports--passwords">
+          <li>
+            <span class="ports__label">Official Workshop / PalModSettings.ini / -workshopdir</span>
+            <span class="ports__value">Not loaded on Linux PalServer. Windows PalServer only.</span>
+          </li>
+          <li>
+            <span class="ports__label">Client mods (bAllowClientMod)</span>
+            <span class="ports__value">Join policy only — does not install mods. Consoles cannot load PC client mods.</span>
+          </li>
+          <li>
+            <span class="ports__label">Community .pak under Pal/Content/Paks/</span>
+            <span class="ports__value">Possible on Linux if version-matched. Overlays ~WorkshopMods and LogicMods only — never the whole Paks/ dir.</span>
+          </li>
+          <li>
+            <span class="ports__label">UE4SS / Win64 DLL</span>
+            <span class="ports__value">No — needs Windows injection / Proton. Not this image.</span>
+          </li>
+        </ul>
+
+        <h3 class="subhead">What <code>spec.mods</code> actually mounts</h3>
+        <p>
+          Opt-in PVC (default off). Enabling rolls the game pod — leave it off on a live world.
+          The image has <strong>no</strong> <code>Mods/</code> directory; the saves PVC is
+          <code>/pal/Package/Pal/Saved</code> only.
+        </p>
+        <ul class="ports">
+          <li>
+            <span class="ports__label">/pal/Package/Mods</span>
+            <span class="ports__value">Forward-looking Pocketpair path (Workshop tree)</span>
+          </li>
+          <li>
+            <span class="ports__label">Paks/~WorkshopMods</span>
+            <span class="ports__value">Linux community PAK overlay</span>
+          </li>
+          <li>
+            <span class="ports__label">Paks/LogicMods</span>
+            <span class="ports__value">Linux community PAK overlay</span>
+          </li>
+        </ul>
+        <p>
+          Overlays do <strong>not</strong> replace <code>Pal/Content/Paks</code> or hide
+          <code>Pal-LinuxServer.pak</code>. Server content mods can lock consoles out of
+          a crossplay world.
+        </p>
+        <p class="fineprint">
+          Caveats: an incompatible <code>.pak</code> can fail startup — backup the saves PVC
+          and pin <code>spec.serverImage</code> first.
+          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair server mods (Windows)</a>
+          ·
+          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS (Linux vs Win64)</a>
+          ·
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/FAQ.md">FAQ</a>.
         </p>
       </div>
     </section>
@@ -355,16 +428,11 @@ kubectl get secret palworld-server-secrets -n game-servers \
 
         <h3 class="subhead">Server mods on Linux?</h3>
         <p>
-          Pocketpair’s official Workshop loader is <strong>Windows-only</strong>.
-          Native Linux may load version-matched <code>.pak</code> files under
-          <code>Paks/~WorkshopMods</code> / <code>LogicMods</code> (not the whole
-          <code>Paks/</code> dir). UE4SS/Win64 is Proton/Windows — not this image.
-          Opt-in <code>spec.mods.enabled</code> mounts that PVC (rolls the game pod).
-          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Official mod docs</a>
-          ·
-          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS notes</a>
-          ·
-          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
+          Official Workshop is <strong>Windows-only</strong> — this image is Linux PalServer.
+          Community <code>.pak</code> drops may load under <code>Paks/~WorkshopMods</code> /
+          <code>LogicMods</code>. UE4SS/Win64 is not this image.
+          Client join policy is <code>bAllowClientMod</code> only; consoles cannot load PC client mods.
+          Full comparison: <a href="#mods">Mods on Linux vs Windows</a>.
         </p>
 
         <h3 class="subhead">How do game patches reach the server?</h3>
@@ -414,6 +482,12 @@ kubectl get secret palworld-server-secrets -n game-servers \
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">Server notes</a>
           ·
           <a href="https://dataknifeai.github.io/palworld-operator/#settings">optionSettings</a>
+          ·
+          <a href="https://dataknifeai.github.io/palworld-operator/#mods">Mods / Linux</a>
+          ·
+          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Official server mods (Windows)</a>
+          ·
+          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a>
           ·
           <a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Official OptionSettings</a>
           ·
