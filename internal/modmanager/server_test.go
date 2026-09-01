@@ -197,6 +197,15 @@ func TestUIRequiresAuth(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "data-tab=\"saves\"") {
 		t.Fatal("ui must include Saves tab")
 	}
+	if strings.Contains(rec.Body.String(), "World pulse") {
+		t.Fatal("header lede under Server Manager must be removed")
+	}
+	if !strings.Contains(rec.Body.String(), "hero-world-keeper") {
+		t.Fatal("ui must include world-keeper hero")
+	}
+	if !strings.Contains(rec.Body.String(), "Replace world") {
+		t.Fatal("ui must isolate replace-world")
+	}
 }
 
 func TestStatsProxiesREST(t *testing.T) {

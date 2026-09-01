@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Server Manager UI: world-keeper hero (Pages art + Bricolage/Figtree), no header lede, larger overview cards, grouped Controls (announce+save / restart / isolated shutdown) and Saves (controls first, isolated replace-world) with confirmations.
 - Docs / GitHub Pages: honest Linux vs Windows mods — official Workshop / `PalModSettings.ini` / `-workshopdir` are Windows-only on this Linux `palserver` image; client `bAllowClientMod` is join policy; community PAK overlays vs UE4SS; consoles cannot load PC client mods; server content mods can lock consoles out. Visible site section `#mods` (Pocketpair + Yorkhost links).
 - Docs: Pocketpair v1.0.3 RCON is **deprecated**; REST is the replacement. Operator uses REST announce + admin basic auth (not RCON commands). Stop/save is still SIGTERM + `terminationGracePeriodSeconds`; REST `POST /save` and `/shutdown` are documented but not called yet. `spec.rcon` stays ClusterIP default-on as a legacy listener.
 
