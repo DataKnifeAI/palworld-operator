@@ -44,6 +44,7 @@ Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (
 | 27015 | UDP | Steam query | Community browser / Steam; UDPRoute when listing |
 | 25575 | TCP | RCON | Enable for graceful stop/save |
 | 8212 | TCP | REST API | Useful for ops; **do not** public-forward casually |
+| 8088 | TCP/HTTP | Optional mod manager | `spec.modManager`; same Gateway VIP; **basic auth required** |
 
 Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings.
 
@@ -146,6 +147,38 @@ kubectl -n game-servers delete pod palworld-mods-copy
 ```
 
 Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image starts. Restart the game Deployment after changing packages.
+
+### Optional mod manager (`spec.modManager`)
+
+Authenticated HTTP UI/API for the mods PVC. **Off by default.** Requires `spec.mods.enabled`. Enabling adds a sidecar and an HTTP listener on the **same Gateway VIP** as game UDP (not a LoadBalancer on the game pod). REST and RCON stay ClusterIP-internal.
+
+| Item | Value |
+|------|-------|
+| Enable | `spec.modManager.enabled: true` (also needs `spec.mods.enabled`) |
+| URL | `http://<gateway.address>:<port>/` — default port **8088** (`spec.modManager.port`) |
+| Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password` |
+| Sidecar | `/mod-manager` from the **operator** image (`harbor.dataknife.net/library/palworld-operator`) |
+| PVC root | Sidecar mounts `{name}-mods` at `/mods` (same files as `Mods/` + `paks/~WorkshopMods` + `paks/LogicMods`) |
+| Restart | UI button PATCHes the game Deployment (Recreate). **Players disconnect** until Ready. The UI pod restarts too. |
+| RBAC | Namespaced Role: `get`/`patch`/`update` **only** that Deployment |
+
+**Do not enable on a live CR without a maintenance window** — adding the sidecar Recreate-rolls the game pod.
+
+The operator image must include the `mod-manager` binary (Dockerfile copies both `/manager` and `/mod-manager`). After this feature lands, rebuild/push Harbor so the sidecar command works. Pin `spec.modManager.image` to a digest/tag if the game namespace cannot pull `:latest`. Private Harbor may need `spec.imagePullSecrets`.
+
+Linux PalServer still does **not** load official Workshop / `PalModSettings.ini`. Use the manager to drop version-matched `.pak` files under `paks/~WorkshopMods` and `paks/LogicMods`. Path traversal outside the PVC root is rejected. There is no unauthenticated mode.
+
+```yaml
+spec:
+  mods:
+    enabled: true
+    storage:
+      size: 10Gi
+  modManager:
+    enabled: true
+    port: 8088
+    # image: harbor.dataknife.net/library/palworld-operator:latest
+```
 
 **Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + `PalModSettings.ini` + `-workshopdir` + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
 
@@ -283,6 +316,7 @@ For auto-gen, substitute the Secret name from
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 | Balance / features | Extra `OptionSettings=(…)` keys | Known keys → env (partial) | `spec.optionSettings` |
 | Workshop / mods | `/pal/Package/Mods` + Paks subpath overlays | `/palworld/Mods` + `/palworld/Pal/Content/Paks/…` | `spec.mods` (opt-in) |
+| Mod manager UI | HTTP on Gateway VIP (sidecar) | same | `spec.modManager` (requires mods) |
 
 ## Resource guidance
 

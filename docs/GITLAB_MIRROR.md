@@ -11,6 +11,8 @@ Quality gates run on GitHub before mirror. GitLab does **not** re-run lint/unit 
 
 `harbor.dataknife.net/library/palworld-operator`
 
+That image includes `/manager` (operator) and `/mod-manager` (optional sidecar for `spec.modManager`). Rebuild after this feature so game pods can run `command: ["/mod-manager"]`.
+
 Mirror project: `gitlab.com/dk-raas/dkai/game-servers/palworld-operator`.
 
 ## GitHub workflows
@@ -19,7 +21,7 @@ Mirror project: `gitlab.com/dk-raas/dkai/game-servers/palworld-operator`.
 |----------|------|
 | `lint.yml` | `golangci-lint` (aligned with windrose-operator) |
 | `test.yml` | `go vet` + `go test ./... -race` |
-| `build.yml` | `go build` of `cmd/main.go` |
+| `build.yml` | `go build` of `cmd/main.go` and `cmd/mod-manager` |
 | `mirror-gitlab.yml` | Re-runs lint + test + build, then pushes to GitLab on `main` (`needs:`) |
 
 ## GitLab pipeline

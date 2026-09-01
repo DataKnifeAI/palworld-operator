@@ -7,11 +7,13 @@ const (
 
 	defaultServerImage               = "ghcr.io/pocketpairjp/palserver:latest"
 	defaultImageRepository           = "ghcr.io/pocketpairjp/palserver"
+	defaultModManagerImage           = "harbor.dataknife.net/library/palworld-operator:latest"
 	defaultGatewayClassName          = "envoy"
 	defaultGamePort            int32 = 8211
 	defaultQueryPort           int32 = 27015
 	defaultRCONPort            int32 = 25575
 	defaultRESTPort            int32 = 8212
+	defaultModManagerPort      int32 = 8088
 	defaultMaxPlayers          int32 = 4
 	defaultStorageSize               = "50Gi"
 	defaultModsStorageSize           = "10Gi"
@@ -49,6 +51,17 @@ const (
 	volumeSettings          = "settings"
 	volumeMods              = "mods"
 	modsPVCSuffix           = "-mods"
+	modManagerSASuffix      = "-mod-manager"
+	containerModManager     = "mod-manager"
+	portNameModManager      = "mod-manager"
+	modManagerMountPath     = "/mods"
+	modManagerBinary        = "/mod-manager"
+	envModManagerRoot       = "MOD_MANAGER_ROOT"
+	envModManagerListen     = "MOD_MANAGER_LISTEN"
+	envModManagerUser       = "MOD_MANAGER_USER"
+	envModManagerPassword   = "MOD_MANAGER_PASSWORD"
+	envModManagerNamespace  = "MOD_MANAGER_NAMESPACE"
+	envModManagerDeployment = "MOD_MANAGER_DEPLOYMENT"
 	workshopSubdir          = "Workshop"
 	workshopDirArgPrefix    = "-workshopdir="
 	seedModsInitName        = "seed-mods"
@@ -58,11 +71,14 @@ const (
 	gameUserSettingsRelPath = "Config/LinuxServer/GameUserSettings.ini"
 	palModSettingsKey       = "PalModSettings.ini"
 	palModSettingsSection   = "[PalModSettings]"
-	seedModsMountPath       = "/mods"
+	seedModsMountPath       = modManagerMountPath
 
-	gatewayListenerGameUDP  = "game-udp"
-	gatewayListenerQueryUDP = "query-udp"
-	gatewayListenerRESTTCP  = "rest-tcp"
+	gatewayListenerGameUDP        = "game-udp"
+	gatewayListenerQueryUDP       = "query-udp"
+	gatewayListenerRESTTCP        = "rest-tcp"
+	gatewayListenerModManagerHTTP = "mod-manager-http"
+
+	palworldAdminUser = "admin"
 
 	initContainerImage = "busybox:1.37"
 

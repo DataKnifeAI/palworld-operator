@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Opt-in `spec.mods`: dedicated `{name}-mods` PVC at `/pal/Package/Mods` plus default Paks **subpath** overlays (`~WorkshopMods`, `LogicMods`) so Linux `.pak` files do not hide `Pal-LinuxServer.pak`. Official Workshop loader remains Windows-only; UE4SS/Win64 is not this image. Optional `activeModList`; `-workshopdir` off unless `useWorkshopDirArg`.
+- Opt-in `spec.modManager`: authenticated HTTP UI/API sidecar (`/mod-manager` in the operator image) on the Gateway VIP (default port 8088) to list/upload/download/delete files on the mods PVC, plus Recreate-roll restart. Requires `spec.mods.enabled`. Basic auth uses `admin` + `admin-password`. Path traversal is rejected. Sample CR stays commented (would Recreate a live world).
 
 ### Changed
 

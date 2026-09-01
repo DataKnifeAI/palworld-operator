@@ -86,7 +86,7 @@ Apply: merge-patch the CR, wait for the ConfigMap, then **roll the game Deployme
 
 ### Mods (Linux vs Windows)
 
-Official Pocketpair [server mods](https://docs.palworldgame.com/settings-and-operation/mod/) are **Windows-only**. This operator’s default image is Linux `ghcr.io/pocketpairjp/palserver` — Workshop / `PalModSettings.ini` / `-workshopdir` are not loaded. Opt-in `spec.mods` mounts a PVC for a future Pocketpair path plus community `.pak` overlays (`Paks/~WorkshopMods`, `LogicMods`); UE4SS is not this image. Client join policy is `spec.optionSettings.bAllowClientMod` only. Details: [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#mods--linux-vs-windows-honest) · [site § Mods](https://dataknifeai.github.io/palworld-operator/#mods).
+Official Pocketpair [server mods](https://docs.palworldgame.com/settings-and-operation/mod/) are **Windows-only**. This operator’s default image is Linux `ghcr.io/pocketpairjp/palserver` — Workshop / `PalModSettings.ini` / `-workshopdir` are not loaded. Opt-in `spec.mods` mounts a PVC for a future Pocketpair path plus community `.pak` overlays (`Paks/~WorkshopMods`, `LogicMods`); UE4SS is not this image. Optional `spec.modManager` adds an authenticated HTTP UI on the Gateway VIP (port 8088) to manage that PVC; it is **not** enabled on the sample live CR. Client join policy is `spec.optionSettings.bAllowClientMod` only. Details: [PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#mods--linux-vs-windows-honest) · [site § Mods](https://dataknifeai.github.io/palworld-operator/#mods).
 
 Teardown (deletes the world PVC if the sample uses Delete reclaim — do not run this to change settings):
 
@@ -102,7 +102,7 @@ kubectl delete palworldserver palworld-server -n game-servers
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Linux vs Windows mods, Steam updates |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Linux vs Windows mods, optional mod manager, Steam updates |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub CI + GitLab Harbor publish |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 

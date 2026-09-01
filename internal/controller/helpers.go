@@ -78,18 +78,21 @@ var communityOptionEnv = map[string]string{
 }
 
 type derivedNames struct {
-	pvcName        string
-	modsPVCName    string
-	configMapName  string
-	deploymentName string
-	serviceName    string
-	envoyService   string
-	gatewayName    string
-	envoyProxyName string
-	gameUDPRoute   string
-	queryUDPRoute  string
-	rconTCPRoute   string
-	restTCPRoute   string
+	pvcName             string
+	modsPVCName         string
+	configMapName       string
+	deploymentName      string
+	serviceName         string
+	envoyService        string
+	gatewayName         string
+	envoyProxyName      string
+	gameUDPRoute        string
+	queryUDPRoute       string
+	rconTCPRoute        string
+	restTCPRoute        string
+	modManagerHTTPRoute string
+	modManagerSA        string
+	modManagerRole      string
 }
 
 func boolValue(value *bool, fallback bool) bool {
@@ -109,18 +112,21 @@ func gatewayBaseName(name string) string {
 func deriveNames(server *palworldv1alpha1.PalworldServer) derivedNames {
 	base := gatewayBaseName(server.Name)
 	names := derivedNames{
-		pvcName:        server.Name + "-files",
-		modsPVCName:    server.Name + modsPVCSuffix,
-		configMapName:  server.Name + "-config",
-		deploymentName: server.Name,
-		serviceName:    server.Name,
-		envoyService:   server.Name + "-envoy",
-		gatewayName:    base + "-gateway",
-		envoyProxyName: "game-" + base + "-kubevip",
-		gameUDPRoute:   base + "-game-udp",
-		queryUDPRoute:  base + "-query-udp",
-		rconTCPRoute:   base + "-rcon-tcp",
-		restTCPRoute:   base + "-rest-tcp",
+		pvcName:             server.Name + "-files",
+		modsPVCName:         server.Name + modsPVCSuffix,
+		configMapName:       server.Name + "-config",
+		deploymentName:      server.Name,
+		serviceName:         server.Name,
+		envoyService:        server.Name + "-envoy",
+		gatewayName:         base + "-gateway",
+		envoyProxyName:      "game-" + base + "-kubevip",
+		gameUDPRoute:        base + "-game-udp",
+		queryUDPRoute:       base + "-query-udp",
+		rconTCPRoute:        base + "-rcon-tcp",
+		restTCPRoute:        base + "-rest-tcp",
+		modManagerHTTPRoute: base + "-mod-manager",
+		modManagerSA:        server.Name + modManagerSASuffix,
+		modManagerRole:      server.Name + modManagerSASuffix,
 	}
 	if server.Spec.Gateway.GatewayName != "" {
 		names.gatewayName = server.Spec.Gateway.GatewayName
@@ -464,6 +470,47 @@ func restExposeViaGateway(spec palworldv1alpha1.PalworldServerSpec) bool {
 	return boolValue(spec.RESTAPI.ExposeViaGateway, false)
 }
 
+func modManagerEnabled(spec palworldv1alpha1.PalworldServerSpec) bool {
+	return spec.ModManager.Enabled
+}
+
+func modManagerPort(spec palworldv1alpha1.PalworldServerSpec) int32 {
+	if spec.ModManager.Port != 0 {
+		return spec.ModManager.Port
+	}
+	return defaultModManagerPort
+}
+
+func modManagerImage(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.ModManager.Image != "" {
+		return spec.ModManager.Image
+	}
+	return defaultModManagerImage
+}
+
+func adminPasswordSelector(server *palworldv1alpha1.PalworldServer) *corev1.SecretKeySelector {
+	if server.Spec.AdminPasswordSecretRef != nil {
+		return server.Spec.AdminPasswordSecretRef
+	}
+	if server.Spec.GenerateSecrets {
+		return defaultSecretKeySelector(credentialsSecretName(server), secretKeyAdminPassword)
+	}
+	return nil
+}
+
+func validateModManager(server *palworldv1alpha1.PalworldServer) error {
+	if !modManagerEnabled(server.Spec) {
+		return nil
+	}
+	if !modsEnabled(server.Spec) {
+		return fmt.Errorf("spec.modManager.enabled requires spec.mods.enabled")
+	}
+	if adminPasswordSelector(server) == nil {
+		return fmt.Errorf("spec.modManager.enabled requires adminPasswordSecretRef or generateSecrets")
+	}
+	return nil
+}
+
 func communityEnabled(spec palworldv1alpha1.PalworldServerSpec) bool {
 	return boolValue(spec.Community.Enabled, false)
 }
@@ -773,6 +820,14 @@ func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.Service
 			Name:       "rest-tcp",
 			Port:       restPort(spec),
 			TargetPort: intstr.FromInt32(restPort(spec)),
+			Protocol:   corev1.ProtocolTCP,
+		})
+	}
+	if modManagerEnabled(spec) {
+		ports = append(ports, corev1.ServicePort{
+			Name:       portNameModManager,
+			Port:       modManagerPort(spec),
+			TargetPort: intstr.FromInt32(modManagerPort(spec)),
 			Protocol:   corev1.ProtocolTCP,
 		})
 	}

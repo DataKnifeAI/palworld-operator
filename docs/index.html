@@ -379,6 +379,11 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <p class="fineprint">
           Caveats: an incompatible <code>.pak</code> can fail startup — backup the saves PVC
           and pin <code>spec.serverImage</code> first.
+          Optional <code>spec.modManager</code> exposes an authenticated HTTP UI on the
+          Gateway VIP (default port 8088, basic auth <code>admin</code> +
+          <code>admin-password</code>). Restart Recreate-rolls the game pod (downtime).
+          Leave it off on a live world. Operator image must include
+          <code>/mod-manager</code> (rebuild Harbor after this feature).
           <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair server mods (Windows)</a>
           ·
           <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS (Linux vs Win64)</a>
@@ -431,6 +436,8 @@ kubectl get secret palworld-server-secrets -n game-servers \
           Official Workshop is <strong>Windows-only</strong> — this image is Linux PalServer.
           Community <code>.pak</code> drops may load under <code>Paks/~WorkshopMods</code> /
           <code>LogicMods</code>. UE4SS/Win64 is not this image.
+          Optional <code>spec.modManager</code> is an authenticated admin UI on port 8088
+          (same VIP); it does not make official Workshop load on Linux.
           Client join policy is <code>bAllowClientMod</code> only; consoles cannot load PC client mods.
           Full comparison: <a href="#mods">Mods on Linux vs Windows</a>.
         </p>

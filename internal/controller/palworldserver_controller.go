@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,10 +41,14 @@ type PalworldServerReconciler struct {
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=tcproutes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=udproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.envoyproxy.io,resources=envoyproxies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
@@ -76,6 +81,10 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	names := deriveNames(server)
 
+	if err := validateModManager(server); err != nil {
+		return r.failStatus(ctx, server, err)
+	}
+
 	adminPassword, serverPassword, credentialsSecret, credentialsGenerated, err := r.resolvePasswords(ctx, server)
 	if err != nil {
 		return r.failStatus(ctx, server, err)
@@ -93,6 +102,9 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return r.failStatus(ctx, server, err)
 	}
 	if err := r.reconcileDeployment(ctx, server, names, adminPassword, serverPassword); err != nil {
+		return r.failStatus(ctx, server, err)
+	}
+	if err := r.reconcileModManagerRBAC(ctx, server, names); err != nil {
 		return r.failStatus(ctx, server, err)
 	}
 	if err := r.reconcileClusterIPService(ctx, server, names.serviceName, serverLabels(server.Name)); err != nil {
@@ -162,6 +174,13 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	server.Status.Ready = ready
 	server.Status.ConnectionPort = gamePort(server.Spec)
 	server.Status.ConnectionAddress = connectionAddressFromGateway(server, gateway)
+	if modManagerEnabled(server.Spec) {
+		server.Status.ModManagerAddress = server.Status.ConnectionAddress
+		server.Status.ModManagerPort = modManagerPort(server.Spec)
+	} else {
+		server.Status.ModManagerAddress = ""
+		server.Status.ModManagerPort = 0
+	}
 	server.Status.CredentialsSecretName = credentialsSecret
 	server.Status.CredentialsGenerated = credentialsGenerated
 	server.Status.DesiredImage = serverImage(server.Spec)
@@ -440,6 +459,15 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 			Volumes:                       volumes,
 		}
 
+		if modManagerEnabled(server.Spec) {
+			ref := adminPasswordSelector(server)
+			if ref == nil {
+				return fmt.Errorf("mod manager requires adminPasswordSecretRef or generateSecrets")
+			}
+			podSpec.Containers = append(podSpec.Containers, modManagerSidecar(server.Spec, names, ref))
+			podSpec.ServiceAccountName = names.modManagerSA
+		}
+
 		if len(server.Spec.ImagePullSecrets) > 0 {
 			podSpec.ImagePullSecrets = server.Spec.ImagePullSecrets
 		}
@@ -515,7 +543,11 @@ func (r *PalworldServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Owns(&gatewayv1.Gateway{}).
+		Owns(&gatewayv1.HTTPRoute{}).
 		Owns(&gatewayv1alpha2.TCPRoute{}).
 		Owns(&gatewayv1alpha2.UDPRoute{}).
 		Owns(&egv1a1.EnvoyProxy{}).

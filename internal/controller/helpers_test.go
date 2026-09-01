@@ -187,13 +187,15 @@ func TestDeriveNamesPalworldServer(t *testing.T) {
 
 	names := deriveNames(server)
 	checks := map[string]string{
-		names.pvcName:        "palworld-server-files",
-		names.modsPVCName:    "palworld-server-mods",
-		names.envoyService:   "palworld-server-envoy",
-		names.gatewayName:    "palworld-gateway",
-		names.envoyProxyName: "game-palworld-kubevip",
-		names.gameUDPRoute:   "palworld-game-udp",
-		names.queryUDPRoute:  "palworld-query-udp",
+		names.pvcName:             "palworld-server-files",
+		names.modsPVCName:         "palworld-server-mods",
+		names.envoyService:        "palworld-server-envoy",
+		names.gatewayName:         "palworld-gateway",
+		names.envoyProxyName:      "game-palworld-kubevip",
+		names.gameUDPRoute:        "palworld-game-udp",
+		names.queryUDPRoute:       "palworld-query-udp",
+		names.modManagerHTTPRoute: "palworld-mod-manager",
+		names.modManagerSA:        "palworld-server-mod-manager",
 	}
 	for got, want := range checks {
 		if got != want {

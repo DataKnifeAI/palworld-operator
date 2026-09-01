@@ -60,6 +60,22 @@ Do not put passwords in the CR or commit them to git. Auto-gen never writes
 plaintext passwords into `status` — only the Secret name and
 `credentialsGenerated: true`.
 
+## Optional mod manager (admins)
+
+When `spec.modManager.enabled` is true (and `spec.mods.enabled`), an HTTP UI
+is published on the **same Gateway IP** as the game, default port **8088**:
+
+```text
+http://<connectionAddress>:8088/
+```
+
+Sign in with basic auth: username `admin`, password = Secret key
+`admin-password` (not the join password). REST/RCON stay internal.
+
+This is not a player-facing surface. Restart in the UI Recreate-rolls the
+game Deployment — everyone disconnects until Ready. Linux PalServer still
+does not load official Workshop packages; see [PALWORLD_SERVER.md](PALWORLD_SERVER.md#optional-mod-manager-specmodmanager).
+
 ## In-game steps (PC / Steam — direct connect)
 
 Direct connect is the most reliable path for private operator-hosted worlds.

@@ -18,4 +18,6 @@ jobs:
           go-version-file: go.mod
 
       - name: go build
-        run: go build -o bin/manager cmd/main.go
+        run: |
+          go build -o bin/manager cmd/main.go
+          go build -o bin/mod-manager cmd/mod-manager/main.go

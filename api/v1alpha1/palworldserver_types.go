@@ -237,6 +237,30 @@ type ModsConfig struct {
 	ActiveModList []string `json:"activeModList,omitempty"`
 }
 
+// ModManagerConfig is an optional authenticated HTTP UI/API for the mods PVC.
+// Requires spec.mods.enabled. Traffic lands on the same Gateway VIP as the
+// game server (HTTPRoute), not a LoadBalancer on the game pod. REST/RCON stay
+// ClusterIP-internal. Enabling rolls the game Deployment (Recreate).
+type ModManagerConfig struct {
+	// Enabled starts a sidecar file manager in the game pod and an HTTPRoute
+	// on the game Gateway. Requires spec.mods.enabled. Default false.
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Port is the HTTP listen port on the Gateway VIP and sidecar.
+	// +kubebuilder:default=8088
+	// +kubebuilder:validation:Minimum=1024
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	Port int32 `json:"port,omitempty"`
+
+	// Image is the container image that provides the /mod-manager binary
+	// (the operator image). Default: harbor.dataknife.net/library/palworld-operator:latest
+	// Rebuild/push the operator image so the sidecar binary is present.
+	// +optional
+	Image string `json:"image,omitempty"`
+}
+
 // PalworldServerSpec defines the desired state of a Palworld dedicated game server.
 // Default image is the official Pocketpair package (ghcr.io/pocketpairjp/palserver).
 // Settings map to PalWorldSettings.ini / CLI args (official) or community-image
@@ -397,6 +421,12 @@ type PalworldServerSpec struct {
 	// +optional
 	Mods ModsConfig `json:"mods,omitempty"`
 
+	// ModManager is an optional HTTP file manager for the mods PVC, exposed
+	// on the Gateway VIP (separate port from the game). Requires mods.enabled.
+	// Basic auth uses the admin-password Secret key. Default disabled.
+	// +optional
+	ModManager ModManagerConfig `json:"modManager,omitempty"`
+
 	// Resources overrides auto-selected CPU/memory. When unset, tiers derive from maxPlayers.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
@@ -490,6 +520,16 @@ type PalworldServerStatus struct {
 	// LastAnnounceTime is when REST /v1/api/announce last succeeded for a pending update.
 	// +optional
 	LastAnnounceTime *metav1.Time `json:"lastAnnounceTime,omitempty"`
+
+	// ModManagerAddress is the Gateway IP for the optional mod manager UI.
+	// Empty when spec.modManager.enabled is false. Never contains passwords.
+	// +optional
+	ModManagerAddress string `json:"modManagerAddress,omitempty"`
+
+	// ModManagerPort is the HTTP port for the optional mod manager UI.
+	// Empty/zero when disabled.
+	// +optional
+	ModManagerPort int32 `json:"modManagerPort,omitempty"`
 
 	// ObservedGeneration is the last reconciled generation.
 	// +optional

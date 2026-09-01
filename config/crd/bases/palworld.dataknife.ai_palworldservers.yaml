@@ -210,6 +210,32 @@ spec:
                 maximum: 32
                 minimum: 1
                 type: integer
+              modManager:
+                description: |-
+                  ModManager is an optional HTTP file manager for the mods PVC, exposed
+                  on the Gateway VIP (separate port from the game). Requires mods.enabled.
+                  Basic auth uses the admin-password Secret key. Default disabled.
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled starts a sidecar file manager in the game pod and an HTTPRoute
+                      on the game Gateway. Requires spec.mods.enabled. Default false.
+                    type: boolean
+                  image:
+                    description: |-
+                      Image is the container image that provides the /mod-manager binary
+                      (the operator image). Default: harbor.dataknife.net/library/palworld-operator:latest
+                      Rebuild/push the operator image so the sidecar binary is present.
+                    type: string
+                  port:
+                    default: 8088
+                    description: Port is the HTTP listen port on the Gateway VIP and
+                      sidecar.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1024
+                    type: integer
+                type: object
               mods:
                 description: |-
                   Mods mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
@@ -665,6 +691,17 @@ spec:
               message:
                 description: Message is a human-readable status detail.
                 type: string
+              modManagerAddress:
+                description: |-
+                  ModManagerAddress is the Gateway IP for the optional mod manager UI.
+                  Empty when spec.modManager.enabled is false. Never contains passwords.
+                type: string
+              modManagerPort:
+                description: |-
+                  ModManagerPort is the HTTP port for the optional mod manager UI.
+                  Empty/zero when disabled.
+                format: int32
+                type: integer
               observedGeneration:
                 description: ObservedGeneration is the last reconciled generation.
                 format: int64

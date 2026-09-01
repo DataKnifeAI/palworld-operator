@@ -70,7 +70,7 @@ func (c *HTTPRESTClient) Announce(ctx context.Context, baseURL, adminPassword, m
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", adminPassword)
+	req.SetBasicAuth(palworldAdminUser, adminPassword)
 	resp, err := c.client().Do(req)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (c *HTTPRESTClient) getJSON(ctx context.Context, url, adminPassword string,
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth("admin", adminPassword)
+	req.SetBasicAuth(palworldAdminUser, adminPassword)
 	resp, err := c.client().Do(req)
 	if err != nil {
 		return err
