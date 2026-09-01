@@ -269,7 +269,7 @@ func (r *PalworldServerReconciler) reconcileHTTPRedirectRoute(
 		redirect := &gatewayv1.HTTPRequestRedirectFilter{
 			Scheme:     ptr.To("https"),
 			StatusCode: ptr.To(301),
-			Port:       ptr.To(gatewayv1.PortNumber(httpsPort)),
+			Port:       ptr.To(httpsPort),
 		}
 		if host != "" {
 			redirect.Hostname = ptr.To(gatewayv1.PreciseHostname(host))
