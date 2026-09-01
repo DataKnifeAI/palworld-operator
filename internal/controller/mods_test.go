@@ -175,6 +175,72 @@ func TestModsStorageAndPathDefaults(t *testing.T) {
 	}
 }
 
+func seedSettingsCommand(dep *appsv1.Deployment) string {
+	for _, c := range dep.Spec.Template.Spec.InitContainers {
+		if c.Name == "seed-settings" && len(c.Command) >= 3 {
+			return c.Command[2]
+		}
+	}
+	return ""
+}
+
+func TestSeedSettingsScriptModsGating(t *testing.T) {
+	off := palworldv1alpha1.PalworldServerSpec{}
+	on := palworldv1alpha1.PalworldServerSpec{
+		Mods: palworldv1alpha1.ModsConfig{Enabled: true},
+	}
+	offScript := seedSettingsScript(off)
+	onScript := seedSettingsScript(on)
+	if offScript == onScript {
+		t.Fatal("enabled vs disabled must produce different seed scripts")
+	}
+	if strings.Contains(offScript, seedModsMountPath) {
+		t.Fatalf("disabled script must not mention %s: %s", seedModsMountPath, offScript)
+	}
+	if !strings.Contains(offScript, settingsConfigKey) || !strings.Contains(offScript, gameUserSettingsKey) {
+		t.Fatalf("disabled script must still seed INI files: %s", offScript)
+	}
+	if !strings.Contains(onScript, seedModsMountPath+"/"+workshopSubdir) {
+		t.Fatalf("enabled script must seed mods layout: %s", onScript)
+	}
+	if !strings.Contains(onScript, palModSettingsKey) {
+		t.Fatalf("enabled script must copy PalModSettings.ini: %s", onScript)
+	}
+
+	scheme := secretsTestScheme(t)
+	ctx := context.Background()
+	server := testServerForMods(false)
+	r := &PalworldServerReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(server).Build(),
+		Scheme: scheme,
+	}
+	names := deriveNames(server)
+	if err := r.reconcileDeployment(ctx, server, names, "admin", "join"); err != nil {
+		t.Fatalf("first reconcile: %v", err)
+	}
+	dep := &appsv1.Deployment{}
+	nn := types.NamespacedName{Name: server.Name, Namespace: server.Namespace}
+	if err := r.Get(ctx, nn, dep); err != nil {
+		t.Fatal(err)
+	}
+	first := seedSettingsCommand(dep)
+	if first == "" {
+		t.Fatal("missing seed-settings command")
+	}
+	if first != offScript {
+		t.Fatalf("deploy seed = %q, want %q", first, offScript)
+	}
+	if err := r.reconcileDeployment(ctx, server, names, "admin", "join"); err != nil {
+		t.Fatalf("second reconcile: %v", err)
+	}
+	if err := r.Get(ctx, nn, dep); err != nil {
+		t.Fatal(err)
+	}
+	if got := seedSettingsCommand(dep); got != first {
+		t.Fatalf("seed command changed across reconciles:\n%s\n%s", first, got)
+	}
+}
+
 func TestSeedModsLayoutScriptQuotesTilde(t *testing.T) {
 	script := seedModsLayoutScript()
 	if !strings.Contains(script, `"/mods/paks/~WorkshopMods"`) {

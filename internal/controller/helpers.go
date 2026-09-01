@@ -201,12 +201,17 @@ func buildGameUserSettingsINI(name string) string {
 	return fmt.Sprintf("[/Script/Pal.PalGameLocalSettings]\nDedicatedServerName=%s\n", name)
 }
 
-func seedSettingsScript() string {
-	return fmt.Sprintf(
-		`mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s && if [ -f /settings/%s ]; then cp /settings/%s /saves/%s; fi && %s && if [ -f /settings/%s ] && [ -d %s ]; then cp /settings/%s %s/%s; fi`,
+func seedSettingsScript(spec palworldv1alpha1.PalworldServerSpec) string {
+	script := fmt.Sprintf(
+		`mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s && if [ -f /settings/%s ]; then cp /settings/%s /saves/%s; fi`,
 		settingsConfigKey, settingsRelativePath,
 		gameUserSettingsKey, gameUserSettingsKey, gameUserSettingsRelPath,
-		seedModsLayoutScript(),
+	)
+	if !modsEnabled(spec) {
+		return script
+	}
+	return script + " && " + seedModsLayoutScript() + fmt.Sprintf(
+		` && if [ -f /settings/%s ] && [ -d %s ]; then cp /settings/%s %s/%s; fi`,
 		palModSettingsKey, seedModsMountPath, palModSettingsKey, seedModsMountPath, palModSettingsKey,
 	)
 }

@@ -442,7 +442,7 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 					Image: initContainerImage,
 					Command: []string{
 						"sh", "-c",
-						seedSettingsScript(),
+						seedSettingsScript(server.Spec),
 					},
 					VolumeMounts: seedInitVolumeMounts(server.Spec),
 				},
