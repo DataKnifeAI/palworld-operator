@@ -14,6 +14,7 @@ const (
 	defaultRESTPort            int32 = 8212
 	defaultMaxPlayers          int32 = 4
 	defaultStorageSize               = "50Gi"
+	defaultModsStorageSize           = "10Gi"
 	defaultTerminationGrace    int64 = 60
 	defaultCrossplayPlatforms        = "(Steam,Xbox,PS5,Mac)"
 	defaultUpdateCheckInterval       = 6 * time.Hour
@@ -36,12 +37,28 @@ const (
 
 	officialSavedMountPath  = "/pal/Package/Pal/Saved"
 	communitySavedMountPath = "/palworld"
+	officialModsMountPath   = "/pal/Package/Mods"
+	communityModsMountPath  = "/palworld/Mods"
+	officialPaksRoot        = "/pal/Package/Pal/Content/Paks"
+	communityPaksRoot       = "/palworld/Pal/Content/Paks"
+	paksWorkshopModsDir     = "~WorkshopMods"
+	paksLogicModsDir        = "LogicMods"
+	paksOverlayWorkshopSub  = "paks/~WorkshopMods"
+	paksOverlayLogicSub     = "paks/LogicMods"
 	volumeSaves             = "saves"
 	volumeSettings          = "settings"
+	volumeMods              = "mods"
+	modsPVCSuffix           = "-mods"
+	workshopSubdir          = "Workshop"
+	workshopDirArgPrefix    = "-workshopdir="
+	seedModsInitName        = "seed-mods"
 	settingsConfigKey       = "PalWorldSettings.ini"
 	settingsRelativePath    = "Config/LinuxServer/PalWorldSettings.ini"
 	gameUserSettingsKey     = "GameUserSettings.ini"
 	gameUserSettingsRelPath = "Config/LinuxServer/GameUserSettings.ini"
+	palModSettingsKey       = "PalModSettings.ini"
+	palModSettingsSection   = "[PalModSettings]"
+	seedModsMountPath       = "/mods"
 
 	gatewayListenerGameUDP  = "game-udp"
 	gatewayListenerQueryUDP = "query-udp"

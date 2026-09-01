@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in `spec.mods`: dedicated `{name}-mods` PVC at `/pal/Package/Mods` plus default Paks **subpath** overlays (`~WorkshopMods`, `LogicMods`) so Linux `.pak` files do not hide `Pal-LinuxServer.pak`. Official Workshop loader remains Windows-only; UE4SS/Win64 is not this image. Optional `activeModList`; `-workshopdir` off unless `useWorkshopDirArg`.
+
 ### Planned / known gaps
 
 - Finish cluster smoke (#12): client join via Gateway, graceful stop / SIGTERM save integrity (PVC retain observed on live auto-update Recreate).

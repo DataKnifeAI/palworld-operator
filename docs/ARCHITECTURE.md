@@ -17,7 +17,8 @@ Clients → spec.gateway.address (Kube-VIP / MetalLB)
               ↓
       Deployment  (ghcr.io/pocketpairjp/palserver)
               ↓
-      PVC (/pal/Package/Pal/Saved)  +  Secret + ConfigMap (INI)
+      PVC (/pal/Package/Pal/Saved)  +  optional mods PVC (/pal/Package/Mods)
+      +  Secret + ConfigMap (INI)
 ```
 
 ## Owned resources
@@ -28,6 +29,7 @@ Each `PalworldServer` reconciles:
 |------|---------|
 | Deployment | Game server pod (official image by default) |
 | PersistentVolumeClaim | World saves under `/pal/Package/Pal/Saved` |
+| PersistentVolumeClaim (`{name}-mods`) | Optional `Mods/` plus `Paks/~WorkshopMods` and `Paks/LogicMods` overlays (`spec.mods.enabled`) |
 | ConfigMap | `PalWorldSettings.ini` (official path) |
 | Secret | Join/admin passwords (`server-password`, `admin-password`); owned when `spec.generateSecrets: true`, otherwise bring-your-own refs |
 | Service (ClusterIP) | Backend for game / query / RCON / REST ports |

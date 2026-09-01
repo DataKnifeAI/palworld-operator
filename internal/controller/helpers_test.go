@@ -187,6 +187,7 @@ func TestDeriveNamesPalworldServer(t *testing.T) {
 	names := deriveNames(server)
 	checks := map[string]string{
 		names.pvcName:        "palworld-server-files",
+		names.modsPVCName:    "palworld-server-mods",
 		names.envoyService:   "palworld-server-envoy",
 		names.gatewayName:    "palworld-gateway",
 		names.envoyProxyName: "game-palworld-kubevip",
@@ -221,5 +222,8 @@ func TestOfficialCommandArgs(t *testing.T) {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("expected %q in %v", want, args)
 		}
+	}
+	if strings.Contains(joined, workshopDirArgPrefix) {
+		t.Fatalf("workshopdir must stay off by default: %v", args)
 	}
 }

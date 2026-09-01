@@ -81,8 +81,13 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return r.failStatus(ctx, server, err)
 	}
 
-	if err := r.reconcilePVC(ctx, server, names.pvcName); err != nil {
+	if err := r.reconcilePVC(ctx, server, names.pvcName, storageSize(server.Spec), server.Spec.StorageClassName); err != nil {
 		return r.failStatus(ctx, server, err)
+	}
+	if modsEnabled(server.Spec) {
+		if err := r.reconcilePVC(ctx, server, names.modsPVCName, modsStorageSize(server.Spec), modsStorageClassName(server.Spec)); err != nil {
+			return r.failStatus(ctx, server, err)
+		}
 	}
 	if err := r.reconcileConfigMap(ctx, server, names.configMapName, adminPassword, serverPassword); err != nil {
 		return r.failStatus(ctx, server, err)
@@ -288,7 +293,7 @@ func (r *PalworldServerReconciler) readSecretKey(
 	return string(value), nil
 }
 
-func (r *PalworldServerReconciler) reconcilePVC(ctx context.Context, server *palworldv1alpha1.PalworldServer, name string) error {
+func (r *PalworldServerReconciler) reconcilePVC(ctx context.Context, server *palworldv1alpha1.PalworldServer, name, size, storageClass string) error {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -306,11 +311,11 @@ func (r *PalworldServerReconciler) reconcilePVC(ctx context.Context, server *pal
 		}
 		if pvc.Spec.Resources.Requests == nil {
 			pvc.Spec.Resources.Requests = corev1.ResourceList{
-				corev1.ResourceStorage: resourceQuantity(storageSize(server.Spec)),
+				corev1.ResourceStorage: resourceQuantity(size),
 			}
 		}
-		if server.Spec.StorageClassName != "" {
-			pvc.Spec.StorageClassName = &server.Spec.StorageClassName
+		if storageClass != "" {
+			pvc.Spec.StorageClassName = &storageClass
 		}
 		return nil
 	})
@@ -344,6 +349,9 @@ func (r *PalworldServerReconciler) reconcileConfigMap(
 		if pin := dedicatedServerName(server); pin != "" {
 			data[gameUserSettingsKey] = buildGameUserSettingsINI(pin)
 		}
+		if seedPalModSettings(server.Spec) {
+			data[palModSettingsKey] = buildPalModSettingsINI(server.Spec)
+		}
 		configMap.Data = data
 		return nil
 	})
@@ -364,7 +372,6 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 	runAsUser := containerUser
 	grace := terminationGrace(server.Spec)
 	community := isCommunityImage(server.Spec)
-	mountPath := savedMountPath(server.Spec)
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -392,29 +399,10 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 			ImagePullPolicy: imagePullPolicy(server.Spec),
 			Ports:           containerPorts(server.Spec),
 			Resources:       defaultResources(server.Spec),
-			VolumeMounts: []corev1.VolumeMount{
-				{Name: volumeSaves, MountPath: mountPath},
-			},
+			VolumeMounts:    gameVolumeMounts(server.Spec),
 		}
 
-		volumes := []corev1.Volume{
-			{
-				Name: volumeSaves,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: names.pvcName,
-					},
-				},
-			},
-			{
-				Name: volumeSettings,
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{Name: names.configMapName},
-					},
-				},
-			},
-		}
+		volumes := gameVolumes(names, server.Spec)
 
 		var initContainers []corev1.Container
 		if community {
@@ -423,6 +411,9 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 				RunAsUser:                &runAsUser,
 				RunAsNonRoot:             boolPtr(true),
 				AllowPrivilegeEscalation: boolPtr(false),
+			}
+			if modsEnabled(server.Spec) {
+				initContainers = []corev1.Container{seedModsInitContainer()}
 			}
 		} else {
 			container.Args = officialCommandArgs(server.Spec)
@@ -434,10 +425,7 @@ func (r *PalworldServerReconciler) reconcileDeployment(
 						"sh", "-c",
 						seedSettingsScript(),
 					},
-					VolumeMounts: []corev1.VolumeMount{
-						{Name: volumeSaves, MountPath: "/saves"},
-						{Name: volumeSettings, MountPath: "/settings"},
-					},
+					VolumeMounts: seedInitVolumeMounts(server.Spec),
 				},
 			}
 		}

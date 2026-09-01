@@ -73,6 +73,21 @@ spec:
 
 Apply with a **merge-patch** (so other spec fields stay), wait for the ConfigMap, then **roll the game Deployment** so `seed-settings` re-copies the INI onto the PVC. The world save stays intact — do not delete the CR/PVC; keep `dedicatedServerName` / `worldguid`. Players disconnect briefly during the roll.
 
+## Can I load server mods on Linux / the official image?
+
+**Depends which kind.** Pocketpair’s [official Workshop loader](https://docs.palworldgame.com/settings-and-operation/mod/) is **Windows-only** — that does not change. [Yorkhost’s UE4SS notes](https://yorkhost.fr/docs/en/palworld/mods-ue4ss) (community host, not Pocketpair) add: native Linux can take **PAK** files under `Pal/Content/Paks/`; **UE4SS** needs Windows DLL injection (`Pal/Binaries/Win64/`) / Proton, which is **not** `PalServer-Linux-Shipping`.
+
+| Kind | Official Linux image |
+|------|----------------------|
+| Workshop (`Mods/`, `PalModSettings.ini`) | Not loaded today. PVC still mounts `/pal/Package/Mods` (image does not ship this dir). |
+| `.pak` / `.sig` | Possible if version-matched. Overlay is `Paks/~WorkshopMods` and `Paks/LogicMods` only — **never** the whole `Paks/` dir (would hide `Pal-LinuxServer.pak`). |
+| UE4SS / Lua / Win64 | No. Different stack. |
+| Config / balance | Use `spec.optionSettings` → `PalWorldSettings.ini`, not the mods PVC. |
+
+`spec.mods.enabled: true` creates `{name}-mods` and (by default) those Paks **subpath** overlays. Enabling rolls the game pod; leave it off on a live world unless you accept the Recreate. **Back up the saves PVC and pin `spec.serverImage` first** — a bad PAK can stop the server from starting.
+
+Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods PVC](PALWORLD_SERVER.md#mods-pvc-specmods--opt-in-two-layouts)). Optional `activeModList` seeds `PalModSettings.ini`. `-workshopdir` stays off unless `useWorkshopDirArg: true`.
+
 ## How do server updates work with Steam / game patches?
 
 | Image | How updates land |
@@ -107,6 +122,6 @@ More: [PALWORLD_SERVER.md](PALWORLD_SERVER.md) resources section, [LOCAL.md](LOC
 ## Related
 
 - [CONNECT.md](CONNECT.md) — join from the client
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, mounts, optionSettings, updates, world pin
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, mounts, optionSettings, mods PVC, updates, world pin
 - [LOCAL.md](LOCAL.md) — Compose on a PC
 - [ARCHITECTURE.md](ARCHITECTURE.md) — owned resources / Gateway

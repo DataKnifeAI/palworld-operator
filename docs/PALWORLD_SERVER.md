@@ -28,8 +28,9 @@ SteamCMD App ID **2394010** is the underlying dedicated server; the official ima
 | `/pal/Package/PalServer.sh` | Server entrypoint (via `/pal/helper.sh` in compose samples) |
 | `/pal/Package/DefaultPalWorldSettings.ini` | Defaults template (do **not** edit for live config) |
 | `/pal/Package/Pal/Saved` | Persist this directory (saves + `Config/LinuxServer/`) |
+| `/pal/Package/Mods` | **Not in the image.** Official persist is Saved only. Opt-in `spec.mods` mounts a dedicated PVC here (next to `PalServer.sh`) |
 
-Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (`-port=8211`, multithreading). Gameplay settings live in `PalWorldSettings.ini` under the Saved mount.
+Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (`-port=8211`, multithreading). Gameplay settings live in `PalWorldSettings.ini` under the Saved mount. The official image does **not** ship a `Mods/` tree (confirmed on `palserver:v1.0.3.101283`).
 
 **Local / minimal PC (this repo):** [`compose/`](../compose/) + [LOCAL.md](LOCAL.md) — Docker Compose, no Kubernetes, resource caps and `.env` password seed.
 
@@ -54,6 +55,80 @@ Official compose examples often expose **8211/UDP** only; query/RCON/REST still 
 | Community image mount | `/palworld` (install + saves + backups) |
 
 Recommended PVC size: start at **50–100Gi** (worlds grow with bases/Pals). Stop the server before mutating settings files; shutdown overwrites in-memory settings.
+
+### Mods PVC (`spec.mods`) — opt-in, two layouts
+
+Two different “mod” stories exist. This operator mounts **one** dedicated PVC so you can stage files at the real paths without mixing them into the saves volume. Enabling `spec.mods` rolls the game pod (Recreate). Leave it off on a live world unless you accept that roll.
+
+| Kind | Works on official Linux image? | Path |
+|------|--------------------------------|------|
+| **Pocketpair Workshop** (`Mods/`, `PalModSettings.ini`, `Info.json`) | **No** — [official docs](https://docs.palworldgame.com/settings-and-operation/mod/) say **Windows-only**. Live `palserver` has no `/pal/Package/Mods`; `PalServer.sh` does not pass `-workshopdir`. | PVC root → `/pal/Package/Mods` |
+| **PAK files** (`.pak` + optional `.sig`) | **Yes (community)** — native Linux loads version-matched PAKs under `Pal/Content/Paks/` ([Yorkhost](https://yorkhost.fr/docs/en/palworld/mods-ue4ss)). Config-only tweaks are `PalWorldSettings.ini` (`spec.optionSettings`), not this PVC. | PVC `paks/~WorkshopMods` and `paks/LogicMods` overlay those **subfolders only** |
+| **UE4SS** (`UE4SS.dll`, Lua under `Pal/Binaries/Win64/Mods/`) | **No** — DLL inject / Proton / Win64. Not `PalServer-Linux-Shipping`. Do not mount Win64 over this image. | n/a |
+
+The image already has `Pal/Content/Paks/Pal-LinuxServer.pak`. We **never** replace the whole `Paks/` directory (that would hide the official pak and the server would not start). Overlays are `~WorkshopMods` and `LogicMods` only — the same subfolders Pocketpair’s Windows loader deploys into.
+
+**Backup the saves PVC and pin `spec.serverImage` before adding PAKs.** A version-incompatible `.pak` can prevent the server from starting.
+
+| Item | Value |
+|------|-------|
+| PVC | `{metadata.name}-mods` (OwnerReference; does not replace `{name}-files`) |
+| Mods mount | `/pal/Package/Mods` (creates the directory; official image does not ship it) |
+| Workshop packages | `{mods}/Workshop/<any-folder>/Info.json` |
+| Settings file | `{mods}/PalModSettings.ini` |
+| PAK overlays (default on) | `{mods}/paks/~WorkshopMods` → `/pal/Package/Pal/Content/Paks/~WorkshopMods` |
+| | `{mods}/paks/LogicMods` → `/pal/Package/Pal/Content/Paks/LogicMods` |
+| Default size | `10Gi` (`spec.mods.storage.size`) |
+| StorageClass | `spec.mods.storage.storageClassName`, else `spec.storageClassName` |
+| `-workshopdir` | **Off by default.** `useWorkshopDirArg: true` appends `-workshopdir={workshopDir}`. Official Linux args omit it. |
+
+```yaml
+spec:
+  mods:
+    enabled: true
+    storage:
+      size: 10Gi
+      # storageClassName: truenas-csi-nfs   # defaults to spec.storageClassName
+    # path: /pal/Package/Mods
+    # workshopDir: /pal/Package/Mods/Workshop
+    # useWorkshopDirArg: false
+    # paksOverlay: true                     # default; set false for Mods/ only
+    # activeModList:                        # optional seed of PalModSettings.ini
+    #   - GamingCattiva
+```
+
+Copy files onto the PVC via a throwaway pod (folder name is organizational; Workshop `PackageName` is in `Info.json`):
+
+```shell
+kubectl -n game-servers apply -f - <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: palworld-mods-copy
+spec:
+  restartPolicy: Never
+  containers:
+    - name: copy
+      image: busybox:1.37
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: mods
+          mountPath: /mods
+  volumes:
+    - name: mods
+      persistentVolumeClaim:
+        claimName: palworld-server-mods
+EOF
+# Official Workshop tree (Windows loader / future Linux):
+kubectl -n game-servers cp ./MyMod palworld-mods-copy:/mods/Workshop/MyMod
+# Linux PAK overlay (does not hide Pal-LinuxServer.pak):
+kubectl -n game-servers cp ./MyMod.pak palworld-mods-copy:/mods/paks/~WorkshopMods/MyMod.pak
+kubectl -n game-servers delete pod palworld-mods-copy
+```
+
+Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image starts. Restart the game Deployment after changing packages.
+
+**Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
 
 ## Container image options
 
@@ -187,6 +262,7 @@ For auto-gen, substitute the Secret name from
 | Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 | Balance / features | Extra `OptionSettings=(…)` keys | Known keys → env (partial) | `spec.optionSettings` |
+| Workshop / mods | `/pal/Package/Mods` + Paks subpath overlays | `/palworld/Mods` + `/palworld/Pal/Content/Paks/…` | `spec.mods` (opt-in) |
 
 ## Resource guidance
 

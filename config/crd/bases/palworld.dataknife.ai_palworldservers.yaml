@@ -210,6 +210,68 @@ spec:
                 maximum: 32
                 minimum: 1
                 type: integer
+              mods:
+                description: |-
+                  Mods mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
+                  PAK overlays under Pal/Content/Paks/~WorkshopMods and LogicMods.
+                  Official Workshop loader is Windows-only; UE4SS/Win64 is not this image.
+                  Default disabled so existing worlds are not rolled.
+                properties:
+                  activeModList:
+                    description: |-
+                      ActiveModList seeds Mods/PalModSettings.ini ActiveModList (Info.json
+                      PackageName values, not folder names). Written onto the mods PVC when
+                      non-empty. Leave empty to manage the INI yourself.
+                    items:
+                      type: string
+                    type: array
+                  enabled:
+                    description: |-
+                      Enabled creates PVC {metadata.name}-mods and mounts it into the game
+                      container. Default false — enabling rolls the Deployment (Recreate).
+                    type: boolean
+                  paksOverlay:
+                    default: true
+                    description: |-
+                      PaksOverlay mounts PVC subpaths into Pal/Content/Paks/~WorkshopMods and
+                      Pal/Content/Paks/LogicMods so Linux .pak files can sit beside the
+                      official Pal-LinuxServer.pak. The whole Paks/ directory is never
+                      replaced. Default true when mods.enabled. Set false for Mods/ only.
+                    type: boolean
+                  path:
+                    description: |-
+                      Path is the container mount for the Mods tree (PalModSettings.ini and
+                      Workshop/ live here). Default: /pal/Package/Mods (next to PalServer.sh
+                      in the official image). Community images default to /palworld/Mods
+                      unless this field is set.
+                    type: string
+                  storage:
+                    description: Storage configures the dedicated mods PVC.
+                    properties:
+                      size:
+                        default: 10Gi
+                        description: Size is the mods PVC capacity. Default 10Gi.
+                        type: string
+                      storageClassName:
+                        description: |-
+                          StorageClassName selects the StorageClass for the mods PVC.
+                          When empty, uses spec.storageClassName.
+                        type: string
+                    type: object
+                  useWorkshopDirArg:
+                    description: |-
+                      UseWorkshopDirArg appends -workshopdir=<workshopDir> to official-image
+                      container args. Default false: official Linux PalServer.sh does not
+                      pass workshop flags, the documented Linux argument list omits
+                      -workshopdir, and the Windows-only loader ignores Mods. Mount at Path
+                      is enough for the default Mods/Workshop layout.
+                    type: boolean
+                  workshopDir:
+                    description: |-
+                      WorkshopDir is the Workshop packages directory inside the container.
+                      Default: {path}/Workshop. Used when useWorkshopDirArg is true.
+                    type: string
+                type: object
               multithreading:
                 default: true
                 description: Multithreading enables multi-threaded server mode (~4

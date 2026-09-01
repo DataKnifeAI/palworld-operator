@@ -353,6 +353,20 @@ kubectl get secret palworld-server-secrets -n game-servers \
           Confirm REST <code>worldguid</code> after rolls.
         </p>
 
+        <h3 class="subhead">Server mods on Linux?</h3>
+        <p>
+          Pocketpair’s official Workshop loader is <strong>Windows-only</strong>.
+          Native Linux may load version-matched <code>.pak</code> files under
+          <code>Paks/~WorkshopMods</code> / <code>LogicMods</code> (not the whole
+          <code>Paks/</code> dir). UE4SS/Win64 is Proton/Windows — not this image.
+          Opt-in <code>spec.mods.enabled</code> mounts that PVC (rolls the game pod).
+          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Official mod docs</a>
+          ·
+          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS notes</a>
+          ·
+          <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">PALWORLD_SERVER.md</a>.
+        </p>
+
         <h3 class="subhead">How do game patches reach the server?</h3>
         <p>
           Official image = <strong>new container tag</strong>, not SteamCMD on boot. Opt-in

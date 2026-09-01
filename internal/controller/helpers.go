@@ -79,6 +79,7 @@ var communityOptionEnv = map[string]string{
 
 type derivedNames struct {
 	pvcName        string
+	modsPVCName    string
 	configMapName  string
 	deploymentName string
 	serviceName    string
@@ -109,6 +110,7 @@ func deriveNames(server *palworldv1alpha1.PalworldServer) derivedNames {
 	base := gatewayBaseName(server.Name)
 	names := derivedNames{
 		pvcName:        server.Name + "-files",
+		modsPVCName:    server.Name + modsPVCSuffix,
 		configMapName:  server.Name + "-config",
 		deploymentName: server.Name,
 		serviceName:    server.Name,
@@ -195,10 +197,191 @@ func buildGameUserSettingsINI(name string) string {
 
 func seedSettingsScript() string {
 	return fmt.Sprintf(
-		`mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s && if [ -f /settings/%s ]; then cp /settings/%s /saves/%s; fi`,
+		`mkdir -p /saves/Config/LinuxServer && cp /settings/%s /saves/%s && if [ -f /settings/%s ]; then cp /settings/%s /saves/%s; fi && %s && if [ -f /settings/%s ] && [ -d %s ]; then cp /settings/%s %s/%s; fi`,
 		settingsConfigKey, settingsRelativePath,
 		gameUserSettingsKey, gameUserSettingsKey, gameUserSettingsRelPath,
+		seedModsLayoutScript(),
+		palModSettingsKey, seedModsMountPath, palModSettingsKey, seedModsMountPath, palModSettingsKey,
 	)
+}
+
+// seedModsLayoutScript creates Workshop + Paks overlay dirs on the mods PVC.
+// ~WorkshopMods is quoted so the shell does not expand ~.
+func seedModsLayoutScript() string {
+	return fmt.Sprintf(
+		`if [ -d %s ]; then mkdir -p %s %q %s; fi`,
+		seedModsMountPath,
+		seedModsMountPath+"/"+workshopSubdir,
+		seedModsMountPath+"/"+paksOverlayWorkshopSub,
+		seedModsMountPath+"/"+paksOverlayLogicSub,
+	)
+}
+
+func seedModsInitContainer() corev1.Container {
+	return corev1.Container{
+		Name:    seedModsInitName,
+		Image:   initContainerImage,
+		Command: []string{"sh", "-c", seedModsLayoutScript()},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: volumeMods, MountPath: seedModsMountPath},
+		},
+	}
+}
+
+func modsEnabled(spec palworldv1alpha1.PalworldServerSpec) bool {
+	return spec.Mods.Enabled
+}
+
+func modsMountPath(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.Mods.Path != "" {
+		return spec.Mods.Path
+	}
+	if isCommunityImage(spec) {
+		return communityModsMountPath
+	}
+	return officialModsMountPath
+}
+
+func modsWorkshopDir(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.Mods.WorkshopDir != "" {
+		return spec.Mods.WorkshopDir
+	}
+	return modsMountPath(spec) + "/" + workshopSubdir
+}
+
+func modsStorageSize(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.Mods.Storage.Size != "" {
+		return spec.Mods.Storage.Size
+	}
+	return defaultModsStorageSize
+}
+
+func modsStorageClassName(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.Mods.Storage.StorageClassName != "" {
+		return spec.Mods.Storage.StorageClassName
+	}
+	return spec.StorageClassName
+}
+
+func seedPalModSettings(spec palworldv1alpha1.PalworldServerSpec) bool {
+	return modsEnabled(spec) && len(spec.Mods.ActiveModList) > 0
+}
+
+func modsPaksOverlay(spec palworldv1alpha1.PalworldServerSpec) bool {
+	if !modsEnabled(spec) {
+		return false
+	}
+	return boolValue(spec.Mods.PaksOverlay, true)
+}
+
+func paksRoot(spec palworldv1alpha1.PalworldServerSpec) string {
+	if isCommunityImage(spec) {
+		return communityPaksRoot
+	}
+	return officialPaksRoot
+}
+
+func paksWorkshopModsMount(spec palworldv1alpha1.PalworldServerSpec) string {
+	return paksRoot(spec) + "/" + paksWorkshopModsDir
+}
+
+func paksLogicModsMount(spec palworldv1alpha1.PalworldServerSpec) string {
+	return paksRoot(spec) + "/" + paksLogicModsDir
+}
+
+func buildPalModSettingsINI(spec palworldv1alpha1.PalworldServerSpec) string {
+	var b strings.Builder
+	b.WriteString(palModSettingsSection)
+	b.WriteByte('\n')
+	b.WriteString("bGlobalEnableMod=true\n")
+	for _, name := range spec.Mods.ActiveModList {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		b.WriteString("ActiveModList=")
+		b.WriteString(name)
+		b.WriteByte('\n')
+	}
+	if spec.Mods.WorkshopDir != "" {
+		b.WriteString("WorkshopRootDir=")
+		b.WriteString(spec.Mods.WorkshopDir)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+func gameVolumeMounts(spec palworldv1alpha1.PalworldServerSpec) []corev1.VolumeMount {
+	mounts := []corev1.VolumeMount{
+		{Name: volumeSaves, MountPath: savedMountPath(spec)},
+	}
+	if modsEnabled(spec) {
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      volumeMods,
+			MountPath: modsMountPath(spec),
+		})
+	}
+	if modsPaksOverlay(spec) {
+		mounts = append(mounts,
+			corev1.VolumeMount{
+				Name:      volumeMods,
+				MountPath: paksWorkshopModsMount(spec),
+				SubPath:   paksOverlayWorkshopSub,
+			},
+			corev1.VolumeMount{
+				Name:      volumeMods,
+				MountPath: paksLogicModsMount(spec),
+				SubPath:   paksOverlayLogicSub,
+			},
+		)
+	}
+	return mounts
+}
+
+func gameVolumes(names derivedNames, spec palworldv1alpha1.PalworldServerSpec) []corev1.Volume {
+	volumes := []corev1.Volume{
+		{
+			Name: volumeSaves,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: names.pvcName,
+				},
+			},
+		},
+		{
+			Name: volumeSettings,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: names.configMapName},
+				},
+			},
+		},
+	}
+	if modsEnabled(spec) {
+		volumes = append(volumes, corev1.Volume{
+			Name: volumeMods,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: names.modsPVCName,
+				},
+			},
+		})
+	}
+	return volumes
+}
+
+func seedInitVolumeMounts(spec palworldv1alpha1.PalworldServerSpec) []corev1.VolumeMount {
+	mounts := []corev1.VolumeMount{
+		{Name: volumeSaves, MountPath: "/saves"},
+		{Name: volumeSettings, MountPath: "/settings"},
+	}
+	if modsEnabled(spec) {
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      volumeMods,
+			MountPath: seedModsMountPath,
+		})
+	}
+	return mounts
 }
 
 func isCommunityImage(spec palworldv1alpha1.PalworldServerSpec) bool {
@@ -484,6 +667,9 @@ func officialCommandArgs(spec palworldv1alpha1.PalworldServerSpec) []string {
 			"-NoAsyncLoadingThread",
 			"-UseMultithreadForDS",
 		)
+	}
+	if modsEnabled(spec) && spec.Mods.UseWorkshopDirArg {
+		args = append(args, workshopDirArgPrefix+modsWorkshopDir(spec))
 	}
 	return args
 }

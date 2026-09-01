@@ -94,11 +94,11 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
-| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, updates, sizing |
+| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, mods PVC, updates, sizing |
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Steam updates |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, mods PVC, Steam updates |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub CI + GitLab Harbor publish |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 

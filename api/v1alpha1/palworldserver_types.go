@@ -171,6 +171,72 @@ type UpdateConfig struct {
 	NotifyLeadTime string `json:"notifyLeadTime,omitempty"`
 }
 
+// ModsStorageSpec is the dedicated mods PVC (separate from world saves).
+type ModsStorageSpec struct {
+	// Size is the mods PVC capacity. Default 10Gi.
+	// +kubebuilder:default="10Gi"
+	// +optional
+	Size string `json:"size,omitempty"`
+
+	// StorageClassName selects the StorageClass for the mods PVC.
+	// When empty, uses spec.storageClassName.
+	// +optional
+	StorageClassName string `json:"storageClassName,omitempty"`
+}
+
+// ModsConfig mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
+// PAK overlays. Official Workshop loading is Windows-only
+// (https://docs.palworldgame.com/settings-and-operation/mod/). Native Linux
+// can drop version-matched .pak files under Pal/Content/Paks/ subfolders
+// (community practice; see https://yorkhost.fr/docs/en/palworld/mods-ue4ss).
+// UE4SS (Pal/Binaries/Win64) needs Windows DLL injection / Proton — not the
+// official PalServer-Linux-Shipping image. The official image does not ship
+// /pal/Package/Mods. See docs/PALWORLD_SERVER.md.
+type ModsConfig struct {
+	// Enabled creates PVC {metadata.name}-mods and mounts it into the game
+	// container. Default false — enabling rolls the Deployment (Recreate).
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Storage configures the dedicated mods PVC.
+	// +optional
+	Storage ModsStorageSpec `json:"storage,omitempty"`
+
+	// Path is the container mount for the Mods tree (PalModSettings.ini and
+	// Workshop/ live here). Default: /pal/Package/Mods (next to PalServer.sh
+	// in the official image). Community images default to /palworld/Mods
+	// unless this field is set.
+	// +optional
+	Path string `json:"path,omitempty"`
+
+	// WorkshopDir is the Workshop packages directory inside the container.
+	// Default: {path}/Workshop. Used when useWorkshopDirArg is true.
+	// +optional
+	WorkshopDir string `json:"workshopDir,omitempty"`
+
+	// UseWorkshopDirArg appends -workshopdir=<workshopDir> to official-image
+	// container args. Default false: official Linux PalServer.sh does not
+	// pass workshop flags, the documented Linux argument list omits
+	// -workshopdir, and the Windows-only loader ignores Mods. Mount at Path
+	// is enough for the default Mods/Workshop layout.
+	// +optional
+	UseWorkshopDirArg bool `json:"useWorkshopDirArg,omitempty"`
+
+	// PaksOverlay mounts PVC subpaths into Pal/Content/Paks/~WorkshopMods and
+	// Pal/Content/Paks/LogicMods so Linux .pak files can sit beside the
+	// official Pal-LinuxServer.pak. The whole Paks/ directory is never
+	// replaced. Default true when mods.enabled. Set false for Mods/ only.
+	// +kubebuilder:default=true
+	// +optional
+	PaksOverlay *bool `json:"paksOverlay,omitempty"`
+
+	// ActiveModList seeds Mods/PalModSettings.ini ActiveModList (Info.json
+	// PackageName values, not folder names). Written onto the mods PVC when
+	// non-empty. Leave empty to manage the INI yourself.
+	// +optional
+	ActiveModList []string `json:"activeModList,omitempty"`
+}
+
 // PalworldServerSpec defines the desired state of a Palworld dedicated game server.
 // Default image is the official Pocketpair package (ghcr.io/pocketpairjp/palserver).
 // Settings map to PalWorldSettings.ini / CLI args (official) or community-image
@@ -323,6 +389,13 @@ type PalworldServerSpec struct {
 	// StorageClassName selects the StorageClass for the saves PVC.
 	// +optional
 	StorageClassName string `json:"storageClassName,omitempty"`
+
+	// Mods mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
+	// PAK overlays under Pal/Content/Paks/~WorkshopMods and LogicMods.
+	// Official Workshop loader is Windows-only; UE4SS/Win64 is not this image.
+	// Default disabled so existing worlds are not rolled.
+	// +optional
+	Mods ModsConfig `json:"mods,omitempty"`
 
 	// Resources overrides auto-selected CPU/memory. When unset, tiers derive from maxPlayers.
 	// +optional

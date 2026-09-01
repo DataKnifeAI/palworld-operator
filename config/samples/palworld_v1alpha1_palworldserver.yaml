@@ -99,6 +99,28 @@ spec:
   storageSize: 50Gi
   storageClassName: truenas-csi-nfs
 
+  # Dedicated mods PVC (default off). Enabling rolls the game pod — leave
+  # commented on a live world.
+  # Official Workshop loader is Windows-only:
+  #   https://docs.palworldgame.com/settings-and-operation/mod/
+  # Native Linux PAK drops (community; not UE4SS/Win64):
+  #   https://yorkhost.fr/docs/en/palworld/mods-ue4ss
+  # Mounts /pal/Package/Mods plus Paks/~WorkshopMods and Paks/LogicMods
+  # subpaths (does not replace Pal/Content/Paks or hide Pal-LinuxServer.pak).
+  # Back up saves and pin serverImage before adding PAKs.
+  #
+  # mods:
+  #   enabled: true
+  #   storage:
+  #     size: 10Gi
+  #     # storageClassName: truenas-csi-nfs  # defaults to spec.storageClassName
+  #   # path: /pal/Package/Mods
+  #   # workshopDir: /pal/Package/Mods/Workshop
+  #   # useWorkshopDirArg: false             # Linux PalServer.sh does not pass this
+  #   # paksOverlay: true                    # default; false = Mods/ only
+  #   # activeModList:                       # optional PalModSettings.ini seed
+  #   #   - GamingCattiva
+
   # Explicit modest resources for ~8Gi worker nodes.
   resources:
     requests:

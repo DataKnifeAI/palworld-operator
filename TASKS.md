@@ -90,6 +90,7 @@ Shipped on `main` after the July 0.1.0 MVP; versioned as the first public beta.
 - [x] `DedicatedServerName` / `worldguid` pin across Recreate
 - [x] FAQ + site sections; sample/Compose pin `palserver:v1.0.1.100619`
 - [x] README slim — short entry point, detail under `docs/` ([#14](https://github.com/DataKnifeAI/palworld-operator/issues/14))
+- [x] Opt-in `spec.mods` PVC at `/pal/Package/Mods` + Paks `~WorkshopMods`/`LogicMods` overlays (Workshop Windows-only; Linux PAK community path)
 
 Open follow-ups: T1 Reconcile fake-client (#10), T2 envtest (#11), T3 remaining smoke (#12), T4 negative/ops (#13).
 
