@@ -175,8 +175,8 @@ func (r *PalworldServerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	server.Status.ConnectionPort = gamePort(server.Spec)
 	server.Status.ConnectionAddress = connectionAddressFromGateway(server, gateway)
 	if serverManagerEnabled(server.Spec) {
-		addr := server.Status.ConnectionAddress
-		port := serverManagerPort(server.Spec)
+		addr := serverManagerPublicAddress(server.Spec, server.Status.ConnectionAddress)
+		port := serverManagerHTTPSPort(server.Spec)
 		server.Status.ServerManagerAddress = addr
 		server.Status.ServerManagerPort = port
 		server.Status.ModManagerAddress = addr

@@ -219,9 +219,29 @@ spec:
                 properties:
                   enabled:
                     description: |-
-                      Enabled starts the Server Manager sidecar and an HTTPRoute on the
+                      Enabled starts the Server Manager sidecar and HTTPS HTTPRoute on the
                       game Gateway. Default false.
                     type: boolean
+                  exposeHTTP:
+                    description: |-
+                      ExposeHTTP keeps a Gateway HTTP listener on Port that redirects to
+                      HTTPS. Default true so http://VIP:8088 bookmarks work. Set false for
+                      ClusterIP-only HTTP.
+                    type: boolean
+                  hostname:
+                    description: |-
+                      Hostname is the public DNS name for HTTPS (must match the reused
+                      TLS certificate SAN, e.g. palworld.dataknife.net). Required when enabled.
+                    type: string
+                  httpsPort:
+                    default: 443
+                    description: |-
+                      HTTPSPort is the Gateway HTTPS listen port on the same VIP as game UDP.
+                      Default 443. Does not change the sidecar listen port.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
                   image:
                     description: |-
                       Image is the container image that provides the /server-manager binary
@@ -231,12 +251,30 @@ spec:
                     type: string
                   port:
                     default: 8088
-                    description: Port is the HTTP listen port on the Gateway VIP and
-                      sidecar.
+                    description: |-
+                      Port is the sidecar / ClusterIP listen port (and optional HTTP
+                      Gateway redirect listener). Default 8088. Public clients use HTTPS.
                     format: int32
                     maximum: 65535
                     minimum: 1024
                     type: integer
+                  tlsSecretRef:
+                    description: |-
+                      TLSSecretRef is an existing kubernetes.io/tls Secret (reuse a Let's
+                      Encrypt wildcard — the operator does not issue certificates). Name is
+                      required when enabled. Namespace defaults to the PalworldServer
+                      namespace; a different namespace is copied locally for Gateway terminate.
+                    properties:
+                      name:
+                        description: name is unique within a namespace to reference
+                          a secret resource.
+                        type: string
+                      namespace:
+                        description: namespace defines the space within which the
+                          secret name must be unique.
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
                 type: object
               mods:
                 description: |-
@@ -453,16 +491,36 @@ spec:
               serverManager:
                 description: |-
                   ServerManager is an optional authenticated admin UI on the Gateway VIP
-                  (default port 8088): world stats, REST controls, save download/restore,
-                  and a Mods tab. Basic auth uses the admin-password Secret key. Default
-                  disabled. Do not enable on a live world without a maintenance window
-                  (Recreate).
+                  (HTTPS by default): world stats, REST controls, save download/restore,
+                  and a Mods tab. Basic auth uses username admin and the admin-password
+                  Secret key. Default disabled. Do not enable on a live world without a
+                  maintenance window (Recreate).
                 properties:
                   enabled:
                     description: |-
-                      Enabled starts the Server Manager sidecar and an HTTPRoute on the
+                      Enabled starts the Server Manager sidecar and HTTPS HTTPRoute on the
                       game Gateway. Default false.
                     type: boolean
+                  exposeHTTP:
+                    description: |-
+                      ExposeHTTP keeps a Gateway HTTP listener on Port that redirects to
+                      HTTPS. Default true so http://VIP:8088 bookmarks work. Set false for
+                      ClusterIP-only HTTP.
+                    type: boolean
+                  hostname:
+                    description: |-
+                      Hostname is the public DNS name for HTTPS (must match the reused
+                      TLS certificate SAN, e.g. palworld.dataknife.net). Required when enabled.
+                    type: string
+                  httpsPort:
+                    default: 443
+                    description: |-
+                      HTTPSPort is the Gateway HTTPS listen port on the same VIP as game UDP.
+                      Default 443. Does not change the sidecar listen port.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
                   image:
                     description: |-
                       Image is the container image that provides the /server-manager binary
@@ -472,12 +530,30 @@ spec:
                     type: string
                   port:
                     default: 8088
-                    description: Port is the HTTP listen port on the Gateway VIP and
-                      sidecar.
+                    description: |-
+                      Port is the sidecar / ClusterIP listen port (and optional HTTP
+                      Gateway redirect listener). Default 8088. Public clients use HTTPS.
                     format: int32
                     maximum: 65535
                     minimum: 1024
                     type: integer
+                  tlsSecretRef:
+                    description: |-
+                      TLSSecretRef is an existing kubernetes.io/tls Secret (reuse a Let's
+                      Encrypt wildcard — the operator does not issue certificates). Name is
+                      required when enabled. Namespace defaults to the PalworldServer
+                      namespace; a different namespace is copied locally for Gateway terminate.
+                    properties:
+                      name:
+                        description: name is unique within a namespace to reference
+                          a secret resource.
+                        type: string
+                      namespace:
+                        description: namespace defines the space within which the
+                          secret name must be unique.
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
                 type: object
               serverName:
                 description: ServerName is the display name for the dedicated server.

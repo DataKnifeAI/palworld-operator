@@ -194,8 +194,9 @@ func TestDeriveNamesPalworldServer(t *testing.T) {
 		names.envoyProxyName:         "game-palworld-kubevip",
 		names.gameUDPRoute:           "palworld-game-udp",
 		names.queryUDPRoute:          "palworld-query-udp",
-		names.serverManagerHTTPRoute: "palworld-server-manager",
-		names.serverManagerSA:        "palworld-server-manager",
+		names.serverManagerHTTPRoute:         "palworld-server-manager",
+		names.serverManagerRedirectHTTPRoute: "palworld-server-manager-redirect",
+		names.serverManagerSA:                "palworld-server-manager",
 	}
 	for got, want := range checks {
 		if got != want {

@@ -12,7 +12,7 @@ Clients → spec.gateway.address (Kube-VIP / MetalLB)
       {base}-gateway  (GatewayClass: envoy)
               ↓
    UDPRoute (8211, 27015) + optional REST TCPRoute (8212)
-              + HTTPRoute (8088 optional Server Manager)
+              + HTTPRoute (443 HTTPS Server Manager; 8088 redirect)
               ↓
       {name}-envoy  (ClusterIP)  →  {name} (ClusterIP)
               ↓
@@ -38,10 +38,10 @@ Each `PalworldServer` reconciles:
 | Gateway + EnvoyProxy | External VIP binding |
 | UDPRoute | Game (`8211`) and Steam query (`27015`) |
 | TCPRoute | Optional REST API (`8212`) when `spec.restAPI.exposeViaGateway` |
-| HTTPRoute + sidecar | Optional Server Manager (`8088`) when `spec.serverManager.enabled` (or `spec.modManager`) |
+| HTTPRoute + sidecar | Optional Server Manager (HTTPS `:443`, HTTP `:8088` redirect) when `spec.serverManager.enabled` (or `spec.modManager`) |
 | ServiceAccount / Role / RoleBinding | Least-privilege Deployment roll for the Server Manager sidecar |
 
-REST should default to **not** exposed via Gateway. RCON stays ClusterIP-only (legacy; Pocketpair [deprecated](https://docs.palworldgame.com/api/rcon/) it). The optional Server Manager is a separate admin HTTP surface on the same VIP (basic auth); it proxies REST on localhost and does not public-route REST or RCON. Override gateway/proxy names with `spec.gateway.gatewayName` / `spec.gateway.envoyProxyName` when needed.
+REST should default to **not** exposed via Gateway. RCON stays ClusterIP-only (legacy; Pocketpair [deprecated](https://docs.palworldgame.com/api/rcon/) it). The optional Server Manager is a separate admin HTTPS surface on the same VIP (TLS terminate + basic auth); it proxies REST on localhost and does not public-route REST or RCON. Override gateway/proxy names with `spec.gateway.gatewayName` / `spec.gateway.envoyProxyName` when needed.
 
 ## Images
 
@@ -61,7 +61,7 @@ No DataKnifeAI custom game-image repo is required while Pocketpair publishes the
 | Image | `ghcr.io/pocketpairjp/palserver` | `windroseserver/windroseserver` |
 | CRD | `PalworldServer` | `WindroseServer` |
 | Primary game port | `8211/UDP` | `7777/TCP+UDP` |
-| Extra ports | Query `27015/UDP`, REST `8212/TCP`, legacy RCON `25575/TCP` (ClusterIP), optional Server Manager `8088/HTTP` | None beyond game port |
+| Extra ports | Query `27015/UDP`, REST `8212/TCP`, legacy RCON `25575/TCP` (ClusterIP), optional Server Manager `443/HTTPS` | None beyond game port |
 | Config | ConfigMap → `PalWorldSettings.ini` (+ CLI args) | ConfigMap → `ServerDescription.json` |
 | Save mount | `/pal/Package/Pal/Saved` (official) | `/home/ue_user/app/R5/Saved` |
 | External access | Envoy Gateway | Envoy Gateway |

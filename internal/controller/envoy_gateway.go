@@ -26,7 +26,15 @@ func (r *PalworldServerReconciler) reconcileEnvoyGateway(
 	if err := r.reconcileEnvoyProxy(ctx, server, names); err != nil {
 		return err
 	}
-	if err := r.reconcileGateway(ctx, server, names); err != nil {
+	tlsSecretName := ""
+	if serverManagerEnabled(server.Spec) {
+		var err error
+		tlsSecretName, err = r.reconcileServerManagerTLSSecret(ctx, server)
+		if err != nil {
+			return err
+		}
+	}
+	if err := r.reconcileGateway(ctx, server, names, tlsSecretName); err != nil {
 		return err
 	}
 	if err := r.reconcileUDPRoute(ctx, server, names, names.gameUDPRoute, gatewayListenerGameUDP, gamePort(server.Spec)); err != nil {
@@ -46,8 +54,21 @@ func (r *PalworldServerReconciler) reconcileEnvoyGateway(
 		if err := r.reconcileHTTPRoute(ctx, server, names); err != nil {
 			return err
 		}
+		if serverManagerExposeHTTP(server.Spec) {
+			if err := r.reconcileHTTPRedirectRoute(ctx, server, names); err != nil {
+				return err
+			}
+		} else if err := r.deleteIfExists(ctx, &gatewayv1.HTTPRoute{
+			ObjectMeta: metav1.ObjectMeta{Name: names.serverManagerRedirectHTTPRoute, Namespace: server.Namespace},
+		}); err != nil {
+			return fmt.Errorf("delete server-manager redirect HTTPRoute: %w", err)
+		}
 	} else {
-		for _, routeName := range []string{names.serverManagerHTTPRoute, gatewayBaseName(server.Name) + "-mod-manager"} {
+		for _, routeName := range []string{
+			names.serverManagerHTTPRoute,
+			names.serverManagerRedirectHTTPRoute,
+			gatewayBaseName(server.Name) + "-mod-manager",
+		} {
 			httpRoute := &gatewayv1.HTTPRoute{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      routeName,
@@ -110,6 +131,7 @@ func (r *PalworldServerReconciler) reconcileGateway(
 	ctx context.Context,
 	server *palworldv1alpha1.PalworldServer,
 	names derivedNames,
+	tlsSecretName string,
 ) error {
 	listeners := []gatewayv1.Listener{
 		{
@@ -146,16 +168,35 @@ func (r *PalworldServerReconciler) reconcileGateway(
 		})
 	}
 	if serverManagerEnabled(server.Spec) {
-		listeners = append(listeners, gatewayv1.Listener{
-			Name:     gatewayv1.SectionName(gatewayListenerServerManagerHTTP),
-			Port:     serverManagerPort(server.Spec),
-			Protocol: gatewayv1.HTTPProtocolType,
-			AllowedRoutes: &gatewayv1.AllowedRoutes{
-				Namespaces: &gatewayv1.RouteNamespaces{
-					From: ptr.To(gatewayv1.NamespacesFromSame),
-				},
+		sameNS := &gatewayv1.AllowedRoutes{
+			Namespaces: &gatewayv1.RouteNamespaces{
+				From: ptr.To(gatewayv1.NamespacesFromSame),
 			},
-		})
+		}
+		https := gatewayv1.Listener{
+			Name:          gatewayv1.SectionName(gatewayListenerServerManagerHTTPS),
+			Port:          serverManagerHTTPSPort(server.Spec),
+			Protocol:      gatewayv1.HTTPSProtocolType,
+			AllowedRoutes: sameNS,
+			TLS: &gatewayv1.ListenerTLSConfig{
+				Mode: ptr.To(gatewayv1.TLSModeTerminate),
+				CertificateRefs: []gatewayv1.SecretObjectReference{{
+					Name: gatewayv1.ObjectName(tlsSecretName),
+				}},
+			},
+		}
+		if host := serverManagerHostname(server.Spec); host != "" {
+			https.Hostname = ptr.To(gatewayv1.Hostname(host))
+		}
+		listeners = append(listeners, https)
+		if serverManagerExposeHTTP(server.Spec) {
+			listeners = append(listeners, gatewayv1.Listener{
+				Name:          gatewayv1.SectionName(gatewayListenerServerManagerHTTP),
+				Port:          serverManagerPort(server.Spec),
+				Protocol:      gatewayv1.HTTPProtocolType,
+				AllowedRoutes: sameNS,
+			})
+		}
 	}
 
 	gateway := &gatewayv1.Gateway{

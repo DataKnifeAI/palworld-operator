@@ -325,7 +325,7 @@ kubectl get secret palworld-server-secrets -n game-servers \
       <div class="wrap wrap--readable">
         <h2 id="manager-heading">Optional Server Manager</h2>
         <p class="section__lede section__lede--wide">
-          An authenticated admin UI on the same Gateway VIP as the game (default port 8088).
+          An authenticated admin UI on the same Gateway VIP as the game (HTTPS by default).
           World pulse first, then actions, then the save chest, then workshop PAKs —
           not a generic ops dashboard. REST stays on the pod; the UI proxies it.
           Leave it off on a live world (enabling Recreate-rolls the game pod).

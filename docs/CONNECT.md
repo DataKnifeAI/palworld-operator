@@ -63,15 +63,19 @@ plaintext passwords into `status` — only the Secret name and
 ## Optional Server Manager (admins)
 
 When `spec.serverManager.enabled` is true (`spec.modManager` is a deprecated
-alias), an HTTP admin UI is published on the **same Gateway IP** as the game,
-default port **8088**:
+alias), an **HTTPS** admin UI is published on the **same Gateway VIP** as the
+game (TLS terminate, default port **443**). Set `spec.serverManager.hostname`
+to a name that matches the reused TLS cert (for example `palworld.dataknife.net`)
+and point `tlsSecretRef` at an existing `kubernetes.io/tls` Secret (do not
+issue a new cert). HTTP `:8088` on the VIP redirects to HTTPS.
 
 ```text
-http://<connectionAddress>:8088/
+https://<spec.serverManager.hostname>/
 ```
 
 Sign in with basic auth: username `admin`, password = Secret key
-`admin-password` (not the join password). Tabs: Overview (REST stats) →
+`admin-password` (not the join password). Use the hostname, not a raw IP, so
+the browser accepts the certificate. Tabs: Overview (REST stats) →
 Controls (announce/save/shutdown + Recreate) → Saves (world zip) → Mods.
 REST stays ClusterIP-internal (the UI proxies localhost); legacy RCON does too.
 

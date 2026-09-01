@@ -25,6 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -209,13 +210,13 @@ func (r *PalworldServerReconciler) reconcileHTTPRoute(
 			return err
 		}
 		httpRoute.Labels = gatewayLabels(server.Name)
-		httpRoute.Spec = gatewayv1.HTTPRouteSpec{
+		spec := gatewayv1.HTTPRouteSpec{
 			CommonRouteSpec: gatewayv1.CommonRouteSpec{
 				ParentRefs: []gatewayv1.ParentReference{
 					{
 						Name:        gatewayv1.ObjectName(names.gatewayName),
 						Namespace:   ptr.To(gatewayv1.Namespace(server.Namespace)),
-						SectionName: ptr.To(gatewayv1.SectionName(gatewayListenerServerManagerHTTP)),
+						SectionName: ptr.To(gatewayv1.SectionName(gatewayListenerServerManagerHTTPS)),
 					},
 				},
 			},
@@ -234,6 +235,10 @@ func (r *PalworldServerReconciler) reconcileHTTPRoute(
 				},
 			},
 		}
+		if host := serverManagerHostname(server.Spec); host != "" {
+			spec.Hostnames = []gatewayv1.Hostname{gatewayv1.Hostname(host)}
+		}
+		httpRoute.Spec = spec
 		return nil
 	})
 	if err != nil {
@@ -241,6 +246,113 @@ func (r *PalworldServerReconciler) reconcileHTTPRoute(
 	}
 	logf.FromContext(ctx).V(1).Info("reconciled HTTPRoute", "operation", op, "name", names.serverManagerHTTPRoute)
 	return nil
+}
+
+func (r *PalworldServerReconciler) reconcileHTTPRedirectRoute(
+	ctx context.Context,
+	server *palworldv1alpha1.PalworldServer,
+	names derivedNames,
+) error {
+	httpRoute := &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      names.serverManagerRedirectHTTPRoute,
+			Namespace: server.Namespace,
+		},
+	}
+	httpsPort := serverManagerHTTPSPort(server.Spec)
+	host := serverManagerHostname(server.Spec)
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, httpRoute, func() error {
+		if err := controllerutil.SetControllerReference(server, httpRoute, r.Scheme); err != nil {
+			return err
+		}
+		httpRoute.Labels = gatewayLabels(server.Name)
+		redirect := &gatewayv1.HTTPRequestRedirectFilter{
+			Scheme:     ptr.To("https"),
+			StatusCode: ptr.To(301),
+			Port:       ptr.To(gatewayv1.PortNumber(httpsPort)),
+		}
+		if host != "" {
+			redirect.Hostname = ptr.To(gatewayv1.PreciseHostname(host))
+		}
+		httpRoute.Spec = gatewayv1.HTTPRouteSpec{
+			CommonRouteSpec: gatewayv1.CommonRouteSpec{
+				ParentRefs: []gatewayv1.ParentReference{
+					{
+						Name:        gatewayv1.ObjectName(names.gatewayName),
+						Namespace:   ptr.To(gatewayv1.Namespace(server.Namespace)),
+						SectionName: ptr.To(gatewayv1.SectionName(gatewayListenerServerManagerHTTP)),
+					},
+				},
+			},
+			Rules: []gatewayv1.HTTPRouteRule{
+				{
+					Filters: []gatewayv1.HTTPRouteFilter{
+						{
+							Type:            gatewayv1.HTTPRouteFilterRequestRedirect,
+							RequestRedirect: redirect,
+						},
+					},
+				},
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("reconcile HTTPRoute %s: %w", names.serverManagerRedirectHTTPRoute, err)
+	}
+	logf.FromContext(ctx).V(1).Info("reconciled HTTP redirect Route", "operation", op, "name", names.serverManagerRedirectHTTPRoute)
+	return nil
+}
+
+func (r *PalworldServerReconciler) reconcileServerManagerTLSSecret(
+	ctx context.Context,
+	server *palworldv1alpha1.PalworldServer,
+) (string, error) {
+	ref := serverManagerTLSSecretRef(server.Spec)
+	if ref == nil {
+		return "", fmt.Errorf("spec.serverManager.tlsSecretRef is required")
+	}
+	srcNS := ref.Namespace
+	if srcNS == "" {
+		srcNS = server.Namespace
+	}
+	if srcNS == server.Namespace {
+		return ref.Name, nil
+	}
+
+	src := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: srcNS}, src); err != nil {
+		return "", fmt.Errorf("read TLS secret %s/%s: %w", srcNS, ref.Name, err)
+	}
+	cert := src.Data[corev1.TLSCertKey]
+	key := src.Data[corev1.TLSPrivateKeyKey]
+	if len(cert) == 0 || len(key) == 0 {
+		return "", fmt.Errorf("TLS secret %s/%s missing tls.crt or tls.key", srcNS, ref.Name)
+	}
+
+	dst := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ref.Name,
+			Namespace: server.Namespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, dst, func() error {
+		if err := controllerutil.SetControllerReference(server, dst, r.Scheme); err != nil {
+			return err
+		}
+		dst.Labels = serverLabels(server.Name)
+		dst.Type = corev1.SecretTypeTLS
+		dst.Data = map[string][]byte{
+			corev1.TLSCertKey:       cert,
+			corev1.TLSPrivateKeyKey: key,
+		}
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("copy TLS secret %s/%s: %w", srcNS, ref.Name, err)
+	}
+	logf.FromContext(ctx).V(1).Info("copied TLS secret for server manager", "from", srcNS+"/"+ref.Name, "to", server.Namespace+"/"+ref.Name)
+	return ref.Name, nil
 }
 
 func (r *PalworldServerReconciler) deleteIfExists(ctx context.Context, obj client.Object) error {

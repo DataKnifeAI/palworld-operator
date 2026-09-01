@@ -131,6 +131,7 @@ spec:
   #   #   - GamingCattiva
 
   # Optional Server Manager on the Gateway VIP (same IP as game UDP).
+  # HTTPS by default (reuse an existing Let's Encrypt wildcard Secret).
   # Enabling rolls the game pod (Recreate) — leave commented on a live
   # world. Basic auth: user "admin" + admin-password Secret key.
   # Tabs: Overview (REST stats) → Controls → Saves (zip) → Mods.
@@ -142,6 +143,11 @@ spec:
   #
   # serverManager:
   #   enabled: true
+  #   hostname: palworld.dataknife.net
+  #   httpsPort: 443
+  #   tlsSecretRef:
+  #     name: wildcard-dataknife-net-tls
+  #     namespace: cert-manager
   #   port: 8088
   #   # image: harbor.dataknife.net/library/palworld-operator:latest
   # # modManager:            # deprecated alias — maps to the same sidecar

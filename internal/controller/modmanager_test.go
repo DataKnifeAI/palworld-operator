@@ -25,11 +25,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
+
+const testServerManagerHost = "palworld.example.test"
+const testServerManagerTLS = "wildcard-test-tls"
 
 func testServerForServerManager(mods, manager bool) *palworldv1alpha1.PalworldServer {
 	server := testServerForMods(mods)
@@ -38,7 +42,22 @@ func testServerForServerManager(mods, manager bool) *palworldv1alpha1.PalworldSe
 		LocalObjectReference: corev1.LocalObjectReference{Name: "palworld-test-secrets"},
 		Key:                  secretKeyAdminPassword,
 	}
+	if manager {
+		server.Spec.ServerManager.Hostname = testServerManagerHost
+		server.Spec.ServerManager.TLSSecretRef = &corev1.SecretReference{Name: testServerManagerTLS}
+	}
 	return server
+}
+
+func testTLSSecret(namespace string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: testServerManagerTLS, Namespace: namespace},
+		Type:       corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			corev1.TLSCertKey:       []byte("dummy-cert"),
+			corev1.TLSPrivateKeyKey: []byte("dummy-key"),
+		},
+	}
 }
 
 func TestValidateServerManagerRequiresPassword(t *testing.T) {
@@ -50,6 +69,11 @@ func TestValidateServerManagerRequiresPassword(t *testing.T) {
 	}
 
 	server.Spec.GenerateSecrets = true
+	if err := validateServerManager(server); err == nil {
+		t.Fatal("expected error when serverManager is enabled without hostname/tls")
+	}
+	server.Spec.ServerManager.Hostname = testServerManagerHost
+	server.Spec.ServerManager.TLSSecretRef = &corev1.SecretReference{Name: testServerManagerTLS}
 	if err := validateServerManager(server); err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
@@ -223,7 +247,7 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 
 	enabled := testServerForServerManager(true, true)
 	rEnabled := &PalworldServerReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(enabled).Build(),
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(enabled, testTLSSecret(enabled.Namespace)).Build(),
 		Scheme: scheme,
 	}
 	enNames := deriveNames(enabled)
@@ -250,20 +274,39 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.gatewayName, Namespace: enabled.Namespace}, gw); err != nil {
 		t.Fatal(err)
 	}
-	var hasHTTP, hasUDP bool
+	var hasHTTP, hasHTTPS, hasUDP bool
 	for _, l := range gw.Spec.Listeners {
 		if l.Name == gatewayListenerServerManagerHTTP && l.Protocol == gatewayv1.HTTPProtocolType && l.Port == defaultServerManagerPort {
 			hasHTTP = true
+		}
+		if l.Name == gatewayListenerServerManagerHTTPS && l.Protocol == gatewayv1.HTTPSProtocolType && l.Port == defaultServerManagerHTTPSPort {
+			hasHTTPS = true
+			if l.TLS == nil || l.TLS.Mode == nil || *l.TLS.Mode != gatewayv1.TLSModeTerminate {
+				t.Fatal("HTTPS listener must terminate TLS")
+			}
+			if len(l.TLS.CertificateRefs) != 1 || string(l.TLS.CertificateRefs[0].Name) != testServerManagerTLS {
+				t.Fatalf("HTTPS listener cert ref = %+v", l.TLS.CertificateRefs)
+			}
 		}
 		if l.Name == gatewayListenerGameUDP && l.Protocol == gatewayv1.UDPProtocolType {
 			hasUDP = true
 		}
 	}
+	if !hasHTTPS {
+		t.Fatal("gateway missing HTTPS listener for server manager")
+	}
 	if !hasHTTP {
-		t.Fatal("gateway missing HTTP listener for server manager")
+		t.Fatal("gateway missing HTTP redirect listener for server manager")
 	}
 	if !hasUDP {
 		t.Fatal("gateway must keep game UDP listener")
+	}
+	if httpRoute.Spec.ParentRefs[0].SectionName == nil || string(*httpRoute.Spec.ParentRefs[0].SectionName) != gatewayListenerServerManagerHTTPS {
+		t.Fatalf("HTTPRoute parent = %+v", httpRoute.Spec.ParentRefs)
+	}
+	redirect := &gatewayv1.HTTPRoute{}
+	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerRedirectHTTPRoute, Namespace: enabled.Namespace}, redirect); err != nil {
+		t.Fatalf("redirect HTTPRoute missing: %v", err)
 	}
 	udpEnabled := &gatewayv1alpha2.UDPRoute{}
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.gameUDPRoute, Namespace: enabled.Namespace}, udpEnabled); err != nil {
@@ -278,6 +321,9 @@ func TestServerManagerDefaults(t *testing.T) {
 	}
 	if got := serverManagerPort(spec); got != defaultServerManagerPort {
 		t.Fatalf("port = %d", got)
+	}
+	if got := serverManagerHTTPSPort(spec); got != defaultServerManagerHTTPSPort {
+		t.Fatalf("https port = %d", got)
 	}
 	if got := serverManagerImage(spec); got != defaultServerManagerImage {
 		t.Fatalf("image = %q", got)

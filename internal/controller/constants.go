@@ -77,10 +77,12 @@ const (
 	palModSettingsSection      = "[PalModSettings]"
 	seedModsMountPath          = serverManagerModsPath
 
-	gatewayListenerGameUDP           = "game-udp"
-	gatewayListenerQueryUDP          = "query-udp"
-	gatewayListenerRESTTCP           = "rest-tcp"
-	gatewayListenerServerManagerHTTP = "server-manager-http"
+	gatewayListenerGameUDP            = "game-udp"
+	gatewayListenerQueryUDP           = "query-udp"
+	gatewayListenerRESTTCP            = "rest-tcp"
+	gatewayListenerServerManagerHTTP  = "server-manager-http"
+	gatewayListenerServerManagerHTTPS = "server-manager-https"
+	defaultServerManagerHTTPSPort     = int32(443)
 
 	palworldAdminUser = "admin"
 

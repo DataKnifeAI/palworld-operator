@@ -140,6 +140,11 @@ func New(cfg Config) (*Server, error) {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != healthzPath {
 		if !s.authorized(r) {
+			if _, _, ok := r.BasicAuth(); !ok {
+				log.Printf("unauthorized %s %s (no basic auth)", r.Method, r.URL.Path)
+			} else {
+				log.Printf("unauthorized %s %s (bad credentials)", r.Method, r.URL.Path)
+			}
 			w.Header().Set(headerWWWAuth, basicAuthRealm)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return

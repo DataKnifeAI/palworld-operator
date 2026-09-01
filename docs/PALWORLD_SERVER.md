@@ -46,7 +46,8 @@ Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (
 | 27015 | UDP | Steam query | Community browser / Steam; UDPRoute when listing |
 | 25575 | TCP | RCON (deprecated) | Legacy listener; ClusterIP default-on until Pocketpair removes it. Operator does **not** use RCON commands. Not required for stop/save. |
 | 8212 | TCP | REST API | Replacement for RCON. Operator uses REST announce + admin basic auth. **Do not** public-forward casually |
-| 8088 | TCP/HTTP | Optional Server Manager | `spec.serverManager` (`spec.modManager` alias); same Gateway VIP; **basic auth required** |
+| 443 | TCP/HTTPS | Optional Server Manager | `spec.serverManager` (`spec.modManager` alias); same Gateway VIP; TLS terminate; **basic auth required** |
+| 8088 | TCP/HTTP | Server Manager redirect | HTTP Gateway listener redirects to HTTPS; sidecar still listens here (ClusterIP) |
 
 Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings. REST is the documented admin API; RCON remains ClusterIP-internal as a legacy listener.
 
@@ -152,12 +153,14 @@ Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image 
 
 ### Optional Server Manager (`spec.serverManager`)
 
-Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a LoadBalancer on the game pod). **Off by default.** Journey: **Overview → Controls → Saves → Mods**. The sidecar shares the game pod and proxies Palworld REST on `http://127.0.0.1:8212/v1/api` — REST is **not** public-routed. RCON is [deprecated](https://docs.palworldgame.com/api/rcon/); use REST ([official docs](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — Pocketpair’s spelling). `spec.modManager` is a deprecated alias for the same sidecar.
+Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a LoadBalancer on the game pod). **Off by default. Public path is HTTPS.** Journey: **Overview → Controls → Saves → Mods**. The sidecar shares the game pod and proxies Palworld REST on `http://127.0.0.1:8212/v1/api` — REST is **not** public-routed. RCON is [deprecated](https://docs.palworldgame.com/api/rcon/); use REST ([official docs](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — Pocketpair’s spelling). `spec.modManager` is a deprecated alias for the same sidecar.
 
 | Item | Value |
 |------|-------|
 | Enable | `spec.serverManager.enabled: true` (or `spec.modManager.enabled`) |
-| URL | `http://<gateway.address>:<port>/` — default port **8088** (`spec.serverManager.port`) |
+| URL | `https://<spec.serverManager.hostname>/` — Gateway HTTPS **443** (`httpsPort`); hostname must match the reused TLS cert SAN |
+| TLS | `tlsSecretRef` → existing `kubernetes.io/tls` Secret (e.g. Let's Encrypt wildcard). Operator copies a cross-namespace Secret locally; it does **not** issue certs |
+| HTTP | `:8088` on the VIP redirects to HTTPS (set `exposeHTTP: false` for ClusterIP-only). Sidecar still listens on `port` (default 8088) |
 | Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password` |
 | Sidecar | `/server-manager` from the **operator** image (`/mod-manager` is kept as a copy) |
 | Overview | REST `GET /info`, `/metrics`, `/players` (version, worldguid, FPS, players, days/uptime/basecamps when present) |
@@ -177,6 +180,11 @@ Linux PalServer still does **not** load official Workshop / `PalModSettings.ini`
 spec:
   serverManager:
     enabled: true
+    hostname: palworld.dataknife.net
+    httpsPort: 443
+    tlsSecretRef:
+      name: wildcard-dataknife-net-tls
+      namespace: cert-manager
     port: 8088
     # image: harbor.dataknife.net/library/palworld-operator:latest
   # mods:
@@ -321,7 +329,7 @@ For auto-gen, substitute the Secret name from
 | Crossplay | `CrossplayPlatforms` | `CROSSPLAY_PLATFORMS` | `spec.crossplayPlatforms` |
 | Balance / features | Extra `OptionSettings=(…)` keys | Known keys → env (partial) | `spec.optionSettings` |
 | Workshop / mods | `/pal/Package/Mods` + Paks subpath overlays | `/palworld/Mods` + `/palworld/Pal/Content/Paks/…` | `spec.mods` (opt-in) |
-| Server Manager UI | HTTP on Gateway VIP (sidecar) | same | `spec.serverManager` (`spec.modManager` alias) |
+| Server Manager UI | HTTPS on Gateway VIP (sidecar) | same | `spec.serverManager` (`spec.modManager` alias) |
 
 ## Resource guidance
 

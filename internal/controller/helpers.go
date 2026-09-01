@@ -78,21 +78,22 @@ var communityOptionEnv = map[string]string{
 }
 
 type derivedNames struct {
-	pvcName                string
-	modsPVCName            string
-	configMapName          string
-	deploymentName         string
-	serviceName            string
-	envoyService           string
-	gatewayName            string
-	envoyProxyName         string
-	gameUDPRoute           string
-	queryUDPRoute          string
-	rconTCPRoute           string
-	restTCPRoute           string
-	serverManagerHTTPRoute string
-	serverManagerSA        string
-	serverManagerRole      string
+	pvcName                        string
+	modsPVCName                    string
+	configMapName                  string
+	deploymentName                 string
+	serviceName                    string
+	envoyService                   string
+	gatewayName                    string
+	envoyProxyName                 string
+	gameUDPRoute                   string
+	queryUDPRoute                  string
+	rconTCPRoute                   string
+	restTCPRoute                   string
+	serverManagerHTTPRoute         string
+	serverManagerRedirectHTTPRoute string
+	serverManagerSA                string
+	serverManagerRole              string
 }
 
 func boolValue(value *bool, fallback bool) bool {
@@ -112,21 +113,22 @@ func gatewayBaseName(name string) string {
 func deriveNames(server *palworldv1alpha1.PalworldServer) derivedNames {
 	base := gatewayBaseName(server.Name)
 	names := derivedNames{
-		pvcName:                server.Name + "-files",
-		modsPVCName:            server.Name + modsPVCSuffix,
-		configMapName:          server.Name + "-config",
-		deploymentName:         server.Name,
-		serviceName:            server.Name,
-		envoyService:           server.Name + "-envoy",
-		gatewayName:            base + "-gateway",
-		envoyProxyName:         "game-" + base + "-kubevip",
-		gameUDPRoute:           base + "-game-udp",
-		queryUDPRoute:          base + "-query-udp",
-		rconTCPRoute:           base + "-rcon-tcp",
-		restTCPRoute:           base + "-rest-tcp",
-		serverManagerHTTPRoute: base + "-server-manager",
-		serverManagerSA:        server.Name + serverManagerSASuffix,
-		serverManagerRole:      server.Name + serverManagerSASuffix,
+		pvcName:                        server.Name + "-files",
+		modsPVCName:                    server.Name + modsPVCSuffix,
+		configMapName:                  server.Name + "-config",
+		deploymentName:                 server.Name,
+		serviceName:                    server.Name,
+		envoyService:                   server.Name + "-envoy",
+		gatewayName:                    base + "-gateway",
+		envoyProxyName:                 "game-" + base + "-kubevip",
+		gameUDPRoute:                   base + "-game-udp",
+		queryUDPRoute:                  base + "-query-udp",
+		rconTCPRoute:                   base + "-rcon-tcp",
+		restTCPRoute:                   base + "-rest-tcp",
+		serverManagerHTTPRoute:         base + "-server-manager",
+		serverManagerRedirectHTTPRoute: base + "-server-manager-redirect",
+		serverManagerSA:                server.Name + serverManagerSASuffix,
+		serverManagerRole:              server.Name + serverManagerSASuffix,
 	}
 	if server.Spec.Gateway.GatewayName != "" {
 		names.gatewayName = server.Spec.Gateway.GatewayName
@@ -499,6 +501,50 @@ func serverManagerImage(spec palworldv1alpha1.PalworldServerSpec) string {
 	return defaultServerManagerImage
 }
 
+func serverManagerHostname(spec palworldv1alpha1.PalworldServerSpec) string {
+	if spec.ServerManager.Hostname != "" {
+		return spec.ServerManager.Hostname
+	}
+	return spec.ModManager.Hostname
+}
+
+func serverManagerHTTPSPort(spec palworldv1alpha1.PalworldServerSpec) int32 {
+	if spec.ServerManager.HTTPSPort != 0 {
+		return spec.ServerManager.HTTPSPort
+	}
+	if spec.ModManager.HTTPSPort != 0 {
+		return spec.ModManager.HTTPSPort
+	}
+	return defaultServerManagerHTTPSPort
+}
+
+func serverManagerTLSSecretRef(spec palworldv1alpha1.PalworldServerSpec) *corev1.SecretReference {
+	if spec.ServerManager.TLSSecretRef != nil && spec.ServerManager.TLSSecretRef.Name != "" {
+		return spec.ServerManager.TLSSecretRef
+	}
+	if spec.ModManager.TLSSecretRef != nil && spec.ModManager.TLSSecretRef.Name != "" {
+		return spec.ModManager.TLSSecretRef
+	}
+	return nil
+}
+
+func serverManagerExposeHTTP(spec palworldv1alpha1.PalworldServerSpec) bool {
+	if spec.ServerManager.ExposeHTTP != nil {
+		return *spec.ServerManager.ExposeHTTP
+	}
+	if spec.ModManager.ExposeHTTP != nil {
+		return *spec.ModManager.ExposeHTTP
+	}
+	return true
+}
+
+func serverManagerPublicAddress(spec palworldv1alpha1.PalworldServerSpec, vip string) string {
+	if host := serverManagerHostname(spec); host != "" {
+		return host
+	}
+	return vip
+}
+
 func adminPasswordSelector(server *palworldv1alpha1.PalworldServer) *corev1.SecretKeySelector {
 	if server.Spec.AdminPasswordSecretRef != nil {
 		return server.Spec.AdminPasswordSecretRef
@@ -515,6 +561,12 @@ func validateServerManager(server *palworldv1alpha1.PalworldServer) error {
 	}
 	if adminPasswordSelector(server) == nil {
 		return fmt.Errorf("spec.serverManager.enabled requires adminPasswordSecretRef or generateSecrets")
+	}
+	if serverManagerHostname(server.Spec) == "" {
+		return fmt.Errorf("spec.serverManager.enabled requires hostname (HTTPS DNS name matching the TLS cert SAN)")
+	}
+	if serverManagerTLSSecretRef(server.Spec) == nil {
+		return fmt.Errorf("spec.serverManager.enabled requires tlsSecretRef (existing kubernetes.io/tls Secret)")
 	}
 	return nil
 }

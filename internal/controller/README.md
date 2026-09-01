@@ -15,4 +15,4 @@ Reconciles `PalworldServer` into Deployment, PVC, ConfigMap, Secrets, Services, 
 | `*_test.go` | Unit tests (helpers, secrets, version, schedule, notify); envtest / fake-client loop still backlog (#10–#11) |
 
 Fallback game image: `ghcr.io/pocketpairjp/palserver:latest` (samples pin a version tag).
-Saved mount (official): `/pal/Package/Pal/Saved`. Optional mods PVC (`spec.mods.enabled`): `/pal/Package/Mods` plus `Paks/~WorkshopMods` and `Paks/LogicMods` subpath overlays. Optional `spec.serverManager` (`spec.modManager` alias): sidecar admin UI on Gateway HTTP port 8088 (stats, controls, saves, mods).
+Saved mount (official): `/pal/Package/Pal/Saved`. Optional mods PVC (`spec.mods.enabled`): `/pal/Package/Mods` plus `Paks/~WorkshopMods` and `Paks/LogicMods` subpath overlays. Optional `spec.serverManager` (`spec.modManager` alias): sidecar admin UI on Gateway HTTPS 443 (HTTP 8088 redirects; stats, controls, saves, mods).

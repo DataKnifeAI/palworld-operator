@@ -251,8 +251,9 @@ type ModsConfig struct {
 	ActiveModList []string `json:"activeModList,omitempty"`
 }
 
-// ServerManagerConfig is an optional authenticated HTTP admin UI on the
-// game Gateway VIP (not a LoadBalancer on the game pod). Tabs: Overview
+// ServerManagerConfig is an optional authenticated admin UI on the
+// game Gateway VIP (not a LoadBalancer on the game pod). Public access is
+// HTTPS by default (TLS terminate on the Gateway). Tabs: Overview
 // (REST stats), Controls (announce/save/shutdown + Recreate restart),
 // Saves (world zip download/restore), Mods (PVC file manager). The sidecar
 // proxies Palworld REST on localhost (http://127.0.0.1:8212/v1/api) and
@@ -260,17 +261,44 @@ type ModsConfig struct {
 // this UI. Enabling Recreate-rolls the game Deployment. The Mods tab
 // needs spec.mods.enabled for the PVC mount.
 type ServerManagerConfig struct {
-	// Enabled starts the Server Manager sidecar and an HTTPRoute on the
+	// Enabled starts the Server Manager sidecar and HTTPS HTTPRoute on the
 	// game Gateway. Default false.
 	// +optional
 	Enabled bool `json:"enabled,omitempty"`
 
-	// Port is the HTTP listen port on the Gateway VIP and sidecar.
+	// Port is the sidecar / ClusterIP listen port (and optional HTTP
+	// Gateway redirect listener). Default 8088. Public clients use HTTPS.
 	// +kubebuilder:default=8088
 	// +kubebuilder:validation:Minimum=1024
 	// +kubebuilder:validation:Maximum=65535
 	// +optional
 	Port int32 `json:"port,omitempty"`
+
+	// Hostname is the public DNS name for HTTPS (must match the reused
+	// TLS certificate SAN, e.g. palworld.dataknife.net). Required when enabled.
+	// +optional
+	Hostname string `json:"hostname,omitempty"`
+
+	// HTTPSPort is the Gateway HTTPS listen port on the same VIP as game UDP.
+	// Default 443. Does not change the sidecar listen port.
+	// +kubebuilder:default=443
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	HTTPSPort int32 `json:"httpsPort,omitempty"`
+
+	// TLSSecretRef is an existing kubernetes.io/tls Secret (reuse a Let's
+	// Encrypt wildcard — the operator does not issue certificates). Name is
+	// required when enabled. Namespace defaults to the PalworldServer
+	// namespace; a different namespace is copied locally for Gateway terminate.
+	// +optional
+	TLSSecretRef *corev1.SecretReference `json:"tlsSecretRef,omitempty"`
+
+	// ExposeHTTP keeps a Gateway HTTP listener on Port that redirects to
+	// HTTPS. Default true so http://VIP:8088 bookmarks work. Set false for
+	// ClusterIP-only HTTP.
+	// +optional
+	ExposeHTTP *bool `json:"exposeHTTP,omitempty"`
 
 	// Image is the container image that provides the /server-manager binary
 	// (the operator image; /mod-manager is kept as a copy). Default:
@@ -443,10 +471,10 @@ type PalworldServerSpec struct {
 	Mods ModsConfig `json:"mods,omitempty"`
 
 	// ServerManager is an optional authenticated admin UI on the Gateway VIP
-	// (default port 8088): world stats, REST controls, save download/restore,
-	// and a Mods tab. Basic auth uses the admin-password Secret key. Default
-	// disabled. Do not enable on a live world without a maintenance window
-	// (Recreate).
+	// (HTTPS by default): world stats, REST controls, save download/restore,
+	// and a Mods tab. Basic auth uses username admin and the admin-password
+	// Secret key. Default disabled. Do not enable on a live world without a
+	// maintenance window (Recreate).
 	// +optional
 	ServerManager ServerManagerConfig `json:"serverManager,omitempty"`
 
