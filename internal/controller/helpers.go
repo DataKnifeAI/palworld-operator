@@ -795,13 +795,13 @@ func communityEnvValue(value string) string {
 func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.ServicePort {
 	ports := []corev1.ServicePort{
 		{
-			Name:       "game-udp",
+			Name:       gatewayListenerGameUDP,
 			Port:       gamePort(spec),
 			TargetPort: intstr.FromInt32(gamePort(spec)),
 			Protocol:   corev1.ProtocolUDP,
 		},
 		{
-			Name:       "query-udp",
+			Name:       gatewayListenerQueryUDP,
 			Port:       queryPort(spec),
 			TargetPort: intstr.FromInt32(queryPort(spec)),
 			Protocol:   corev1.ProtocolUDP,
@@ -817,7 +817,7 @@ func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.Service
 	}
 	if restEnabled(spec) {
 		ports = append(ports, corev1.ServicePort{
-			Name:       "rest-tcp",
+			Name:       gatewayListenerRESTTCP,
 			Port:       restPort(spec),
 			TargetPort: intstr.FromInt32(restPort(spec)),
 			Protocol:   corev1.ProtocolTCP,
@@ -836,8 +836,8 @@ func gameServicePorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.Service
 
 func containerPorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{
-		{Name: "game-udp", ContainerPort: gamePort(spec), Protocol: corev1.ProtocolUDP},
-		{Name: "query-udp", ContainerPort: queryPort(spec), Protocol: corev1.ProtocolUDP},
+		{Name: gatewayListenerGameUDP, ContainerPort: gamePort(spec), Protocol: corev1.ProtocolUDP},
+		{Name: gatewayListenerQueryUDP, ContainerPort: queryPort(spec), Protocol: corev1.ProtocolUDP},
 	}
 	if rconEnabled(spec) {
 		ports = append(ports, corev1.ContainerPort{
@@ -846,7 +846,7 @@ func containerPorts(spec palworldv1alpha1.PalworldServerSpec) []corev1.Container
 	}
 	if restEnabled(spec) {
 		ports = append(ports, corev1.ContainerPort{
-			Name: "rest-tcp", ContainerPort: restPort(spec), Protocol: corev1.ProtocolTCP,
+			Name: gatewayListenerRESTTCP, ContainerPort: restPort(spec), Protocol: corev1.ProtocolTCP,
 		})
 	}
 	return ports

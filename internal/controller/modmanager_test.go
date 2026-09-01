@@ -79,7 +79,7 @@ func TestGameServicePortsModManager(t *testing.T) {
 		if p.Name == portNameModManager && p.Port == defaultModManagerPort && p.Protocol == corev1.ProtocolTCP {
 			found = true
 		}
-		if p.Name == "game-udp" && p.Protocol != corev1.ProtocolUDP {
+		if p.Name == gatewayListenerGameUDP && p.Protocol != corev1.ProtocolUDP {
 			t.Fatal("game-udp must stay UDP")
 		}
 	}
