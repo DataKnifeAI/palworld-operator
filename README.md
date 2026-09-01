@@ -61,6 +61,7 @@ kubectl get palworldserver -n game-servers
 
 Connect with `.status.connectionAddress` / `.status.connectionPort` (default `8211` UDP).
 The operator learns/seeds `DedicatedServerName` from REST `worldguid` (or `spec.dedicatedServerName`) so Recreate rolls keep the world. Opt-in image auto-update: `spec.update.autoUpdateImage` (see [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md#opt-in-auto-update-specupdate)).
+Admin API is REST ([category](https://docs.palworldgame.com/category/rest-api/)); Pocketpair has [deprecated RCON](https://docs.palworldgame.com/api/rcon/). The operator uses REST announce + admin basic auth and does not issue RCON commands.
 Read join/admin passwords from the credentials Secret ([docs/CONNECT.md](docs/CONNECT.md)):
 
 ```shell
@@ -98,11 +99,11 @@ kubectl delete palworldserver palworld-server -n game-servers
 
 | Doc | Contents |
 |-----|----------|
-| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, Linux mods, updates, sizing |
+| [docs/FAQ.md](docs/FAQ.md) | Incapable version, passwords, world pin, optionSettings, Linux mods, updates, RCON vs REST, sizing |
 | [docs/LOCAL.md](docs/LOCAL.md) | Docker Compose — local / minimal PC |
 | [docs/CONNECT.md](docs/CONNECT.md) | In-game join, passwords, community, crossplay |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Owned resources, Gateway layout |
-| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, mounts, optionSettings, Linux vs Windows mods, optional mod manager, Steam updates |
+| [docs/PALWORLD_SERVER.md](docs/PALWORLD_SERVER.md) | Ports, REST vs deprecated RCON, mounts, optionSettings, Linux vs Windows mods, optional mod manager, Steam updates |
 | [docs/GITLAB_MIRROR.md](docs/GITLAB_MIRROR.md) | GitHub CI + GitLab Harbor publish |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes / known gaps |
 

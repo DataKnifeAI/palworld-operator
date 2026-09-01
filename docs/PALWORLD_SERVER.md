@@ -5,6 +5,8 @@ Operator-relevant detail for the official Pocketpair image and optional communit
 Sources:
 - [Deploy dedicated server](https://docs.palworldgame.com/getting-started/deploy-dedicated-server)
 - [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
+- [REST API](https://docs.palworldgame.com/category/rest-api/) — replacement for RCON (v1.0.3). Intro URL is [`/api/rest-api/palwold-rest-api`](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) (official typo; spelled-correct 404s)
+- [RCON](https://docs.palworldgame.com/api/rcon/) — **deprecated**; scheduled to stop in an upcoming update
 - [Installing mods on a server](https://docs.palworldgame.com/settings-and-operation/mod/) — **Windows-only** official Workshop loader
 - [Yorkhost PAK / UE4SS notes](https://yorkhost.fr/docs/en/palworld/mods-ue4ss) — community Linux vs Win64 (not Pocketpair)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker) — `ghcr.io/pocketpairjp/palserver`
@@ -42,11 +44,11 @@ Compose samples mount `./Saved` → `/pal/Package/Pal/Saved` and pass CLI args (
 |------|-------|------|----------------|
 | 8211 | UDP | Game traffic | Primary client connect; expose via UDPRoute |
 | 27015 | UDP | Steam query | Community browser / Steam; UDPRoute when listing |
-| 25575 | TCP | RCON | Enable for graceful stop/save |
-| 8212 | TCP | REST API | Useful for ops; **do not** public-forward casually |
+| 25575 | TCP | RCON (deprecated) | Legacy listener; ClusterIP default-on until Pocketpair removes it. Operator does **not** use RCON commands. Not required for stop/save. |
+| 8212 | TCP | REST API | Replacement for RCON. Operator uses REST announce + admin basic auth. **Do not** public-forward casually |
 | 8088 | TCP/HTTP | Optional mod manager | `spec.modManager`; same Gateway VIP; **basic auth required** |
 
-Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings.
+Official compose examples often expose **8211/UDP** only; query/RCON/REST still exist when enabled in settings. REST is the documented admin API; RCON remains ClusterIP-internal as a legacy listener.
 
 ## Persistence
 
@@ -150,7 +152,7 @@ Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image 
 
 ### Optional mod manager (`spec.modManager`)
 
-Authenticated HTTP UI/API for the mods PVC. **Off by default.** Requires `spec.mods.enabled`. Enabling adds a sidecar and an HTTP listener on the **same Gateway VIP** as game UDP (not a LoadBalancer on the game pod). REST and RCON stay ClusterIP-internal.
+Authenticated HTTP UI/API for the mods PVC. **Off by default.** Requires `spec.mods.enabled`. Enabling adds a sidecar and an HTTP listener on the **same Gateway VIP** as game UDP (not a LoadBalancer on the game pod). REST stays ClusterIP-internal (legacy RCON does too).
 
 | Item | Value |
 |------|-------|
@@ -198,7 +200,7 @@ Pin a version tag or digest in production. A separate DataKnifeAI game-image pro
 ### Official image (default)
 
 - **CLI args** for port / threading (`-port=8211`, `-UseMultithreadForDS`, …)
-- **INI** for name, passwords, RCON, crossplay, balance: `Pal/Saved/Config/LinuxServer/PalWorldSettings.ini`
+- **INI** for name, passwords, REST/RCON, crossplay, balance: `Pal/Saved/Config/LinuxServer/PalWorldSettings.ini`
 - Operator builds that INI in a ConfigMap and the `seed-settings` init copies it onto the PVC **every pod start** (overwrite is intentional — keep desired settings in the CR)
 
 ### Game balance / features (`spec.optionSettings`)
@@ -258,12 +260,12 @@ Env vars map to INI / launch options. Highly recommended: `PUID`, `PGID`, `PORT`
 | `SERVER_NAME` | — | Display name |
 | `SERVER_DESCRIPTION` | — | Description |
 | `SERVER_PASSWORD` | — | Join password |
-| `ADMIN_PASSWORD` | — | Admin / RCON |
+| `ADMIN_PASSWORD` | — | Admin / REST basic auth (legacy RCON used the same password) |
 | `PLAYERS` | 16 | Max players (1–32) |
 | `PORT` | 8211 | Game UDP port |
 | `QUERY_PORT` | 27015 | Steam query |
-| `RCON_ENABLED` | false* | Enable RCON (*enable for K8s graceful stop) |
-| `RCON_PORT` | 25575 | RCON TCP |
+| `RCON_ENABLED` | false* | Legacy RCON (*operator default-on in K8s for compatibility; not used for stop/save) |
+| `RCON_PORT` | 25575 | Legacy RCON TCP |
 | `REST_API_ENABLED` | true | REST API |
 | `REST_API_PORT` | 8212 | REST TCP |
 | `MULTITHREADING` | false | Up to ~4 threads useful |
@@ -285,7 +287,7 @@ Passwords must come from Kubernetes Secrets, not CR plaintext.
 Auto-gen behavior:
 
 - Creates an Opaque Secret owned by the `PalworldServer` (OwnerReference)
-- Fills missing/empty keys `server-password` (join) and `admin-password` (RCON/admin) with random strong passwords
+- Fills missing/empty keys `server-password` (join) and `admin-password` (in-game admin / REST basic auth) with random strong passwords
 - **Never overwrites** existing non-empty keys
 - Status sets `credentialsSecretName` and `credentialsGenerated: true` — **no plaintext** in status
 
@@ -309,7 +311,7 @@ For auto-gen, substitute the Secret name from
 | Max players | `ServerPlayerMaxNum` | `PLAYERS` | `spec.maxPlayers` |
 | Game port | `-port=` CLI | `PORT` | `spec.gamePort` (default 8211) |
 | Query port | INI / server args | `QUERY_PORT` | `spec.queryPort` (default 27015) |
-| RCON | `RCONEnabled` / `RCONPort` | `RCON_*` | `spec.rcon` |
+| RCON (deprecated) | `RCONEnabled` / `RCONPort` | `RCON_*` | `spec.rcon` (ClusterIP default-on; unused by operator) |
 | REST API | INI | `REST_API_*` | `spec.restAPI` |
 | Passwords | INI fields | `SERVER_PASSWORD`, `ADMIN_PASSWORD` | Secret refs **or** `spec.generateSecrets` |
 | Community list | INI + public bind | `COMMUNITY`, `PUBLIC_*` | `spec.community` + gateway |
@@ -332,9 +334,24 @@ CPU: prefer multi-core; official CLI includes `-UseMultithreadForDS` (community:
 
 ## Graceful lifecycle
 
-- Enable RCON so shutdown can save cleanly on SIGTERM
-- Set `terminationGracePeriodSeconds` high enough (e.g. 60–120s)
-- Prefer careful update policy in prod (unexpected image/Steam updates mid-session)
+Pocketpair documents [RCON as deprecated](https://docs.palworldgame.com/api/rcon/) (v1.0.3; scheduled to stop in an upcoming update). Use the [REST API](https://docs.palworldgame.com/category/rest-api/) instead ([intro](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — official URL typo; spelled-correct 404s). Auth is HTTP basic, user `admin`, password = `AdminPassword`.
+
+Documented admin APIs:
+
+- [`POST /v1/api/save`](https://docs.palworldgame.com/api/rest-api/save/) — save the world
+- [`POST /v1/api/shutdown`](https://docs.palworldgame.com/api/rest-api/shutdown/) — graceful shutdown with wait/message
+- [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) — in-game broadcast
+
+This operator:
+
+- Uses REST announce + admin basic auth (`notifyPlayers`)
+- Does **not** issue RCON commands
+- Currently still stops pods with **SIGTERM** + `spec.terminationGracePeriodSeconds` (default 60; raise to 60–120s if needed)
+- Does **not** yet call REST `/save` or `/shutdown` before Recreate (optional later)
+
+`spec.rcon` stays default-on with a ClusterIP Service as a legacy listener until Pocketpair removes RCON. It is not required for stop/save.
+
+Prefer a careful update policy in prod (unexpected image/Steam updates mid-session).
 
 ## Updating the game server (Steam / patches)
 
@@ -371,7 +388,7 @@ Set `spec.update.autoUpdateImage: true` to have the operator:
    - `checkInterval` (default `6h`) when `checkSchedule` unset — how often to poll GHCR
    - `checkSchedule` — cron minutes when polling is allowed (replaces interval)
    - `applySchedule` — cron must match the **current minute** for a roll (maintenance window); omit to apply whenever idle/safe
-5. **In-game notice** (optional) — `notifyPlayers: true` plans `status.plannedApplyTime` (now + max schedule, or next `applySchedule`) and sends staged REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) warnings as reconcile hits each boundary. Default schedule: `60m`, `30m`, `15m`, `5m`, `1m`, `30s`, then a short `10s` countdown immediately before the image patch. Override with `notifySchedule` (Go durations). Legacy `notifyLeadTime` (e.g. `2m`) is a single-stage schedule when `notifySchedule` is empty. Placeholders in `notifyMessage`: `{version}`, `{image}`, `{remaining}`. Status tracks `announcedNotifyStages` so stages are not re-sent. `onlyWhenEmpty` still gates the **roll**, not the warnings (players online get the notices). Reconcile never blocks for the full lead — it requeues until the next stage. Pocketpair documents **RCON as deprecated**; this feature uses REST announce only.
+5. **In-game notice** (optional) — `notifyPlayers: true` plans `status.plannedApplyTime` (now + max schedule, or next `applySchedule`) and sends staged REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) warnings as reconcile hits each boundary. Default schedule: `60m`, `30m`, `15m`, `5m`, `1m`, `30s`, then a short `10s` countdown immediately before the image patch. Override with `notifySchedule` (Go durations). Legacy `notifyLeadTime` (e.g. `2m`) is a single-stage schedule when `notifySchedule` is empty. Placeholders in `notifyMessage`: `{version}`, `{image}`, `{remaining}`. Status tracks `announcedNotifyStages` so stages are not re-sent. `onlyWhenEmpty` still gates the **roll**, not the warnings (players online get the notices). Reconcile never blocks for the full lead — it requeues until the next stage. Pocketpair documents **RCON as deprecated**; this operator uses REST announce + admin basic auth and does not issue RCON commands. REST `/save` and `/shutdown` are documented but not called by the operator yet (rolls still use SIGTERM + `terminationGracePeriodSeconds`).
 
 When `autoUpdateImage` is false, the operator never mutates `spec.serverImage` (manual pins win).
 

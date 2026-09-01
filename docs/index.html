@@ -168,7 +168,7 @@ make compose-down</code></pre>
         <ul class="ports">
           <li><span class="ports__label">Players</span> <span class="ports__value">Default max 4 — keep small on a shared PC</span></li>
           <li><span class="ports__label">RAM</span> <span class="ports__value">~8&nbsp;Gi free recommended · compose cap 6g (raise if OOM)</span></li>
-          <li><span class="ports__label">Game port</span> <span class="ports__value">8211 / UDP · REST/RCON on localhost only</span></li>
+          <li><span class="ports__label">Game port</span> <span class="ports__value">8211 / UDP · REST (and legacy RCON) on localhost only</span></li>
         </ul>
         <p class="fineprint">
           Saves live under <code>compose/Saved/</code>. Passwords seed into
@@ -241,7 +241,7 @@ kubectl get palworldserver palworld-server -n game-servers \
           </li>
           <li>
             <span class="ports__label">admin-password</span>
-            <span class="ports__value">Admin / RCON — keep private</span>
+            <span class="ports__value">Admin / REST basic auth — keep private</span>
           </li>
         </ul>
         <pre class="codeblock"><code># Secret name: status.credentialsSecretName (sample BYO name below)
@@ -273,11 +273,11 @@ kubectl get secret palworld-server-secrets -n game-servers \
         <ul class="ports">
           <li><span class="ports__label">Game</span> <span class="ports__value">8211 / UDP</span></li>
           <li><span class="ports__label">Steam query</span> <span class="ports__value">27015 / UDP</span></li>
-          <li><span class="ports__label">RCON</span> <span class="ports__value">25575 / TCP</span></li>
+          <li><span class="ports__label">RCON</span> <span class="ports__value">25575 / TCP (deprecated, ClusterIP)</span></li>
           <li><span class="ports__label">REST API</span> <span class="ports__value">8212 / TCP</span></li>
         </ul>
         <p class="fineprint">
-          REST and RCON are for operators — keep them off the public internet unless you mean it.
+          REST is the admin API (Pocketpair deprecated RCON). Keep REST off the public internet unless you mean it.
           See <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/CONNECT.md">CONNECT.md</a>
           for password-prompt quirks and a share template.
         </p>

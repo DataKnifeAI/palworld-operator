@@ -172,11 +172,12 @@ spec:
               generateSecrets:
                 description: |-
                   GenerateSecrets when true creates an Opaque Secret with random strong
-                  passwords for keys server-password (join) and admin-password (RCON/admin)
-                  if the Secret is missing or those keys are empty. Existing non-empty keys
-                  are never overwritten. Secret name defaults to {metadata.name}-secrets
-                  (override with credentialsSecretName). When false/omitted, provide
-                  adminPasswordSecretRef and serverPasswordSecretRef yourself (bring-your-own).
+                  passwords for keys server-password (join) and admin-password (in-game
+                  admin / REST HTTP basic auth) if the Secret is missing or those keys are
+                  empty. Existing non-empty keys are never overwritten. Secret name
+                  defaults to {metadata.name}-secrets (override with credentialsSecretName).
+                  When false/omitted, provide adminPasswordSecretRef and
+                  serverPasswordSecretRef yourself (bring-your-own).
                 type: boolean
               imagePullPolicy:
                 default: IfNotPresent
@@ -336,16 +337,20 @@ spec:
                 minimum: 1024
                 type: integer
               rcon:
-                description: RCON configures remote administration.
+                description: |-
+                  RCON configures the legacy RCON listener (deprecated by Pocketpair;
+                  ClusterIP default-on until removed). The operator does not use RCON.
                 properties:
                   enabled:
                     default: true
-                    description: Enabled toggles RCON. Default true for graceful shutdown
-                      support.
+                    description: |-
+                      Enabled toggles the legacy RCON listener. Default true (ClusterIP) until
+                      Pocketpair removes RCON. The operator does not use RCON commands and
+                      does not require RCON for stop/save.
                     type: boolean
                   port:
                     default: 25575
-                    description: Port is the RCON TCP listen port.
+                    description: Port is the legacy RCON TCP listen port.
                     format: int32
                     maximum: 65535
                     minimum: 1024
@@ -412,11 +417,13 @@ spec:
                     type: object
                 type: object
               restAPI:
-                description: RESTAPI configures the Palworld REST API.
+                description: RESTAPI configures the Palworld REST API (replacement
+                  for deprecated RCON).
                 properties:
                   enabled:
                     default: true
-                    description: Enabled toggles the REST API.
+                    description: Enabled toggles the REST API (replacement for deprecated
+                      RCON).
                     type: boolean
                   exposeViaGateway:
                     default: false
@@ -483,8 +490,11 @@ spec:
                 type: string
               terminationGracePeriodSeconds:
                 default: 60
-                description: TerminationGracePeriodSeconds allows graceful RCON save
-                  on stop.
+                description: |-
+                  TerminationGracePeriodSeconds is the pod SIGTERM grace window on Recreate
+                  (default 60). The operator currently stops via SIGTERM + this period, not
+                  REST POST /save or /shutdown (Pocketpair's documented admin APIs;
+                  optional later: REST save before Recreate). RCON is not used for stop/save.
                 format: int64
                 type: integer
               update:
@@ -541,8 +551,9 @@ spec:
                     description: |-
                       NotifyPlayers when true sends an in-game broadcast via official REST
                       POST /v1/api/announce before rolling the Deployment. Requires REST enabled
-                      and admin credentials. (Pocketpair has deprecated RCON in favor of REST;
-                      this operator uses announce only — not RCON Broadcast.)
+                      and admin credentials (HTTP basic user "admin"). Pocketpair has deprecated
+                      RCON in favor of REST; this operator uses announce only — not RCON
+                      commands, and not REST POST /save or /shutdown.
                     type: boolean
                   notifySchedule:
                     description: |-

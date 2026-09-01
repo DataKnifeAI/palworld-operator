@@ -41,14 +41,21 @@ type GatewayConfig struct {
 	ExternalTrafficPolicy corev1.ServiceExternalTrafficPolicy `json:"externalTrafficPolicy,omitempty"`
 }
 
-// RCONConfig controls remote console access (required for graceful Docker stop/save).
+// RCONConfig is the legacy remote console (default TCP 25575).
+// Pocketpair documents RCON as deprecated in favor of REST
+// (https://docs.palworldgame.com/api/rcon/; scheduled to stop in an upcoming
+// update). This operator does not issue RCON commands. Default remains
+// enabled with a ClusterIP Service until Pocketpair removes RCON. RCON is
+// not required for graceful stop/save.
 type RCONConfig struct {
-	// Enabled toggles RCON. Default true for graceful shutdown support.
+	// Enabled toggles the legacy RCON listener. Default true (ClusterIP) until
+	// Pocketpair removes RCON. The operator does not use RCON commands and
+	// does not require RCON for stop/save.
 	// +kubebuilder:default=true
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Port is the RCON TCP listen port.
+	// Port is the legacy RCON TCP listen port.
 	// +kubebuilder:default=25575
 	// +kubebuilder:validation:Minimum=1024
 	// +kubebuilder:validation:Maximum=65535
@@ -56,10 +63,16 @@ type RCONConfig struct {
 	Port int32 `json:"port,omitempty"`
 }
 
-// RESTAPIConfig controls the Palworld REST API (default port 8212).
-// Prefer ClusterIP-only exposure; do not public-route unless intentionally secured.
+// RESTAPIConfig controls the Palworld REST API (default port 8212), the
+// documented replacement for deprecated RCON.
+// See https://docs.palworldgame.com/category/rest-api/ (intro:
+// https://docs.palworldgame.com/api/rest-api/palwold-rest-api — official typo;
+// spelled-correct 404s). Auth is HTTP basic (user "admin", AdminPassword).
+// The operator uses REST announce and admin basic auth; it does not yet call
+// POST /save or /shutdown. Prefer ClusterIP-only; do not public-route unless
+// intentionally secured.
 type RESTAPIConfig struct {
-	// Enabled toggles the REST API.
+	// Enabled toggles the REST API (replacement for deprecated RCON).
 	// +kubebuilder:default=true
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
@@ -144,8 +157,9 @@ type UpdateConfig struct {
 
 	// NotifyPlayers when true sends an in-game broadcast via official REST
 	// POST /v1/api/announce before rolling the Deployment. Requires REST enabled
-	// and admin credentials. (Pocketpair has deprecated RCON in favor of REST;
-	// this operator uses announce only — not RCON Broadcast.)
+	// and admin credentials (HTTP basic user "admin"). Pocketpair has deprecated
+	// RCON in favor of REST; this operator uses announce only — not RCON
+	// commands, and not REST POST /save or /shutdown.
 	// +optional
 	NotifyPlayers bool `json:"notifyPlayers,omitempty"`
 
@@ -320,11 +334,12 @@ type PalworldServerSpec struct {
 	// +optional
 	QueryPort int32 `json:"queryPort,omitempty"`
 
-	// RCON configures remote administration.
+	// RCON configures the legacy RCON listener (deprecated by Pocketpair;
+	// ClusterIP default-on until removed). The operator does not use RCON.
 	// +optional
 	RCON RCONConfig `json:"rcon,omitempty"`
 
-	// RESTAPI configures the Palworld REST API.
+	// RESTAPI configures the Palworld REST API (replacement for deprecated RCON).
 	// +optional
 	RESTAPI RESTAPIConfig `json:"restAPI,omitempty"`
 
@@ -379,11 +394,12 @@ type PalworldServerSpec struct {
 	OptionSettings map[string]string `json:"optionSettings,omitempty"`
 
 	// GenerateSecrets when true creates an Opaque Secret with random strong
-	// passwords for keys server-password (join) and admin-password (RCON/admin)
-	// if the Secret is missing or those keys are empty. Existing non-empty keys
-	// are never overwritten. Secret name defaults to {metadata.name}-secrets
-	// (override with credentialsSecretName). When false/omitted, provide
-	// adminPasswordSecretRef and serverPasswordSecretRef yourself (bring-your-own).
+	// passwords for keys server-password (join) and admin-password (in-game
+	// admin / REST HTTP basic auth) if the Secret is missing or those keys are
+	// empty. Existing non-empty keys are never overwritten. Secret name
+	// defaults to {metadata.name}-secrets (override with credentialsSecretName).
+	// When false/omitted, provide adminPasswordSecretRef and
+	// serverPasswordSecretRef yourself (bring-your-own).
 	// +optional
 	GenerateSecrets bool `json:"generateSecrets,omitempty"`
 
@@ -431,7 +447,10 @@ type PalworldServerSpec struct {
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	// TerminationGracePeriodSeconds allows graceful RCON save on stop.
+	// TerminationGracePeriodSeconds is the pod SIGTERM grace window on Recreate
+	// (default 60). The operator currently stops via SIGTERM + this period, not
+	// REST POST /save or /shutdown (Pocketpair's documented admin APIs;
+	// optional later: REST save before Recreate). RCON is not used for stop/save.
 	// +kubebuilder:default=60
 	// +optional
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`

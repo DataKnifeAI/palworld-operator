@@ -37,7 +37,7 @@ The credentials Secret uses two keys (bring-your-own or operator-generated via
 | Secret key | Used for | Share with players? |
 |------------|----------|---------------------|
 | `server-password` | In-game **join** / `ServerPassword` | Yes (trusted players only) |
-| `admin-password` | In-game admin / RCON (`AdminPassword`) | **No** — operators only |
+| `admin-password` | In-game admin / REST basic auth (`AdminPassword`) | **No** — operators only |
 
 Find the Secret name from status (sample BYO name shown; auto-gen defaults to `{cr-name}-secrets`):
 
@@ -51,7 +51,7 @@ kubectl get palworldserver palworld-server -n game-servers \
 kubectl get secret palworld-server-secrets -n game-servers \
   -o jsonpath='{.data.server-password}' | base64 -d; echo
 
-# Reveal admin / RCON password (operators only — do not share with players)
+# Reveal admin password (operators only — REST basic auth / in-game admin; do not share with players)
 kubectl get secret palworld-server-secrets -n game-servers \
   -o jsonpath='{.data.admin-password}' | base64 -d; echo
 ```
@@ -70,7 +70,7 @@ http://<connectionAddress>:8088/
 ```
 
 Sign in with basic auth: username `admin`, password = Secret key
-`admin-password` (not the join password). REST/RCON stay internal.
+`admin-password` (not the join password). REST stays ClusterIP-internal; legacy RCON does too.
 
 This is not a player-facing surface. Restart in the UI Recreate-rolls the
 game Deployment — everyone disconnects until Ready. Linux PalServer still
@@ -128,8 +128,8 @@ Consoles **cannot load PC client mods**. `spec.optionSettings.bAllowClientMod` i
 |------|-------|----------------|
 | **8211** | UDP | **Yes** — game traffic / direct connect (default) |
 | 27015 | UDP | Community browser / Steam query (when listing) |
-| 25575 | TCP | RCON — ops only, not for joining |
-| 8212 | TCP | REST API — ops only; keep off the public internet unless intentional |
+| 25575 | TCP | Legacy RCON ([deprecated](https://docs.palworldgame.com/api/rcon/)) — ClusterIP only; not for joining |
+| 8212 | TCP | REST API ([docs](https://docs.palworldgame.com/category/rest-api/)) — ops only (admin basic auth); keep off the public internet unless intentional |
 
 ## Quick share template
 
@@ -143,8 +143,8 @@ Notes: Update Palworld first. Use Join Multiplayer Game → direct connect.
 
 ## Related
 
-- [FAQ.md](FAQ.md) — incapable version, “no password entered”, world drift, updates, Linux mods
+- [FAQ.md](FAQ.md) — incapable version, “no password entered”, world drift, updates, RCON vs REST, Linux mods
 - [LOCAL.md](LOCAL.md) — Docker Compose on a PC (no Kubernetes)
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, INI/env, `spec.optionSettings`, mods / Linux limits, persistence, resources
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, REST vs deprecated RCON, INI/env, `spec.optionSettings`, mods / Linux limits, persistence, resources
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Gateway / UDPRoute layout
 - Sample CR: [`config/samples/palworld_v1alpha1_palworldserver.yaml`](../config/samples/palworld_v1alpha1_palworldserver.yaml)

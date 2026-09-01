@@ -13,7 +13,7 @@ Troubleshooting (version mismatch, passwords, world pin): [FAQ.md](FAQ.md).
 
 Official image: [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker).
 Upstream sample lives under their `compose/` directory; this repo’s `compose/` is a
-**minimal-PC** variant (resource caps, localhost-bound REST/RCON, `.env` seed for passwords).
+**minimal-PC** variant (resource caps, localhost-bound REST and legacy RCON, `.env` seed for passwords).
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ docker compose -f compose/compose.yaml --project-directory compose down
 | Settings seed | `compose/Saved/Config/LinuxServer/PalWorldSettings.ini` (first start only) |
 | Game port | Host `${GAME_PORT:-8211}` → container `8211/udp` |
 | Query port | `${QUERY_PORT:-27015}/udp` (community browser; optional) |
-| REST / RCON | Bound to **127.0.0.1** only (`8212`, `25575`) |
+| REST / RCON | Bound to **127.0.0.1** only (`8212` REST, `25575` legacy RCON) |
 
 `make compose-up` copies `.env` from the example if missing, runs the seed script, then
 `docker compose up -d`. The seed script **never overwrites** an existing
@@ -68,7 +68,7 @@ Set in `compose/.env` before first start:
 | Variable | Purpose | Share? |
 |----------|---------|--------|
 | `SERVER_PASSWORD` | In-game join / `ServerPassword` | Trusted players only |
-| `ADMIN_PASSWORD` | Admin / RCON | **No** |
+| `ADMIN_PASSWORD` | Admin / REST basic auth (legacy RCON same password) | **No** |
 
 Read back after seed:
 
@@ -96,7 +96,7 @@ Same flow as the operator path — see [CONNECT.md](CONNECT.md):
 3. Enable **Enter password** and use `SERVER_PASSWORD`
 
 For LAN friends, allow UDP **8211** through the host firewall. Do **not** port-forward
-REST (`8212`) or RCON (`25575`) — compose already binds them to loopback.
+REST (`8212`) or legacy RCON (`25575`) — compose already binds them to loopback.
 
 ## Resource expectations
 

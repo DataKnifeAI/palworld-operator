@@ -133,7 +133,7 @@ spec:
   # Optional HTTP mod manager on the Gateway VIP (same IP as game UDP).
   # Requires mods.enabled. Enabling rolls the game pod (Recreate) — leave
   # commented on a live world. Basic auth: user "admin" + admin-password
-  # Secret key. REST/RCON stay ClusterIP-internal.
+  # Secret key. REST stays ClusterIP-internal; legacy RCON does too.
   # Sidecar binary is /mod-manager from the operator image — rebuild/push
   # harbor.dataknife.net/library/palworld-operator after this feature lands.
   # Linux PalServer still does not load official Workshop packages; use

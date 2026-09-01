@@ -11,7 +11,7 @@ Clients → spec.gateway.address (Kube-VIP / MetalLB)
               ↓
       {base}-gateway  (GatewayClass: envoy)
               ↓
-   UDPRoute (8211, 27015) + TCPRoute (25575, 8212 optional)
+   UDPRoute (8211, 27015) + optional REST TCPRoute (8212)
               + HTTPRoute (8088 optional mod manager)
               ↓
       {name}-envoy  (ClusterIP)  →  {name} (ClusterIP)
@@ -33,15 +33,15 @@ Each `PalworldServer` reconciles:
 | PersistentVolumeClaim (`{name}-mods`) | Optional `Mods/` plus `Paks/~WorkshopMods` and `Paks/LogicMods` overlays (`spec.mods.enabled`) |
 | ConfigMap | `PalWorldSettings.ini` (official path) |
 | Secret | Join/admin passwords (`server-password`, `admin-password`); owned when `spec.generateSecrets: true`, otherwise bring-your-own refs |
-| Service (ClusterIP) | Backend for game / query / RCON / REST ports |
+| Service (ClusterIP) | Backend for game / query / REST ports; legacy RCON stays ClusterIP-only |
 | Service (Envoy backend) | `{name}-envoy` ClusterIP |
 | Gateway + EnvoyProxy | External VIP binding |
 | UDPRoute | Game (`8211`) and Steam query (`27015`) |
-| TCPRoute | RCON (`25575`) and optional REST API (`8212`) |
+| TCPRoute | Optional REST API (`8212`) when `spec.restAPI.exposeViaGateway` |
 | HTTPRoute + sidecar | Optional mod manager (`8088`) when `spec.modManager.enabled` |
 | ServiceAccount / Role / RoleBinding | Least-privilege Deployment roll for the mod manager sidecar |
 
-REST should default to **not** exposed via Gateway. The optional mod manager is a separate admin HTTP surface on the same VIP (basic auth); it does not public-route REST/RCON. Override gateway/proxy names with `spec.gateway.gatewayName` / `spec.gateway.envoyProxyName` when needed.
+REST should default to **not** exposed via Gateway. RCON stays ClusterIP-only (legacy; Pocketpair [deprecated](https://docs.palworldgame.com/api/rcon/) it). The optional mod manager is a separate admin HTTP surface on the same VIP (basic auth); it does not public-route REST or RCON. Override gateway/proxy names with `spec.gateway.gatewayName` / `spec.gateway.envoyProxyName` when needed.
 
 ## Images
 
@@ -61,7 +61,7 @@ No DataKnifeAI custom game-image repo is required while Pocketpair publishes the
 | Image | `ghcr.io/pocketpairjp/palserver` | `windroseserver/windroseserver` |
 | CRD | `PalworldServer` | `WindroseServer` |
 | Primary game port | `8211/UDP` | `7777/TCP+UDP` |
-| Extra ports | Query `27015/UDP`, RCON `25575/TCP`, REST `8212/TCP`, optional mod manager `8088/HTTP` | None beyond game port |
+| Extra ports | Query `27015/UDP`, REST `8212/TCP`, legacy RCON `25575/TCP` (ClusterIP), optional mod manager `8088/HTTP` | None beyond game port |
 | Config | ConfigMap → `PalWorldSettings.ini` (+ CLI args) | ConfigMap → `ServerDescription.json` |
 | Save mount | `/pal/Package/Pal/Saved` (official) | `/home/ue_user/app/R5/Saved` |
 | External access | Envoy Gateway | Envoy Gateway |
@@ -78,5 +78,7 @@ No DataKnifeAI custom game-image repo is required while Pocketpair publishes the
 
 - https://docs.palworldgame.com/getting-started/deploy-dedicated-server
 - https://docs.palworldgame.com/settings-and-operation/configuration/
+- https://docs.palworldgame.com/category/rest-api/
+- https://docs.palworldgame.com/api/rcon/
 - https://github.com/pocketpairjp/palworld-dedicated-server-docker
 - https://github.com/orgs/pocketpairjp/packages/container/package/palserver

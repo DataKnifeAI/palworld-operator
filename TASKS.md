@@ -73,7 +73,7 @@ Legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] Deploy on prd-apps `game-servers`; status Running + REST world verified
 - [x] PVC retains save across Recreate (live auto-update + DedicatedServerName pin)
 - [ ] Client join via `.status.connectionAddress` / game port — [#12](https://github.com/DataKnifeAI/palworld-operator/issues/12)
-- [ ] Graceful stop / SIGTERM does not corrupt saves (RCON Broadcast deprecated; REST announce used)
+- [ ] Graceful stop / SIGTERM does not corrupt saves (RCON deprecated; operator still uses SIGTERM; REST `/save`/`/shutdown` not implemented)
 
 ### T4. Negative / ops tests
 - [ ] Wrong StorageClass / missing Secret / VIP reuse runbook coverage — [#13](https://github.com/DataKnifeAI/palworld-operator/issues/13)

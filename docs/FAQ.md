@@ -98,9 +98,15 @@ Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods](PALWORLD_SE
 | **Official** `ghcr.io/pocketpairjp/palserver` (operator default) | **Bump `spec.serverImage` tag**, or opt in with `spec.update.autoUpdateImage`. No SteamCMD on boot. |
 | Community SteamCMD images | In-container `app_update` / `UPDATE_ON_BOOT` (`spec.updateOnBoot`); auto-update image bumps are skipped unless the image is from `spec.update.imageRepository`. |
 
-Auto-update is **off by default**. When enabled it lists GHCR tags anonymously, compares `vX.Y.Z.W`, defers the **image roll** while players are online (`onlyWhenEmpty`), optional cron windows (`checkSchedule` / `applySchedule`, timezone default **UTC**), and optional staged in-game warns via REST `POST /v1/api/announce` (`notifyPlayers` + `notifySchedule`, default 60m→10s; legacy `notifyLeadTime` = single stage). Warnings still fire while players are online. Pocketpair has **deprecated RCON**; this operator does not use RCON Broadcast.
+Auto-update is **off by default**. When enabled it lists GHCR tags anonymously, compares `vX.Y.Z.W`, defers the **image roll** while players are online (`onlyWhenEmpty`), optional cron windows (`checkSchedule` / `applySchedule`, timezone default **UTC**), and optional staged in-game warns via REST `POST /v1/api/announce` (`notifyPlayers` + `notifySchedule`, default 60m→10s; legacy `notifyLeadTime` = single stage). Warnings still fire while players are online. Pocketpair has **deprecated RCON** ([docs](https://docs.palworldgame.com/api/rcon/)); this operator uses REST announce + admin basic auth and does not issue RCON commands.
 
 Full table: [PALWORLD_SERVER.md — Updating](PALWORLD_SERVER.md#updating-the-game-server-steam--patches).
+
+## Do I need RCON for graceful stop / save?
+
+No. Pocketpair documents [RCON as deprecated](https://docs.palworldgame.com/api/rcon/) (v1.0.3; scheduled to stop in an upcoming update). Use the [REST API](https://docs.palworldgame.com/category/rest-api/) instead. Documented admin endpoints are [`POST /v1/api/save`](https://docs.palworldgame.com/api/rest-api/save/) and [`POST /v1/api/shutdown`](https://docs.palworldgame.com/api/rest-api/shutdown/). Intro page URL is [`/api/rest-api/palwold-rest-api`](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) (official typo; spelled-correct 404s). Auth is HTTP basic, user `admin`, password = `AdminPassword`.
+
+This operator already uses REST [`POST /v1/api/announce`](https://docs.palworldgame.com/api/rest-api/announce/) and admin basic auth. It does **not** issue RCON commands. Pods still stop with SIGTERM + `terminationGracePeriodSeconds` (REST save before Recreate is optional later). `spec.rcon` stays ClusterIP default-on as a legacy listener until Pocketpair removes it.
 
 ## Local PC vs Kubernetes cluster
 
@@ -125,6 +131,6 @@ More: [PALWORLD_SERVER.md](PALWORLD_SERVER.md) resources section, [LOCAL.md](LOC
 ## Related
 
 - [CONNECT.md](CONNECT.md) — join from the client
-- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, mounts, optionSettings, Linux vs Windows mods, optional mod manager, updates, world pin, crossplay
+- [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, REST vs deprecated RCON, mounts, optionSettings, Linux vs Windows mods, optional mod manager, updates, world pin, crossplay
 - [LOCAL.md](LOCAL.md) — Compose on a PC
 - [ARCHITECTURE.md](ARCHITECTURE.md) — owned resources / Gateway

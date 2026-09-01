@@ -35,7 +35,8 @@ func (r *PalworldServerReconciler) reconcileEnvoyGateway(
 	if err := r.reconcileUDPRoute(ctx, server, names, names.queryUDPRoute, gatewayListenerQueryUDP, queryPort(server.Spec)); err != nil {
 		return err
 	}
-	// RCON stays ClusterIP-only by default for security.
+	// RCON stays ClusterIP-only (legacy; Pocketpair deprecated it). The operator
+	// does not issue RCON commands.
 	if restExposeViaGateway(server.Spec) && restEnabled(server.Spec) {
 		if err := r.reconcileTCPRoute(ctx, server, names, names.restTCPRoute, gatewayListenerRESTTCP, restPort(server.Spec)); err != nil {
 			return err
