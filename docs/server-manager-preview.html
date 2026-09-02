@@ -126,6 +126,48 @@
       font-size: .9rem;
     }
     .note { border-left-color: var(--teal); }
+    .mod-notes {
+      margin: 1.35rem 0 0;
+      background: var(--sand);
+      border: 1px solid rgba(232,160,48,.45);
+      border-radius: .65rem;
+      box-shadow: inset 5px 0 0 var(--amber);
+      padding: 1rem 1.15rem 1.05rem 1.25rem;
+    }
+    .mod-notes h2 {
+      margin: 0 0 .65rem;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .mod-notes ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .mod-notes li {
+      position: relative;
+      padding: .55rem .7rem .55rem 1.15rem;
+      margin: 0 0 .45rem;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      font-size: .9rem;
+      color: var(--ink);
+    }
+    .mod-notes li:last-child { margin-bottom: 0; }
+    .mod-notes li::before {
+      content: "";
+      position: absolute;
+      left: .45rem;
+      top: .75rem;
+      width: .35rem;
+      height: .35rem;
+      border-radius: 50%;
+      background: var(--amber);
+    }
     .group {
       background: var(--paper);
       border: 1px solid var(--line);
@@ -218,6 +260,46 @@
       100% { transform: translateX(380%); }
     }
     code { font-size: .86em; background: rgba(42,168,160,.14); padding: .05em .3em; border-radius: .25rem; }
+    .space-meter {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: .65rem;
+      padding: .85rem 1.05rem 1rem;
+      margin: 0 0 1rem;
+      max-width: 36rem;
+    }
+    .space-meter__head {
+      display: flex;
+      justify-content: space-between;
+      gap: .75rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: .45rem;
+    }
+    .space-meter__head strong {
+      font-family: var(--font-display);
+      font-size: .95rem;
+    }
+    .space-meter__head span { font-size: .82rem; color: var(--muted); }
+    .space-meter__track {
+      height: .7rem;
+      background: rgba(28,46,40,.08);
+      border: 1px solid var(--line);
+      border-radius: .45rem;
+      overflow: hidden;
+    }
+    .space-meter__bar {
+      height: 100%;
+      width: 32%;
+      background: linear-gradient(90deg, var(--teal), var(--grass));
+      border-radius: .45rem;
+    }
+    .space-meter__hint { margin: .45rem 0 0; font-size: .82rem; color: var(--muted); }
+    .btn-ghost.is-current {
+      border-color: var(--teal);
+      background: rgba(42,168,160,.12);
+      color: var(--sky-deep);
+    }
     .mock-banner {
       background: #1c2e22;
       color: #f6eedc;
@@ -356,9 +438,18 @@
     </section>
 
     <section id="mods" class="panel" role="tabpanel">
-      <p class="lede">Linux PalServer does <strong>not</strong> load official Workshop or <code>PalModSettings.ini</code>.</p>
-      <p class="lede">Community <code>.pak</code> files go in <code>paks/~WorkshopMods</code> and <code>paks/LogicMods</code>.</p>
-      <p class="lede"><a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods (Windows)</a> · <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a></p>
+      <p class="lede"><strong>Palworld Server does load community pak files.</strong> Drop community <code>.pak</code> files in <code>paks/~WorkshopMods</code> or <code>paks/LogicMods</code>.</p>
+      <p class="lede"><a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods</a></p>
+      <div class="space-meter" aria-label="Mods PVC space">
+        <div class="space-meter__head">
+          <strong>Mods PVC space</strong>
+          <span>3.2 GB used · 6.8 GB free of 10 GB</span>
+        </div>
+        <div class="space-meter__track">
+          <div class="space-meter__bar" style="width:32%"></div>
+        </div>
+        <p class="space-meter__hint">Upload is rejected if the file is larger than free space, so a mid-write fill of the PVC cannot happen.</p>
+      </div>
       <div class="row" style="margin-top:0">
         <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
         <button class="btn-ghost" type="button" data-path="paks/~WorkshopMods">paks/~WorkshopMods</button>
@@ -380,17 +471,29 @@
       </table>
       <form class="row" id="upload">
         <div>
-          <label for="file">Upload into current folder</label>
-          <input id="file" name="file" type="file" required />
+          <label for="file">Upload .pak into current folder</label>
+          <input id="file" name="file" type="file" accept=".pak" required />
+          <p class="muted" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than 6.8 GB free is rejected before upload.</p>
         </div>
         <button class="btn" type="submit">Upload</button>
       </form>
+      <aside class="mod-notes" aria-labelledby="mod-notes-heading">
+        <h2 id="mod-notes-heading">Notes</h2>
+        <ul>
+          <li>Official Workshop, <code>PalModSettings.ini</code>, <code>-workshopdir</code>, UE4SS, Lua, and Win64 DLLs are not supported.</li>
+          <li>Both the client and the server must have the mod installed for it to work.</li>
+          <li>Mods typically align to PC players.</li>
+          <li>If Crossplay is enabled, console players may fail to connect if unsupported mods are enabled on the server.</li>
+        </ul>
+      </aside>
     </section>
   </main>
   <script>
     /* Static mock: no network. Sample world only. */
     const $ = (id) => document.getElementById(id);
-    let current = "";
+    const defaultModsPath = "paks/~WorkshopMods";
+    const mockFreeBytes = 6.8 * 1024 * 1024 * 1024;
+    let current = defaultModsPath;
 
     function show(el, msg) { if (el) el.textContent = msg || ""; }
     async function api() {
@@ -400,10 +503,12 @@
       if (n == null) return "—";
       const x = Number(n);
       if (x < 1024) return x + " B";
-      const u = ["KiB","MiB","GiB"];
-      let i = -1, v = x;
-      do { v /= 1024; i++; } while (v >= 1024 && i < u.length-1);
-      return v.toFixed(1) + " " + u[i];
+      if (x < 1024 * 1024) return (x / 1024).toFixed(1) + " KB";
+      if (x < 1024 * 1024 * 1024) return (x / (1024 * 1024)).toFixed(1) + " MB";
+      return (x / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+    }
+    function isPakName(name) {
+      return /\.pak$/i.test(name || "");
     }
     function pick(obj, keys) {
       if (!obj) return undefined;
@@ -536,7 +641,7 @@
         { name: "PalWorldSettings.ini", dir: false, size: 8192 },
         { name: "GameUserSettings.ini", dir: false, size: 2048 },
       ]);
-      $("sv-meta").textContent = "SaveGames 48.0 MiB · sample listing (passwords never shown)";
+      $("sv-meta").textContent = "SaveGames 48.0 MB · sample listing (passwords never shown)";
     }
     $("sv-dl").onclick = async () => {
       show($("sv-err"), ""); show($("sv-ok"), "");
@@ -581,22 +686,82 @@
       if (!dir) return name;
       return dir.replace(/\/$/, "") + "/" + name;
     }
+    function mockEntries(path) {
+      if (!path) {
+        return [
+          { name: "paks", path: "paks", dir: true, size: 0 },
+          { name: "Workshop", path: "Workshop", dir: true, size: 0 },
+        ];
+      }
+      if (path === "paks") {
+        return [
+          { name: "~WorkshopMods", path: "paks/~WorkshopMods", dir: true, size: 0 },
+          { name: "LogicMods", path: "paks/LogicMods", dir: true, size: 0 },
+        ];
+      }
+      if (path === "paks/~WorkshopMods") {
+        return [
+          { name: "IslandKeep.pak", path: "paks/~WorkshopMods/IslandKeep.pak", dir: false, size: 42.5 * 1024 * 1024 },
+          { name: "ExtraPals.pak", path: "paks/~WorkshopMods/ExtraPals.pak", dir: false, size: 1.2 * 1024 * 1024 * 1024 },
+          { name: "QoLTweaks.pak", path: "paks/~WorkshopMods/QoLTweaks.pak", dir: false, size: 8.4 * 1024 * 1024 },
+        ];
+      }
+      return [];
+    }
+    function markPathButtons() {
+      document.querySelectorAll("button[data-path]").forEach((b) => {
+        b.classList.toggle("is-current", (b.getAttribute("data-path") || "") === current);
+      });
+    }
     async function list(path) {
       current = path || "";
       $("crumb").textContent = "Path: /" + (current || "") + " · sample";
       show($("mod-err"), "");
+      show($("mod-ok"), "");
+      markPathButtons();
       const rows = $("rows");
       rows.replaceChildren();
-      [
-        { name: "paks", dir: true, size: "dir" },
-        { name: "example.pak", dir: false, size: "2.1 MiB" },
-      ].forEach((e) => {
+      if (current) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 3;
+        const a = document.createElement("button");
+        a.className = "btn-ghost";
+        a.textContent = ".. (parent)";
+        a.onclick = () => {
+          const i = current.lastIndexOf("/");
+          list(i < 0 ? "" : current.slice(0, i));
+        };
+        td.appendChild(a);
+        tr.appendChild(td);
+        rows.appendChild(tr);
+      }
+      const entries = mockEntries(current);
+      if (!entries.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 3;
+        td.className = "muted";
+        td.textContent = "No files in this folder (sample).";
+        tr.appendChild(td);
+        rows.appendChild(tr);
+        return;
+      }
+      entries.forEach((e) => {
         const tr = document.createElement("tr");
         const nameTd = document.createElement("td");
-        nameTd.textContent = e.dir ? e.name + "/" : e.name;
+        if (e.dir) {
+          const b = document.createElement("button");
+          b.className = "btn-ghost";
+          b.textContent = e.name + "/";
+          b.onclick = () => list(e.path);
+          nameTd.appendChild(b);
+        } else {
+          nameTd.textContent = e.name;
+        }
         const sizeTd = document.createElement("td");
         sizeTd.className = "muted";
-        sizeTd.textContent = e.size;
+        sizeTd.textContent = e.dir ? "dir" : fmt(e.size);
         const act = document.createElement("td");
         act.className = "muted";
         act.textContent = "disabled";
@@ -611,9 +776,18 @@
       ev.preventDefault();
       const f = $("file").files[0];
       if (!f) return;
-      const btn = ev.target.querySelector("button[type=submit]");
       show($("mod-err"), "");
       show($("mod-ok"), "");
+      if ($("mod-progress")) $("mod-progress").hidden = true;
+      if (!isPakName(f.name)) {
+        show($("mod-err"), "Only .pak files are supported.");
+        return;
+      }
+      if (f.size > mockFreeBytes) {
+        show($("mod-err"), "File is larger than 6.8 GB free on the mods PVC. Upload rejected.");
+        return;
+      }
+      const btn = ev.target.querySelector("button[type=submit]");
       const wrap = $("mod-progress");
       const bar = $("mod-progress-bar");
       const label = $("mod-progress-label");
@@ -624,7 +798,7 @@
       const tick = setInterval(() => {
         p = Math.min(p + 14, 90);
         bar.style.width = p + "%";
-        label.textContent = "Uploading " + f.name + "… " + p + "% (preview)";
+        label.textContent = "Uploading " + f.name + " (" + fmt(f.size) + ")… " + p + "% (preview)";
       }, 70);
       await new Promise((r) => setTimeout(r, 650));
       clearInterval(tick);

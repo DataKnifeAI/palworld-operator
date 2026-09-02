@@ -143,6 +143,88 @@ const uiHTML = `<!DOCTYPE html>
       font-size: .9rem;
     }
     .note { border-left-color: var(--teal); }
+    .mod-notes {
+      margin: 1.35rem 0 0;
+      background: var(--sand);
+      border: 1px solid rgba(232,160,48,.45);
+      border-radius: .65rem;
+      box-shadow: inset 5px 0 0 var(--amber);
+      padding: 1rem 1.15rem 1.05rem 1.25rem;
+    }
+    .mod-notes h2 {
+      margin: 0 0 .65rem;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .mod-notes ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .mod-notes li {
+      position: relative;
+      padding: .55rem .7rem .55rem 1.15rem;
+      margin: 0 0 .45rem;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      font-size: .9rem;
+      color: var(--ink);
+    }
+    .mod-notes li:last-child { margin-bottom: 0; }
+    .mod-notes li::before {
+      content: "";
+      position: absolute;
+      left: .45rem;
+      top: .75rem;
+      width: .35rem;
+      height: .35rem;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .space-meter {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: .65rem;
+      padding: .85rem 1.05rem 1rem;
+      margin: 0 0 1rem;
+      max-width: 36rem;
+    }
+    .space-meter__head {
+      display: flex;
+      justify-content: space-between;
+      gap: .75rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: .45rem;
+    }
+    .space-meter__head strong {
+      font-family: var(--font-display);
+      font-size: .95rem;
+    }
+    .space-meter__head span { font-size: .82rem; color: var(--muted); }
+    .space-meter__track {
+      height: .7rem;
+      background: rgba(28,46,40,.08);
+      border: 1px solid var(--line);
+      border-radius: .45rem;
+      overflow: hidden;
+    }
+    .space-meter__bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--teal), var(--grass));
+      border-radius: .45rem;
+    }
+    .space-meter__hint { margin: .45rem 0 0; font-size: .82rem; color: var(--muted); }
+    .btn-ghost.is-current {
+      border-color: var(--teal);
+      background: rgba(42,168,160,.12);
+      color: var(--sky-deep);
+    }
     .group {
       background: var(--paper);
       border: 1px solid var(--line);
@@ -364,9 +446,18 @@ const uiHTML = `<!DOCTYPE html>
     </section>
 
     <section id="mods" class="panel" role="tabpanel">
-      <p class="lede">Linux PalServer does <strong>not</strong> load official Workshop or <code>PalModSettings.ini</code>.</p>
-      <p class="lede">Community <code>.pak</code> files go in <code>paks/~WorkshopMods</code> and <code>paks/LogicMods</code>.</p>
-      <p class="lede"><a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods (Windows)</a> · <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a></p>
+      <p class="lede"><strong>Palworld Server does load community pak files.</strong> Drop community <code>.pak</code> files in <code>paks/~WorkshopMods</code> or <code>paks/LogicMods</code>.</p>
+      <p class="lede"><a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods</a></p>
+      <div class="space-meter" aria-label="Mods PVC space">
+        <div class="space-meter__head">
+          <strong>Mods PVC space</strong>
+          <span id="mod-space-label">Checking space…</span>
+        </div>
+        <div class="space-meter__track">
+          <div class="space-meter__bar" id="mod-space-bar" style="width:0%"></div>
+        </div>
+        <p class="space-meter__hint" id="mod-space-hint">Upload is rejected if the file is larger than free space, so a mid-write fill of the PVC cannot happen.</p>
+      </div>
       <div class="row" style="margin-top:0">
         <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
         <button class="btn-ghost" type="button" data-path="paks/~WorkshopMods">paks/~WorkshopMods</button>
@@ -388,17 +479,29 @@ const uiHTML = `<!DOCTYPE html>
       </table>
       <form class="row" id="upload">
         <div>
-          <label for="file">Upload into current folder</label>
-          <input id="file" name="file" type="file" required />
+          <label for="file">Upload .pak into current folder</label>
+          <input id="file" name="file" type="file" accept=".pak" required />
+          <p class="muted" id="mod-upload-hint" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than free space is rejected before upload.</p>
         </div>
         <button class="btn" type="submit">Upload</button>
       </form>
+      <aside class="mod-notes" aria-labelledby="mod-notes-heading">
+        <h2 id="mod-notes-heading">Notes</h2>
+        <ul>
+          <li>Official Workshop, <code>PalModSettings.ini</code>, <code>-workshopdir</code>, UE4SS, Lua, and Win64 DLLs are not supported.</li>
+          <li>Both the client and the server must have the mod installed for it to work.</li>
+          <li>Mods typically align to PC players.</li>
+          <li>If Crossplay is enabled, console players may fail to connect if unsupported mods are enabled on the server.</li>
+        </ul>
+      </aside>
     </section>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
     const opts = { credentials: "same-origin" };
-    let current = "";
+    const defaultModsPath = "paks/~WorkshopMods";
+    let current = defaultModsPath;
+    let modsFreeBytes = 0;
     let statsTimer = null;
 
     function show(el, msg) { if (el) el.textContent = msg || ""; }
@@ -416,10 +519,34 @@ const uiHTML = `<!DOCTYPE html>
       if (n == null) return "—";
       const x = Number(n);
       if (x < 1024) return x + " B";
-      const u = ["KiB","MiB","GiB"];
-      let i = -1, v = x;
-      do { v /= 1024; i++; } while (v >= 1024 && i < u.length-1);
-      return v.toFixed(1) + " " + u[i];
+      if (x < 1024 * 1024) return (x / 1024).toFixed(1) + " KB";
+      if (x < 1024 * 1024 * 1024) return (x / (1024 * 1024)).toFixed(1) + " MB";
+      return (x / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+    }
+    function isPakName(name) {
+      return /\.pak$/i.test(name || "");
+    }
+    function renderSpace(space) {
+      const used = Number(space && space.used) || 0;
+      const free = Number(space && space.free) || 0;
+      const total = Number(space && space.total) || 0;
+      modsFreeBytes = free;
+      const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+      const bar = $("mod-space-bar");
+      const label = $("mod-space-label");
+      const uploadHint = $("mod-upload-hint");
+      if (bar) bar.style.width = pct + "%";
+      if (label) label.textContent = fmt(used) + " used · " + fmt(free) + " free of " + fmt(total);
+      if (uploadHint) uploadHint.innerHTML = "Only <code>.pak</code> files are accepted. A file larger than " + fmt(free) + " free is rejected before upload.";
+    }
+    async function loadSpace() {
+      try {
+        const space = await api("/api/space");
+        renderSpace(space);
+      } catch (e) {
+        const label = $("mod-space-label");
+        if (label) label.textContent = "Space unavailable";
+      }
     }
     function pick(obj, keys) {
       if (!obj) return undefined;
@@ -433,7 +560,7 @@ const uiHTML = `<!DOCTYPE html>
       document.querySelectorAll(".trail button[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === id ? "true" : "false"));
       if (id === "overview") refreshStats();
       if (id === "saves") loadSaves();
-      if (id === "mods") list(current);
+      if (id === "mods") { list(current); loadSpace(); }
     }
     document.querySelectorAll(".trail button[data-tab]").forEach((b) => {
       b.onclick = () => setTab(b.getAttribute("data-tab"));
@@ -622,11 +749,17 @@ const uiHTML = `<!DOCTYPE html>
       if (!dir) return name;
       return dir.replace(/\/$/, "") + "/" + name;
     }
+    function markPathButtons() {
+      document.querySelectorAll("button[data-path]").forEach((b) => {
+        b.classList.toggle("is-current", (b.getAttribute("data-path") || "") === current);
+      });
+    }
     async function list(path) {
       current = path || "";
       $("crumb").textContent = "Path: /" + (current || "");
       show($("mod-err"), "");
       show($("mod-ok"), "");
+      markPathButtons();
       if ($("mod-progress")) $("mod-progress").hidden = true;
       try {
         const data = await api("/api/files?path=" + encodeURIComponent(current));
@@ -664,7 +797,7 @@ const uiHTML = `<!DOCTYPE html>
           }
           const sizeTd = document.createElement("td");
           sizeTd.className = "muted";
-          sizeTd.textContent = e.dir ? "dir" : e.size;
+          sizeTd.textContent = e.dir ? "dir" : fmt(e.size);
           const act = document.createElement("td");
           const del = document.createElement("button");
           del.className = "btn-danger";
@@ -672,7 +805,8 @@ const uiHTML = `<!DOCTYPE html>
           del.onclick = async () => {
             if (!confirm("Delete " + e.path + "? This cannot be undone.")) return;
             await api("/api/files?path=" + encodeURIComponent(e.path), { method: "DELETE" });
-            list(current);
+            await list(current);
+            loadSpace();
           };
           act.appendChild(del);
           tr.append(nameTd, sizeTd, act);
@@ -736,9 +870,17 @@ const uiHTML = `<!DOCTYPE html>
       ev.preventDefault();
       const f = $("file").files[0];
       if (!f) return;
-      const btn = ev.target.querySelector("button[type=submit]");
       show($("mod-err"), "");
       show($("mod-ok"), "");
+      if (!isPakName(f.name)) {
+        show($("mod-err"), "Only .pak files are supported.");
+        return;
+      }
+      if (modsFreeBytes > 0 && f.size > modsFreeBytes) {
+        show($("mod-err"), "File is larger than " + fmt(modsFreeBytes) + " free on the mods PVC. Upload rejected.");
+        return;
+      }
+      const btn = ev.target.querySelector("button[type=submit]");
       setUploadProgress(0, f.size || 0);
       if (btn) btn.disabled = true;
       const fd = new FormData();
@@ -748,6 +890,7 @@ const uiHTML = `<!DOCTYPE html>
         const out = await uploadWithProgress("/api/upload", fd, setUploadProgress);
         $("file").value = "";
         await list(current);
+        loadSpace();
         $("mod-progress").hidden = false;
         $("mod-progress-bar").classList.remove("is-indeterminate");
         $("mod-progress-bar").style.width = "100%";

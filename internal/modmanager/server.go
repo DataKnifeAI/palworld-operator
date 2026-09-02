@@ -67,6 +67,7 @@ type Server struct {
 	restarter  Restarter
 	httpClient *http.Client
 	mux        *http.ServeMux
+	usage      func(root string) (diskUsage, error)
 }
 
 type fileEntry struct {
@@ -131,6 +132,7 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /api/upload", s.handleUpload)
 	s.mux.HandleFunc("DELETE /api/files", s.handleDelete)
 	s.mux.HandleFunc("POST /api/restart", s.handleRestart)
+	s.mux.HandleFunc("GET /api/space", s.handleSpace)
 	s.mux.HandleFunc("GET /api/stats", s.handleStats)
 	s.mux.HandleFunc("POST /api/announce", s.handleAnnounce)
 	s.mux.HandleFunc("POST /api/save", s.handleSave)
@@ -184,6 +186,26 @@ func (s *Server) handleLogout(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) handleUI(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(uiHTML))
+}
+
+func (s *Server) modsUsage() (diskUsage, error) {
+	if s.usage != nil {
+		return s.usage(s.root)
+	}
+	return diskUsageOf(s.root)
+}
+
+func (s *Server) handleSpace(w http.ResponseWriter, _ *http.Request) {
+	if s.root == "" {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
+		return
+	}
+	usage, err := s.modsUsage()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "space check failed"})
+		return
+	}
+	writeJSON(w, http.StatusOK, usage)
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
@@ -264,6 +286,15 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
 		return
 	}
+	usage, usageErr := s.modsUsage()
+	if usageErr != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "space check failed"})
+		return
+	}
+	if r.ContentLength > 0 && r.ContentLength > usage.Free {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: spaceError(usage.Free)})
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	reader, err := r.MultipartReader()
 	if err != nil {
@@ -338,7 +369,7 @@ func uploadStatus(err error) int {
 	if errors.Is(err, errPathEscape) || errors.Is(err, errEmptyName) {
 		return http.StatusBadRequest
 	}
-	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir) {
+	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir || err.Error() == "space check failed") {
 		return http.StatusInternalServerError
 	}
 	return http.StatusBadRequest
@@ -356,6 +387,16 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 	if err != nil {
 		return fileEntry{}, "", err
 	}
+	if !isPakName(base) {
+		return fileEntry{}, "", errors.New(errNotPak)
+	}
+	usage, usageErr := s.modsUsage()
+	if usageErr != nil {
+		return fileEntry{}, "", errors.New("space check failed")
+	}
+	if usage.Free <= 0 {
+		return fileEntry{}, "", errors.New(spaceError(0))
+	}
 	destRel := joinUploadRel(dirRel, base)
 	abs, err := SafeJoin(s.root, destRel)
 	if err != nil {
@@ -369,7 +410,7 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 	if err != nil {
 		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	n, copyErr := io.Copy(dst, part)
+	n, copyErr := io.Copy(dst, io.LimitReader(part, usage.Free+1))
 	closeErr := dst.Close()
 	if copyErr != nil || closeErr != nil {
 		_ = os.Remove(tmp)
@@ -380,6 +421,10 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 			}
 		}
 		return fileEntry{}, "", errors.New(errUploadWrite)
+	}
+	if n > usage.Free {
+		_ = os.Remove(tmp)
+		return fileEntry{}, "", errors.New(spaceError(usage.Free))
 	}
 	if err := os.Rename(tmp, abs); err != nil {
 		_ = os.Remove(tmp)

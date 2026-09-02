@@ -177,6 +177,74 @@ func TestUploadRelocatesWhenPathFollowsFile(t *testing.T) {
 	}
 }
 
+func TestUploadRejectsNonPak(t *testing.T) {
+	s, root := testServer(t, nil)
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("path", "paks/~WorkshopMods")
+	fw, err := mw.CreateFormFile("file", "notes.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write([]byte("nope")); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", &buf, mw.FormDataContentType())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), errNotPak) {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+	if _, err := os.Stat(filepath.Join(root, "paks", "~WorkshopMods", "notes.txt")); !os.IsNotExist(err) {
+		t.Fatal("non-pak must not be written")
+	}
+}
+
+func TestUploadRejectsWhenNoSpace(t *testing.T) {
+	s, _ := testServer(t, nil)
+	s.usage = func(string) (diskUsage, error) {
+		return diskUsage{Used: 10, Free: 3, Total: 13}, nil
+	}
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("path", "paks/~WorkshopMods")
+	fw, err := mw.CreateFormFile("file", "big.pak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write([]byte("12345")); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", &buf, mw.FormDataContentType())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "free on the mods PVC") {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+}
+
+func TestSpaceEndpoint(t *testing.T) {
+	s, _ := testServer(t, nil)
+	s.usage = func(string) (diskUsage, error) {
+		return diskUsage{Used: 3200, Free: 6800, Total: 10000}, nil
+	}
+	rec := doAuth(t, s, http.MethodGet, "/api/space", nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"free":6800`) || !strings.Contains(rec.Body.String(), `"used":3200`) {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+}
+
 func TestRejectTraversalOnAPI(t *testing.T) {
 	s, _ := testServer(t, nil)
 	for _, path := range []string{"../etc/passwd", "/etc/passwd", "foo/../../../etc/passwd"} {
@@ -245,6 +313,39 @@ func TestUIRequiresAuth(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "mod-progress") || !strings.Contains(rec.Body.String(), "uploadWithProgress") {
 		t.Fatal("ui must show mods upload progress")
+	}
+	if !strings.Contains(rec.Body.String(), "Palworld Server does load community pak files") {
+		t.Fatal("ui must lead with community pak support")
+	}
+	if !strings.Contains(rec.Body.String(), `data-path="paks/~WorkshopMods"`) || !strings.Contains(rec.Body.String(), `const defaultModsPath = "paks/~WorkshopMods"`) {
+		t.Fatal("ui must default to paks/~WorkshopMods")
+	}
+	if !strings.Contains(rec.Body.String(), `accept=".pak"`) {
+		t.Fatal("ui must accept .pak only")
+	}
+	if !strings.Contains(rec.Body.String(), "space-meter") || !strings.Contains(rec.Body.String(), "/api/space") {
+		t.Fatal("ui must show mods PVC space bar")
+	}
+	if !strings.Contains(rec.Body.String(), "mod-notes") {
+		t.Fatal("ui must highlight mods notes")
+	}
+	if !strings.Contains(rec.Body.String(), "Mods typically align to PC players") {
+		t.Fatal("ui must note PC-aligned mods")
+	}
+	if !strings.Contains(rec.Body.String(), "console players may fail to connect") {
+		t.Fatal("ui must note Crossplay console caveat")
+	}
+	if strings.Contains(rec.Body.String(), "Yorkhost") || strings.Contains(rec.Body.String(), "yorkhost") {
+		t.Fatal("ui must not mention Yorkhost")
+	}
+	if strings.Contains(rec.Body.String(), "this image") || strings.Contains(rec.Body.String(), "Linux PalServer does") {
+		t.Fatal("ui must drop this-image / Linux PalServer does not load copy")
+	}
+	if strings.Contains(rec.Body.String(), "Pocketpair mods (Windows)") {
+		t.Fatal("Pocketpair mods link must not have a Windows suffix")
+	}
+	if strings.Contains(rec.Body.String(), "T-Box") || strings.Contains(rec.Body.String(), "PalDressing") {
+		t.Fatal("ui must not name the live example mod")
 	}
 }
 

@@ -9,14 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Opt-in `spec.mods`: dedicated `{name}-mods` PVC at `/pal/Package/Mods` plus default Paks **subpath** overlays (`~WorkshopMods`, `LogicMods`) so Linux `.pak` files do not hide `Pal-LinuxServer.pak`. Official Workshop loader remains Windows-only; UE4SS/Win64 is not this image. Optional `activeModList`; `-workshopdir` off unless `useWorkshopDirArg`.
+- Opt-in `spec.mods`: dedicated `{name}-mods` PVC at `/pal/Package/Mods` plus default Paks **subpath** overlays (`~WorkshopMods`, `LogicMods`) so Linux `.pak` files do not hide `Pal-LinuxServer.pak`. Palworld Server does load community pak files; official Workshop / UE4SS / Win64 DLLs are not supported. Optional `activeModList`; `-workshopdir` off unless `useWorkshopDirArg`.
 - Opt-in `spec.serverManager` (deprecated alias `spec.modManager`): authenticated **Server Manager** sidecar (`/server-manager` in the operator image; `/mod-manager` kept as a copy) on the Gateway VIP. **HTTPS by default** (listener 443, reuse an existing `kubernetes.io/tls` Secret via `tlsSecretRef`; HTTP :8088 redirects). Tabs: Overview (REST `/info` `/metrics` `/players`), Controls (announce / save / shutdown + Recreate restart), Saves (zip download / restore of `SaveGames`, optional Config with INI passwords redacted), Mods (PVC files). Basic auth `admin` + `admin-password`. Path sandbox on mods and saves. REST is proxied from localhost — not public-routed. Sample CR stays commented (would Recreate a live world).
 
 ### Changed
 
+- Server Manager Mods tab: Palworld Server does load community pak files. Default path `paks/~WorkshopMods`, `.pak`-only upload (client + 400), human-readable MB/GB sizes, PVC used/free bar, reject if the file will not fit. Notes callout for Workshop/UE4SS limits, client+server install, PC-aligned mods, and Crossplay/console. No Yorkhost.
+- Docs / GitHub Pages / CRD comments: community pak support + `.pak` limitation; drop Yorkhost and “Linux PalServer does not load” / “this image” phrasing. Pocketpair mods link has no Windows suffix.
 - Server Manager UI: world-keeper hero (Pages art + Bricolage/Figtree), no header lede, larger overview cards, grouped Controls (announce+save / restart / isolated shutdown) and Saves (controls first, isolated replace-world) with confirmations.
 - Server Manager **Log out** (header + nav): `GET /logout` returns 401 + `WWW-Authenticate` and the UI fetch/XHR with bogus credentials then sends the browser to `/` so cached basic auth prompts again.
-- Docs / GitHub Pages: honest Linux vs Windows mods — official Workshop / `PalModSettings.ini` / `-workshopdir` are Windows-only on this Linux `palserver` image; client `bAllowClientMod` is join policy; community PAK overlays vs UE4SS; consoles cannot load PC client mods; server content mods can lock consoles out. Visible site section `#mods` (Pocketpair + Yorkhost links).
+- Docs / GitHub Pages: honest Linux vs Windows mods — Palworld Server does load community pak files; official Workshop / `PalModSettings.ini` / `-workshopdir` / UE4SS are not supported; client `bAllowClientMod` is join policy; consoles cannot load PC client mods; server content mods can lock consoles out. Visible site section `#mods` (Pocketpair mods link).
 - Docs: Pocketpair v1.0.3 RCON is **deprecated**; REST is the replacement. Operator uses REST announce + admin basic auth (not RCON commands). Stop/save is still SIGTERM + `terminationGracePeriodSeconds`; REST `POST /save` and `/shutdown` are documented but not called yet. `spec.rcon` stays ClusterIP default-on as a legacy listener.
 
 ### Planned / known gaps
