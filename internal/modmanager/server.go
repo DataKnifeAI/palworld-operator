@@ -41,6 +41,7 @@ const (
 	errRESTDisabled = "Palworld REST is not configured on this sidecar"
 	errUploadWrite  = "write failed"
 	errUploadMkdir  = "create directory failed"
+	errSpaceCheck   = "space check failed"
 	headerWWWAuth   = "WWW-Authenticate"
 	// DefaultUser is the basic-auth username (same as Palworld REST admin).
 	DefaultUser = "admin"
@@ -202,7 +203,7 @@ func (s *Server) handleSpace(w http.ResponseWriter, _ *http.Request) {
 	}
 	usage, err := s.modsUsage()
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "space check failed"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errSpaceCheck})
 		return
 	}
 	writeJSON(w, http.StatusOK, usage)
@@ -288,7 +289,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	usage, usageErr := s.modsUsage()
 	if usageErr != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "space check failed"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errSpaceCheck})
 		return
 	}
 	if r.ContentLength > 0 && r.ContentLength > usage.Free {
@@ -369,7 +370,7 @@ func uploadStatus(err error) int {
 	if errors.Is(err, errPathEscape) || errors.Is(err, errEmptyName) {
 		return http.StatusBadRequest
 	}
-	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir || err.Error() == "space check failed") {
+	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir || err.Error() == errSpaceCheck) {
 		return http.StatusInternalServerError
 	}
 	return http.StatusBadRequest
@@ -392,7 +393,7 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 	}
 	usage, usageErr := s.modsUsage()
 	if usageErr != nil {
-		return fileEntry{}, "", errors.New("space check failed")
+		return fileEntry{}, "", errors.New(errSpaceCheck)
 	}
 	if usage.Free <= 0 {
 		return fileEntry{}, "", errors.New(spaceError(0))
