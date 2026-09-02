@@ -199,13 +199,11 @@ type ModsStorageSpec struct {
 }
 
 // ModsConfig mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
-// PAK overlays. Official Workshop loading is Windows-only
-// (https://docs.palworldgame.com/settings-and-operation/mod/). Native Linux
-// can drop version-matched .pak files under Pal/Content/Paks/ subfolders
-// (community practice; see https://yorkhost.fr/docs/en/palworld/mods-ue4ss).
-// UE4SS (Pal/Binaries/Win64) needs Windows DLL injection / Proton — not the
-// official PalServer-Linux-Shipping image. The official image does not ship
-// /pal/Package/Mods. See docs/PALWORLD_SERVER.md.
+// PAK overlays. Palworld Server does load community pak files under
+// Pal/Content/Paks/ subfolders (~WorkshopMods, LogicMods). Only .pak is
+// supported. Official Workshop, PalModSettings.ini, -workshopdir, UE4SS,
+// Lua, and Win64 DLLs are not supported. Both the client and the server
+// must have the mod installed. See docs/PALWORLD_SERVER.md.
 type ModsConfig struct {
 	// Enabled creates PVC {metadata.name}-mods and mounts it into the game
 	// container. Default false — enabling rolls the Deployment (Recreate).
@@ -465,7 +463,7 @@ type PalworldServerSpec struct {
 
 	// Mods mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
 	// PAK overlays under Pal/Content/Paks/~WorkshopMods and LogicMods.
-	// Official Workshop loader is Windows-only; UE4SS/Win64 is not this image.
+	// Palworld Server does load community pak files; official Workshop / UE4SS / Win64 DLLs are not supported.
 	// Default disabled so existing worlds are not rolled.
 	// +optional
 	Mods ModsConfig `json:"mods,omitempty"`

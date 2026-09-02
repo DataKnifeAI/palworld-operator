@@ -7,8 +7,7 @@ Sources:
 - [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/)
 - [REST API](https://docs.palworldgame.com/category/rest-api/) — replacement for RCON (v1.0.3). Intro URL is [`/api/rest-api/palwold-rest-api`](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) (official typo; spelled-correct 404s)
 - [RCON](https://docs.palworldgame.com/api/rcon/) — **deprecated**; scheduled to stop in an upcoming update
-- [Installing mods on a server](https://docs.palworldgame.com/settings-and-operation/mod/) — **Windows-only** official Workshop loader
-- [Yorkhost PAK / UE4SS notes](https://yorkhost.fr/docs/en/palworld/mods-ue4ss) — community Linux vs Win64 (not Pocketpair)
+- [Pocketpair mods](https://docs.palworldgame.com/settings-and-operation/mod/)
 - [Official Docker image (Pocketpair)](https://github.com/pocketpairjp/palworld-dedicated-server-docker) — `ghcr.io/pocketpairjp/palserver`
 - [thijsvanloef/palworld-server-docker](https://github.com/thijsvanloef/palworld-server-docker) (community alternative)
 
@@ -64,20 +63,24 @@ Recommended PVC size: start at **50–100Gi** (worlds grow with bases/Pals). Sto
 
 ### Mods — Linux vs Windows (honest)
 
-This operator’s **default image is Linux** [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker). Pocketpair’s [official dedicated-server mods](https://docs.palworldgame.com/settings-and-operation/mod/) (Workshop loader, `Mods/PalModSettings.ini`, `-workshopdir`) are **Windows-only**. They do **not** load on Linux PalServer.
+**Palworld Server does load community pak files.** Only `.pak` is supported. Official Workshop, `PalModSettings.ini`, `-workshopdir`, UE4SS, Lua, and Win64 DLLs are not supported.
 
-Live filesystem: the image has **no** `Mods/` directory. The saves PVC is **`/pal/Package/Pal/Saved` only**. Opt-in `spec.mods` is a *second* PVC so files never mix into world saves.
+Both the client and the server must have the mod installed for it to work. Mods typically align to PC players. If Crossplay is enabled, console players may fail to connect if unsupported mods are enabled on the server.
+
+This operator’s **default image is Linux** [`ghcr.io/pocketpairjp/palserver`](https://github.com/pocketpairjp/palworld-dedicated-server-docker). [Pocketpair mods](https://docs.palworldgame.com/settings-and-operation/mod/) (Workshop loader, `Mods/PalModSettings.ini`, `-workshopdir`) remain unsupported on Linux PalServer.
+
+Live filesystem: the official tree has **no** `Mods/` directory. The saves PVC is **`/pal/Package/Pal/Saved` only**. Opt-in `spec.mods` is a *second* PVC so files never mix into world saves.
 
 | Kind | Linux (this operator) | Windows PalServer |
 |------|----------------------|-------------------|
-| Official Workshop (`Mods/`, `PalModSettings.ini`, `-workshopdir`) | **Not loaded** — mount is forward-looking for a future Pocketpair Linux path | **Yes** — [Pocketpair](https://docs.palworldgame.com/settings-and-operation/mod/) |
+| Official Workshop (`Mods/`, `PalModSettings.ini`, `-workshopdir`) | **Not supported** — mount is forward-looking for a future Pocketpair Linux path | **Yes** — [Pocketpair mods](https://docs.palworldgame.com/settings-and-operation/mod/) |
 | Client mods (`bAllowClientMod`) | Join **policy** only — does not install or host client mods | Same INI flag |
-| Community `.pak` / `.sig` under `Pal/Content/Paks/` | **Possible** if version-matched ([Yorkhost](https://yorkhost.fr/docs/en/palworld/mods-ue4ss)) | Yes |
-| UE4SS (`UE4SS.dll`, Lua under `Pal/Binaries/Win64/`) | **No** — needs Windows/Win64 DLL injection / Proton. Not `PalServer-Linux-Shipping` | Yes (different stack) |
+| Community `.pak` under `Pal/Content/Paks/` | **Yes** — Palworld Server does load community pak files (version-matched) | Yes |
+| UE4SS (`UE4SS.dll`, Lua under `Pal/Binaries/Win64/`) | **Not supported** | Yes (different stack) |
 
 **Client mods** are a join policy, not server content. Set `spec.optionSettings.bAllowClientMod` (`"True"` / `"False"`) so PC clients may or may not connect with their own mods. The server does not download, store, or inject those files. Consoles cannot load PC client mods.
 
-**Server content mods** (Workshop on Windows, or Linux PAK drops) change what the dedicated process serves. They can **lock consoles out** of a crossplay world — keep `spec.crossplayPlatforms` and community listing in mind before adding PAKs.
+**Server content mods** (community `.pak` drops, or Workshop on Windows) change what the dedicated process serves. They can **lock consoles out** of a crossplay world — keep `spec.crossplayPlatforms` and community listing in mind before adding PAKs.
 
 ### Mods PVC (`spec.mods`) — opt-in, two layouts
 
@@ -85,9 +88,9 @@ One dedicated PVC stages files at the real paths without mixing them into the sa
 
 | Kind | Works on official Linux image? | Path |
 |------|--------------------------------|------|
-| **Pocketpair Workshop** (`Mods/`, `PalModSettings.ini`, `Info.json`) | **No today** — Windows-only loader. PVC still creates `/pal/Package/Mods` (image does not ship it). `PalServer.sh` does not pass `-workshopdir`. | PVC root → `/pal/Package/Mods` |
-| **PAK files** (`.pak` + optional `.sig`) | **Yes (community)** — native Linux loads version-matched PAKs under `Pal/Content/Paks/`. Config-only tweaks are `PalWorldSettings.ini` (`spec.optionSettings`), not this PVC. | PVC `paks/~WorkshopMods` and `paks/LogicMods` overlay those **subfolders only** |
-| **UE4SS** | **No** — do not mount Win64 over this image. | n/a |
+| **Pocketpair Workshop** (`Mods/`, `PalModSettings.ini`, `Info.json`) | **Not supported** — PVC still creates `/pal/Package/Mods` (official tree does not ship it). `PalServer.sh` does not pass `-workshopdir`. | PVC root → `/pal/Package/Mods` |
+| **PAK files** (`.pak` only) | **Yes** — Palworld Server does load community pak files under `Pal/Content/Paks/`. Config-only tweaks are `PalWorldSettings.ini` (`spec.optionSettings`), not this PVC. | PVC `paks/~WorkshopMods` and `paks/LogicMods` overlay those **subfolders only** |
+| **UE4SS / Lua / Win64 DLLs** | **Not supported** | n/a |
 
 The image already has `Pal/Content/Paks/Pal-LinuxServer.pak`. We **never** replace the whole `Paks/` directory (that would hide the official pak and the server would not start). Overlays are `~WorkshopMods` and `LogicMods` only — the same subfolders Pocketpair’s Windows loader deploys into.
 
@@ -174,7 +177,7 @@ Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a
 
 The operator image must include `/server-manager` (Dockerfile also copies `/mod-manager`). Rebuild/push Harbor so the sidecar command works. Pin `spec.serverManager.image` to a digest/tag if the game namespace cannot pull `:latest`. Private Harbor may need `spec.imagePullSecrets`.
 
-Linux PalServer still does **not** load official Workshop / `PalModSettings.ini`. Use the Mods tab to drop version-matched `.pak` files under `paks/~WorkshopMods` and `paks/LogicMods`. Path traversal outside the mods and saves mounts is rejected. There is no unauthenticated mode.
+**Palworld Server does load community pak files.** Use the Mods tab to drop version-matched `.pak` files under `paks/~WorkshopMods` and `paks/LogicMods` (default path). Only `.pak` is accepted; uploads larger than free space on the mods PVC are rejected. Both the client and the server must have the mod installed. Path traversal outside the mods and saves mounts is rejected. There is no unauthenticated mode.
 
 ```yaml
 spec:
@@ -193,7 +196,7 @@ spec:
   #     size: 10Gi
 ```
 
-**Honest expectations:** Linux PAK drops may load if they match the pinned server version. Pocketpair Workshop + `PalModSettings.ini` + `-workshopdir` + UE4SS will not load on this image until Pocketpair ships a Linux loader (or you run a different Windows/Proton stack — out of scope).
+**Honest expectations:** Palworld Server does load community pak files when they match the pinned server version. Official Workshop, `PalModSettings.ini`, `-workshopdir`, UE4SS, Lua, and Win64 DLLs are not supported. Both the client and the server must have the mod installed. Mods typically align to PC players. If Crossplay is enabled, console players may fail to connect if unsupported mods are enabled on the server.
 
 ## Container image options
 

@@ -82,8 +82,9 @@ Controls (announce/save/shutdown + Recreate) → Saves (world zip) → Mods.
 REST stays ClusterIP-internal (the UI proxies localhost); legacy RCON does too.
 
 This is not a player-facing surface. Restart in the UI Recreate-rolls the
-game Deployment — everyone disconnects until Ready. Linux PalServer still
-does not load official Workshop packages; see [PALWORLD_SERVER.md](PALWORLD_SERVER.md#optional-server-manager-specservermanager).
+game Deployment — everyone disconnects until Ready. Palworld Server does
+load community pak files; official Workshop is not supported — see
+[PALWORLD_SERVER.md](PALWORLD_SERVER.md#optional-server-manager-specservermanager).
 
 ## In-game steps (PC / Steam — direct connect)
 

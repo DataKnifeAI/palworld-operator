@@ -103,16 +103,14 @@ spec:
   # Dedicated mods PVC (default off). Enabling rolls the game pod — leave
   # commented on a live world. Do not enable on a lasting CR without a
   # maintenance window.
-  # Official Pocketpair server mods are Windows-only:
+  # Palworld Server does load community pak files. Only .pak.
+  # Official Workshop / PalModSettings.ini / -workshopdir / UE4SS /
+  # Lua / Win64 DLLs are not supported.
   #   https://docs.palworldgame.com/settings-and-operation/mod/
-  # This image is Linux PalServer — Workshop / PalModSettings.ini /
-  # -workshopdir are not loaded. Live FS has no Mods/; saves PVC is
-  # /pal/Package/Pal/Saved only.
-  # Native Linux community PAK drops (not UE4SS / Win64 DLL injection):
-  #   https://yorkhost.fr/docs/en/palworld/mods-ue4ss
-  # Client mods: optionSettings.bAllowClientMod is join policy only.
-  # Crossplay: consoles cannot load PC client mods; server content mods
-  # can lock consoles out.
+  # Both client and server must have the mod installed.
+  # Mods typically align to PC players. If Crossplay is enabled,
+  # console players may fail to connect if unsupported mods are on.
+  # Official tree has no Mods/; saves PVC is /pal/Package/Pal/Saved.
   # Mounts /pal/Package/Mods (forward-looking Pocketpair path) plus
   # Paks/~WorkshopMods and Paks/LogicMods overlays (does not replace
   # Pal/Content/Paks or hide Pal-LinuxServer.pak).
@@ -138,8 +136,8 @@ spec:
   # REST stays ClusterIP-internal (UI proxies localhost); RCON is deprecated.
   # Sidecar binary is /server-manager from the operator image (/mod-manager
   # is kept as a copy). spec.modManager is a deprecated alias.
-  # Linux PalServer still does not load official Workshop packages; use
-  # paks/~WorkshopMods and paks/LogicMods for community .pak drops.
+  # Palworld Server does load community pak files under
+  # paks/~WorkshopMods and paks/LogicMods.
   #
   # serverManager:
   #   enabled: true

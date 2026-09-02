@@ -280,7 +280,7 @@ spec:
                 description: |-
                   Mods mounts a dedicated PVC for Pocketpair Mods/ and optional Linux
                   PAK overlays under Pal/Content/Paks/~WorkshopMods and LogicMods.
-                  Official Workshop loader is Windows-only; UE4SS/Win64 is not this image.
+                  Palworld Server does load community pak files; official Workshop / UE4SS / Win64 DLLs are not supported.
                   Default disabled so existing worlds are not rolled.
                 properties:
                   activeModList:

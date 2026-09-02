@@ -75,21 +75,21 @@ Apply with a **merge-patch** (so other spec fields stay), wait for the ConfigMap
 
 ## Can I load server mods on Linux / the official image?
 
-**Depends which kind.** This operator defaults to Linux `ghcr.io/pocketpairjp/palserver`. Pocketpair’s [official Workshop loader](https://docs.palworldgame.com/settings-and-operation/mod/) (`Mods/`, `PalModSettings.ini`, `-workshopdir`) is **Windows-only** — Linux PalServer does not load it. The live image has **no** `Mods/` dir; the saves PVC is `/pal/Package/Pal/Saved` only.
+**Yes for community `.pak` files.** Palworld Server does load community pak files. Only `.pak` is supported. Official Workshop, `PalModSettings.ini`, `-workshopdir`, UE4SS, Lua, and Win64 DLLs are not supported. Both the client and the server must have the mod installed. Mods typically align to PC players. If Crossplay is enabled, console players may fail to connect if unsupported mods are enabled on the server.
 
-[Yorkhost’s UE4SS notes](https://yorkhost.fr/docs/en/palworld/mods-ue4ss) (community host, not Pocketpair): native Linux can take **PAK** files under `Pal/Content/Paks/`; **UE4SS** needs Windows DLL injection (`Pal/Binaries/Win64/`) / Proton, which is **not** `PalServer-Linux-Shipping`.
+This operator defaults to Linux `ghcr.io/pocketpairjp/palserver`. [Pocketpair mods](https://docs.palworldgame.com/settings-and-operation/mod/) (`Mods/`, `PalModSettings.ini`, `-workshopdir`) remain unsupported on Linux PalServer. The official tree has **no** `Mods/` dir; the saves PVC is `/pal/Package/Pal/Saved` only.
 
-| Kind | Official Linux image |
+| Kind | Official Linux PalServer |
 |------|----------------------|
-| Workshop (`Mods/`, `PalModSettings.ini`, `-workshopdir`) | Not loaded. Opt-in PVC still mounts `/pal/Package/Mods` (forward-looking Pocketpair path). |
-| `.pak` / `.sig` | Possible if version-matched. Overlay is `Paks/~WorkshopMods` and `Paks/LogicMods` only — **never** the whole `Paks/` dir (would hide `Pal-LinuxServer.pak`). |
-| UE4SS / Lua / Win64 | No. Different stack. |
+| Workshop (`Mods/`, `PalModSettings.ini`, `-workshopdir`) | Not supported. Opt-in PVC still mounts `/pal/Package/Mods` (forward-looking Pocketpair path). |
+| `.pak` | **Yes** — Palworld Server does load community pak files (version-matched). Overlay is `Paks/~WorkshopMods` and `Paks/LogicMods` only — **never** the whole `Paks/` dir (would hide `Pal-LinuxServer.pak`). |
+| UE4SS / Lua / Win64 | Not supported. |
 | Client mods | `spec.optionSettings.bAllowClientMod` is **join policy only** — does not install mods on the server. Consoles cannot load PC client mods. |
 | Config / balance | Use `spec.optionSettings` → `PalWorldSettings.ini`, not the mods PVC. |
 
-`spec.mods.enabled: true` creates `{name}-mods` and (by default) those Paks **subpath** overlays. Enabling rolls the game pod; leave it off on a live world unless you accept the Recreate. **Back up the saves PVC and pin `spec.serverImage` first** — a bad PAK can stop the server from starting. Server content mods can also **lock consoles out** of a crossplay world.
+`spec.mods.enabled: true` creates `{name}-mods` and (by default) those Paks **subpath** overlays. Enabling rolls the game pod; leave it off on a live world unless you accept the Recreate. **Back up the saves PVC and pin `spec.serverImage` first** — a bad PAK can stop the server from starting.
 
-Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods](PALWORLD_SERVER.md#mods--linux-vs-windows-honest)), or enable the optional **Server Manager** (`spec.serverManager.enabled`; `spec.modManager` is a deprecated alias) — HTTPS UI on `https://<spec.serverManager.hostname>/` with basic auth (`admin` + `admin-password`). Overview/Controls/Saves work without mods; the Mods tab needs `spec.mods.enabled`. Restart Recreate-rolls the game Deployment (downtime). Save zip download/restore lives on the Saves tab. Linux Workshop still does not load; drop `.pak` files under `paks/~WorkshopMods` / `paks/LogicMods`. Optional `activeModList` seeds `PalModSettings.ini` (Windows loader / future Linux). `-workshopdir` stays off unless `useWorkshopDirArg: true`.
+Copy files with a short-lived pod (see [PALWORLD_SERVER.md — Mods](PALWORLD_SERVER.md#mods--linux-vs-windows-honest)), or enable the optional **Server Manager** (`spec.serverManager.enabled`; `spec.modManager` is a deprecated alias) — HTTPS UI on `https://<spec.serverManager.hostname>/` with basic auth (`admin` + `admin-password`). Overview/Controls/Saves work without mods; the Mods tab needs `spec.mods.enabled` and defaults to `paks/~WorkshopMods`. Restart Recreate-rolls the game Deployment (downtime). Save zip download/restore lives on the Saves tab. Optional `activeModList` seeds `PalModSettings.ini` (unsupported on Linux today). `-workshopdir` stays off unless `useWorkshopDirArg: true`.
 
 ## How do server updates work with Steam / game patches?
 

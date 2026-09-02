@@ -356,7 +356,7 @@ kubectl get secret palworld-server-secrets -n game-servers \
             <span class="journey__step">4</span>
             <div>
               <h3>Mods</h3>
-              <p>List / upload / delete on the mods PVC. Linux PalServer still does not load official Workshop — community <code>.pak</code> overlays only.</p>
+              <p>List / upload / delete on the mods PVC. Palworld Server does load community pak files under <code>paks/~WorkshopMods</code>.</p>
             </div>
           </li>
         </ol>
@@ -378,30 +378,29 @@ kubectl get secret palworld-server-secrets -n game-servers \
       <div class="wrap wrap--readable">
         <h2 id="mods-heading">Mods on Linux vs Windows</h2>
         <p class="section__lede section__lede--wide">
-          This operator’s default image is Linux
-          <code>ghcr.io/pocketpairjp/palserver</code>.
-          Pocketpair’s official dedicated-server mods are
-          <strong>Windows-only</strong>.
+          <strong>Palworld Server does load community pak files.</strong>
+          Only <code>.pak</code> is supported. Both the client and the server
+          must have the mod installed. Mods typically align to PC players.
           Operator notes:
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/PALWORLD_SERVER.md">docs/PALWORLD_SERVER.md</a>.
         </p>
 
         <ul class="ports ports--passwords">
           <li>
+            <span class="ports__label">Community .pak under Pal/Content/Paks/</span>
+            <span class="ports__value">Yes — Palworld Server does load community pak files. Overlays ~WorkshopMods and LogicMods only — never the whole Paks/ dir.</span>
+          </li>
+          <li>
             <span class="ports__label">Official Workshop / PalModSettings.ini / -workshopdir</span>
-            <span class="ports__value">Not loaded on Linux PalServer. Windows PalServer only.</span>
+            <span class="ports__value">Not supported. Windows PalServer only.</span>
           </li>
           <li>
             <span class="ports__label">Client mods (bAllowClientMod)</span>
             <span class="ports__value">Join policy only — does not install mods. Consoles cannot load PC client mods.</span>
           </li>
           <li>
-            <span class="ports__label">Community .pak under Pal/Content/Paks/</span>
-            <span class="ports__value">Possible on Linux if version-matched. Overlays ~WorkshopMods and LogicMods only — never the whole Paks/ dir.</span>
-          </li>
-          <li>
-            <span class="ports__label">UE4SS / Win64 DLL</span>
-            <span class="ports__value">No — needs Windows injection / Proton. Not this image.</span>
+            <span class="ports__label">UE4SS / Lua / Win64 DLL</span>
+            <span class="ports__value">Not supported.</span>
           </li>
         </ul>
 
@@ -436,9 +435,7 @@ kubectl get secret palworld-server-secrets -n game-servers \
           Optional <a href="#manager">Server Manager</a> (<code>spec.serverManager</code>)
           is an authenticated admin UI on the Gateway VIP (port 8088) with stats,
           REST controls, save zip, and this Mods tab. Leave it off on a live world.
-          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair server mods (Windows)</a>
-          ·
-          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS (Linux vs Win64)</a>
+          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods</a>
           ·
           <a href="https://github.com/DataKnifeAI/palworld-operator/blob/main/docs/FAQ.md">FAQ</a>.
         </p>
@@ -485,11 +482,14 @@ kubectl get secret palworld-server-secrets -n game-servers \
 
         <h3 class="subhead">Server mods on Linux?</h3>
         <p>
-          Official Workshop is <strong>Windows-only</strong> — this image is Linux PalServer.
-          Community <code>.pak</code> drops may load under <code>Paks/~WorkshopMods</code> /
-          <code>LogicMods</code>. UE4SS/Win64 is not this image.
+          <strong>Palworld Server does load community pak files</strong> under
+          <code>Paks/~WorkshopMods</code> / <code>LogicMods</code>. Only
+          <code>.pak</code> is supported. Official Workshop, UE4SS, Lua, and
+          Win64 DLLs are not supported. Both the client and the server must
+          have the mod installed. If Crossplay is enabled, console players
+          may fail to connect if unsupported mods are enabled.
           Optional <a href="#manager">Server Manager</a> is an authenticated admin UI on port 8088
-          (same VIP); it does not make official Workshop load on Linux.
+          (same VIP).
           Client join policy is <code>bAllowClientMod</code> only; consoles cannot load PC client mods.
           Full comparison: <a href="#mods">Mods on Linux vs Windows</a>.
         </p>
@@ -544,9 +544,7 @@ kubectl get secret palworld-server-secrets -n game-servers \
           ·
           <a href="https://dataknifeai.github.io/palworld-operator/#mods">Mods / Linux</a>
           ·
-          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Official server mods (Windows)</a>
-          ·
-          <a href="https://yorkhost.fr/docs/en/palworld/mods-ue4ss">Yorkhost PAK / UE4SS</a>
+          <a href="https://docs.palworldgame.com/settings-and-operation/mod/">Pocketpair mods</a>
           ·
           <a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Official OptionSettings</a>
           ·
