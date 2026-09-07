@@ -52,16 +52,22 @@ func main() {
 	deployment := envOr([]string{"SERVER_MANAGER_DEPLOYMENT", "MOD_MANAGER_DEPLOYMENT"}, "")
 	crName := envOr([]string{"SERVER_MANAGER_CR"}, deployment)
 
-	var crClient modmanager.ServerCR
+	var runtimeCR *modmanager.RuntimeCR
 	if namespace != "" && crName != "" {
 		c, crErr := modmanager.NewRuntimeCR(namespace, crName)
 		if crErr != nil {
 			log.Printf("update CR client unavailable: %v", crErr)
 		} else {
-			crClient = c
+			runtimeCR = c
 		}
 	}
 
+	var crClient modmanager.ServerCR
+	var secrets modmanager.SecretStore
+	if runtimeCR != nil {
+		crClient = runtimeCR
+		secrets = runtimeCR
+	}
 	srv, err := modmanager.New(modmanager.Config{
 		Root:      *root,
 		SavesRoot: *saves,
@@ -69,6 +75,7 @@ func main() {
 		Password:  password,
 		RESTBase:  *restBase,
 		CR:        crClient,
+		Secrets:   secrets,
 		Restarter: &modmanager.DeploymentRestarter{
 			Namespace: namespace,
 			Name:      deployment,

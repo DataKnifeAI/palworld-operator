@@ -186,6 +186,10 @@ func (s *Server) handleUpdatesForce(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRESTDisabled})
 		return
 	}
+	if err := s.restPost(ctx, "/v1/api/save", map[string]string{}); err != nil {
+		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
+		return
+	}
 	startMsg := forceAnnounceText(server.Spec, out.Latest, out.LatestImage, forceCountdown)
 	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{restMessageField: startMsg}); err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
@@ -217,7 +221,7 @@ func (s *Server) handleUpdatesForce(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, actionResponse{Status: "ok", Message: "Updated.", Image: out.LatestImage})
+	writeJSON(w, http.StatusOK, actionResponse{Status: "ok", Message: "Saved, announced, Recreate.", Image: out.LatestImage})
 }
 
 func (s *Server) buildUpdates(ctx context.Context, server *palworldv1alpha1.PalworldServer, fresh bool) (updatesResponse, error) {

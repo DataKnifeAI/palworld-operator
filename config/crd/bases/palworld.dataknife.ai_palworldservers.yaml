@@ -491,8 +491,9 @@ spec:
               serverManager:
                 description: |-
                   ServerManager is an optional authenticated admin UI on the Gateway VIP
-                  (HTTPS by default): world stats, REST controls, save download/restore,
-                  and a Mods tab. Basic auth uses username admin and the admin-password
+                  (HTTPS by default): world stats (kick/ban), REST controls, Updates,
+                  save download/restore, Mods, and Settings (profile + optionSettings +
+                  credential rotate). Basic auth uses username admin and the admin-password
                   Secret key. Default disabled. Do not enable on a live world without a
                   maintenance window (Recreate).
                 properties:

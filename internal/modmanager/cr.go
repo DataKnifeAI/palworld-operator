@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	palworldv1alpha1 "github.com/DataKnifeAI/palworld-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -31,6 +32,12 @@ import (
 type ServerCR interface {
 	Get(ctx context.Context) (*palworldv1alpha1.PalworldServer, error)
 	Update(ctx context.Context, server *palworldv1alpha1.PalworldServer) error
+}
+
+// SecretStore reads and writes one namespaced Secret (rotate one key only).
+type SecretStore interface {
+	GetSecret(ctx context.Context, name string) (*corev1.Secret, error)
+	UpdateSecret(ctx context.Context, secret *corev1.Secret) error
 }
 
 // RuntimeCR uses in-cluster config to get/update one PalworldServer.
@@ -53,6 +60,9 @@ func NewRuntimeCR(namespace, name string) (*RuntimeCR, error) {
 	if err := palworldv1alpha1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
 	c, err := client.New(cfg, client.Options{Scheme: scheme})
 	if err != nil {
 		return nil, err
@@ -73,6 +83,23 @@ func (r *RuntimeCR) Get(ctx context.Context) (*palworldv1alpha1.PalworldServer, 
 func (r *RuntimeCR) Update(ctx context.Context, server *palworldv1alpha1.PalworldServer) error {
 	if err := r.client.Update(ctx, server); err != nil {
 		return fmt.Errorf("update PalworldServer %s/%s: %w", r.namespace, r.name, err)
+	}
+	return nil
+}
+
+// GetSecret returns a Secret in the sidecar namespace.
+func (r *RuntimeCR) GetSecret(ctx context.Context, name string) (*corev1.Secret, error) {
+	out := &corev1.Secret{}
+	if err := r.client.Get(ctx, types.NamespacedName{Namespace: r.namespace, Name: name}, out); err != nil {
+		return nil, fmt.Errorf("get Secret %s/%s: %w", r.namespace, name, err)
+	}
+	return out, nil
+}
+
+// UpdateSecret writes a Secret. Callers must change only the intended key.
+func (r *RuntimeCR) UpdateSecret(ctx context.Context, secret *corev1.Secret) error {
+	if err := r.client.Update(ctx, secret); err != nil {
+		return fmt.Errorf("update Secret %s/%s: %w", r.namespace, secret.Name, err)
 	}
 	return nil
 }

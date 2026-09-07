@@ -131,7 +131,7 @@ func (r *PalworldServerReconciler) reconcileModManagerRBAC(
 			return err
 		}
 		role.Labels = serverLabels(server.Name)
-		role.Rules = []rbacv1.PolicyRule{
+		rules := []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{"apps"},
 				Resources:     []string{"deployments"},
@@ -145,6 +145,15 @@ func (r *PalworldServerReconciler) reconcileModManagerRBAC(
 				Verbs:         []string{"get", "patch", "update"},
 			},
 		}
+		if secretNames := sidecarSecretNames(server); len(secretNames) > 0 {
+			rules = append(rules, rbacv1.PolicyRule{
+				APIGroups:     []string{""},
+				Resources:     []string{"secrets"},
+				ResourceNames: secretNames,
+				Verbs:         []string{"get", "patch", "update"},
+			})
+		}
+		role.Rules = rules
 		return nil
 	}); err != nil {
 		return fmt.Errorf("reconcile server-manager Role: %w", err)

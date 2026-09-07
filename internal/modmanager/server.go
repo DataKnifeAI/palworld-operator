@@ -59,6 +59,7 @@ type Config struct {
 	RESTBase  string
 	Restarter Restarter
 	CR        ServerCR
+	Secrets   SecretStore
 	Tags      controller.TagLister
 	Client    *http.Client
 }
@@ -72,6 +73,7 @@ type Server struct {
 	restBase   string
 	restarter  Restarter
 	cr         ServerCR
+	secrets    SecretStore
 	tags       controller.TagLister
 	httpClient *http.Client
 	mux        *http.ServeMux
@@ -113,6 +115,7 @@ func New(cfg Config) (*Server, error) {
 		restBase:   strings.TrimSpace(cfg.RESTBase),
 		restarter:  cfg.Restarter,
 		cr:         cfg.CR,
+		secrets:    cfg.Secrets,
 		tags:       cfg.Tags,
 		httpClient: cfg.Client,
 		mux:        http.NewServeMux(),
@@ -146,7 +149,14 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("GET /api/stats", s.handleStats)
 	s.mux.HandleFunc("POST /api/announce", s.handleAnnounce)
 	s.mux.HandleFunc("POST /api/save", s.handleSave)
+	s.mux.HandleFunc("POST /api/kick", s.handleKick)
+	s.mux.HandleFunc("POST /api/ban", s.handleBan)
+	s.mux.HandleFunc("POST /api/unban", s.handleUnban)
+	s.mux.HandleFunc("GET /api/bans", s.handleBans)
 	s.mux.HandleFunc("POST /api/shutdown", s.handleShutdown)
+	s.mux.HandleFunc("GET /api/settings", s.handleSettingsGet)
+	s.mux.HandleFunc("PUT /api/settings", s.handleSettingsApply)
+	s.mux.HandleFunc("POST /api/credentials/rotate", s.handleCredentialsRotate)
 	s.mux.HandleFunc("GET /api/saves", s.handleSavesList)
 	s.mux.HandleFunc("GET /api/saves/download", s.handleSavesDownload)
 	s.mux.HandleFunc("POST /api/saves/upload", s.handleSavesUpload)
@@ -500,19 +510,45 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+type restartRequest struct {
+	SaveFirst bool `json:"saveFirst"`
+}
+
 func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 	if s.restarter == nil {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "restart is not configured"})
 		return
 	}
-	if err := s.restarter.Restart(r.Context()); err != nil {
+	var req restartRequest
+	if r.Body != nil {
+		if err := json.NewDecoder(io.LimitReader(r.Body, maxRESTBodyBytes)).Decode(&req); err != nil && err != io.EOF {
+			writeJSON(w, http.StatusBadRequest, errorResponse{Error: errInvalidJSON})
+			return
+		}
+	}
+	ctx := r.Context()
+	if req.SaveFirst {
+		if !s.restConfigured() {
+			writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRESTDisabled})
+			return
+		}
+		if err := s.restPost(ctx, "/v1/api/save", map[string]string{}); err != nil {
+			writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
+			return
+		}
+	}
+	if err := s.restarter.Restart(ctx); err != nil {
 		log.Printf("server manager restart failed: %v", err)
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "restart failed"})
 		return
 	}
+	msg := "Palworld Deployment Recreate requested. Players will disconnect until Ready."
+	if req.SaveFirst {
+		msg = "Saved, then Recreate."
+	}
 	writeJSON(w, http.StatusOK, restartResponse{
 		Status:  "restarting",
-		Message: "Palworld Deployment Recreate requested. Players will disconnect until Ready.",
+		Message: msg,
 	})
 }
 

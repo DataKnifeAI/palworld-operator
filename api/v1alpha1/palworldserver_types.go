@@ -252,13 +252,14 @@ type ModsConfig struct {
 // ServerManagerConfig is an optional authenticated admin UI on the
 // game Gateway VIP (not a LoadBalancer on the game pod). Public access is
 // HTTPS by default (TLS terminate on the Gateway). Tabs: Overview
-// (REST stats), Controls (announce/save/shutdown + Recreate restart),
-// Updates (image pin / latest / auto-update / force update),
-// Saves (world zip download/restore), Mods (PVC file manager). The sidecar
-// proxies Palworld REST on localhost (http://127.0.0.1:8212/v1/api) and
-// does not public-route REST or RCON. RCON is deprecated — use REST via
-// this UI. Enabling Recreate-rolls the game Deployment. The Mods tab
-// needs spec.mods.enabled for the PVC mount.
+// (REST stats, kick/ban, banlist.txt), Controls (announce/save/shutdown +
+// save-then-Recreate restart), Updates (image pin / latest / auto-update /
+// save+announce force update), Saves (world zip download/restore), Mods
+// (PVC file manager), Settings (profile + optionSettings + credential
+// rotate). The sidecar proxies Palworld REST on localhost
+// (http://127.0.0.1:8212/v1/api) and does not public-route REST or RCON.
+// RCON is deprecated — use REST via this UI. Enabling Recreate-rolls the
+// game Deployment. The Mods tab needs spec.mods.enabled for the PVC mount.
 type ServerManagerConfig struct {
 	// Enabled starts the Server Manager sidecar and HTTPS HTTPRoute on the
 	// game Gateway. Default false.
@@ -470,8 +471,9 @@ type PalworldServerSpec struct {
 	Mods ModsConfig `json:"mods,omitempty"`
 
 	// ServerManager is an optional authenticated admin UI on the Gateway VIP
-	// (HTTPS by default): world stats, REST controls, save download/restore,
-	// and a Mods tab. Basic auth uses username admin and the admin-password
+	// (HTTPS by default): world stats (kick/ban), REST controls, Updates,
+	// save download/restore, Mods, and Settings (profile + optionSettings +
+	// credential rotate). Basic auth uses username admin and the admin-password
 	// Secret key. Default disabled. Do not enable on a live world without a
 	// maintenance window (Recreate).
 	// +optional

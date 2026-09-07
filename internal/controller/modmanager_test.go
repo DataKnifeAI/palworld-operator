@@ -267,23 +267,35 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerRole, Namespace: enabled.Namespace}, role); err != nil {
 		t.Fatalf("Role missing: %v", err)
 	}
-	if len(role.Rules) != 2 {
-		t.Fatalf("Role must have deployment + PalworldServer rules, got %+v", role.Rules)
+	if len(role.Rules) != 3 {
+		t.Fatalf("Role must have deployment + PalworldServer + secrets rules, got %+v", role.Rules)
 	}
-	var hasDep, hasCR bool
+	var hasDep, hasCR, hasSecret bool
 	for _, rule := range role.Rules {
-		if len(rule.ResourceNames) != 1 || rule.ResourceNames[0] != enabled.Name {
-			t.Fatalf("Role must be least-privilege for %s, got %+v", enabled.Name, role.Rules)
+		if len(rule.ResourceNames) < 1 {
+			t.Fatalf("Role must be least-privilege, got %+v", role.Rules)
 		}
 		if len(rule.Resources) == 1 && rule.Resources[0] == "deployments" {
 			hasDep = true
+			if rule.ResourceNames[0] != enabled.Name {
+				t.Fatalf("deploy ResourceNames = %v", rule.ResourceNames)
+			}
 		}
 		if len(rule.Resources) == 1 && rule.Resources[0] == "palworldservers" {
 			hasCR = true
+			if rule.ResourceNames[0] != enabled.Name {
+				t.Fatalf("CR ResourceNames = %v", rule.ResourceNames)
+			}
+		}
+		if len(rule.Resources) == 1 && rule.Resources[0] == "secrets" {
+			hasSecret = true
+			if rule.ResourceNames[0] != enabled.Name+"-secrets" && rule.ResourceNames[0] != "palworld-test-secrets" {
+				t.Fatalf("secret ResourceNames = %v", rule.ResourceNames)
+			}
 		}
 	}
-	if !hasDep || !hasCR {
-		t.Fatalf("Role missing deployment or PalworldServer rule: %+v", role.Rules)
+	if !hasDep || !hasCR || !hasSecret {
+		t.Fatalf("Role missing deployment, PalworldServer, or secrets rule: %+v", role.Rules)
 	}
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerHTTPRoute, Namespace: enabled.Namespace}, httpRoute); err != nil {
 		t.Fatalf("HTTPRoute missing: %v", err)

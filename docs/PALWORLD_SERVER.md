@@ -156,7 +156,7 @@ Optional `spec.mods.activeModList` seeds `PalModSettings.ini` on official-image 
 
 ### Optional Server Manager (`spec.serverManager`)
 
-Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a LoadBalancer on the game pod). **Off by default. Public path is HTTPS.** Journey: **Overview → Controls → Updates → Saves → Mods**. The sidecar shares the game pod and proxies Palworld REST on `http://127.0.0.1:8212/v1/api` — REST is **not** public-routed. RCON is [deprecated](https://docs.palworldgame.com/api/rcon/); use REST ([official docs](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — Pocketpair’s spelling). `spec.modManager` is a deprecated alias for the same sidecar.
+Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a LoadBalancer on the game pod). **Off by default. Public path is HTTPS.** Journey: **Overview → Controls → Updates → Saves → Mods → Settings**. The sidecar shares the game pod and proxies Palworld REST on `http://127.0.0.1:8212/v1/api` — REST is **not** public-routed. RCON is [deprecated](https://docs.palworldgame.com/api/rcon/); use REST ([official docs](https://docs.palworldgame.com/api/rest-api/palwold-rest-api) — Pocketpair’s spelling). `spec.modManager` is a deprecated alias for the same sidecar.
 
 | Item | Value |
 |------|-------|
@@ -166,13 +166,14 @@ Authenticated admin UI on the **same Gateway VIP** as game UDP (HTTPRoute, not a
 | HTTP | `:8088` on the VIP redirects to HTTPS (set `exposeHTTP: false` for ClusterIP-only). Sidecar still listens on `port` (default 8088) |
 | Auth | HTTP basic auth — username `admin`, password = credentials Secret key `admin-password`. **Log out** in the UI (`GET /logout` 401 + bogus-credential fetch) so the browser prompts again |
 | Sidecar | `/server-manager` from the **operator** image (`/mod-manager` is kept as a copy) |
-| Overview | REST `GET /info`, `/metrics`, `/players` (version, worldguid, FPS, players, days/uptime/basecamps when present) |
-| Controls | REST announce / save / shutdown (confirm); Recreate-roll restart |
-| Updates | Pinned vs latest image, Check now, Force update (10s REST announce then pin + Recreate), `spec.update` settings (empty inherits defaults) |
+| Overview | REST `GET /info`, `/metrics`, `/players` (version, worldguid, FPS, players, days/uptime/basecamps when present). Kick / Ban (optional message; Ban confirms). Ban list from `SaveGames/banlist.txt` + Unban |
+| Controls | REST announce / save / shutdown (confirm); **Save & restart** (REST save then Recreate; uncheck Save first for Recreate only) |
+| Updates | Pinned vs latest image, Check now, **Save & force update** (save → 10s REST announce → pin + Recreate, only when ready), `spec.update` settings (empty inherits defaults) |
 | Saves | Zip of `SaveGames/` (optional `Config/LinuxServer`; INI passwords redacted). Upload replaces the live world (confirm). Mounts the game PVC at `/saves`. |
 | Mods tab | List/upload/download/delete on the mods PVC (`/mods`). Needs `spec.mods.enabled`. |
+| Settings | [Official settings](https://docs.palworldgame.com/settings-and-operation/configuration/) (no Windows suffix). Server profile (`serverName`, description, max players, crossplay, community) and Pocketpair game-setting groups (`spec.optionSettings`) with Live / Desired. One **Apply & restart**. Masked join/admin credentials; each **Rotate & restart** writes one Secret key (does not clobber the other) and Recreate. Copy-once after rotate. No standalone Live / GET `/settings` card |
 | Restart | UI button PATCHes the game Deployment (Recreate). **Players disconnect** until Ready. The UI pod restarts too. |
-| RBAC | Namespaced Role: `get`/`patch`/`update` on that Deployment and the PalworldServer CR |
+| RBAC | Namespaced Role: `get`/`patch`/`update` on that Deployment and the PalworldServer CR; `get`/`patch`/`update` on the credentials Secret(s) for rotate |
 
 **Do not enable on a live CR without a maintenance window** — adding the sidecar Recreate-rolls the game pod.
 

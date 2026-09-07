@@ -102,7 +102,7 @@ const uiHTML = `<!DOCTYPE html>
       text-shadow: 0 2px 0 rgba(18,40,42,.25), 0 8px 28px rgba(18,40,42,.45);
     }
     .wave { display: block; width: 100%; height: 3.25rem; margin-top: -1px; }
-    main { max-width: 64rem; margin: 0 auto; padding: 1.15rem 1.15rem 2.4rem; }
+    main { max-width: 64rem; margin: 0 auto; padding: 1.15rem 1.15rem 4.2rem; }
     .trail {
       display: flex; flex-wrap: wrap; gap: 0; margin: 0 0 1.15rem;
       border-bottom: 3px solid var(--grass-deep);
@@ -360,6 +360,7 @@ const uiHTML = `<!DOCTYPE html>
     }
     .badge--ok { background: #e4f3ea; color: var(--grass-deep); }
     .badge--warn { background: #fff3d6; color: #7a4e00; }
+    .badge--off { background: rgba(28,46,40,.08); color: var(--muted); }
     .badge--danger { background: #fde8e2; color: var(--coral); }
     .force-panel { margin-top: .9rem; }
     .force-announce {
@@ -455,6 +456,128 @@ const uiHTML = `<!DOCTYPE html>
       100% { transform: translateX(380%); }
     }
     code { font-size: .86em; background: rgba(42,168,160,.14); padding: .05em .3em; border-radius: .25rem; }
+    .lede a { color: var(--sky-deep); font-weight: 700; }
+    .btn-sm { padding: .28rem .55rem; font-size: .78rem; }
+    .cell-actions { display: flex; flex-wrap: wrap; gap: .35rem; white-space: nowrap; }
+    .chain {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin: 0 0 .65rem;
+    }
+    .chain-step {
+      font: 800 .7rem var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .28rem .55rem;
+      border-radius: .3rem;
+      background: rgba(28,46,40,.08);
+      color: var(--muted);
+    }
+    .chain-step.is-active { background: #fff3d6; color: #7a4e00; }
+    .chain-step.is-done { background: #e4f3ea; color: var(--grass-deep); }
+    .opt-head, .opt-row {
+      display: grid;
+      grid-template-columns: minmax(11rem, 1.35fr) minmax(5.8rem, .7fr) minmax(9rem, 1fr);
+      gap: .4rem .75rem;
+      align-items: center;
+    }
+    .opt-head {
+      margin: 0 0 .35rem;
+      padding-bottom: .35rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .opt-head span {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-family: var(--font-display);
+      font-weight: 800;
+      color: var(--muted);
+    }
+    .opt-group {
+      margin: .95rem 0 .4rem;
+      font-family: var(--font-display);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .opt-row { margin: 0 0 .4rem; }
+    .opt-row label { margin: 0; }
+    .opt-live {
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--sky-deep);
+    }
+    .opt-row input, .opt-row select {
+      width: 100%;
+      min-width: 0;
+      font: inherit;
+      padding: .4rem .5rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: .3rem;
+    }
+    .opt-row.is-invalid input, .opt-row.is-invalid select { border-color: var(--coral); }
+    .platforms { display: flex; flex-wrap: wrap; gap: .65rem 1rem; }
+    .cred-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .55rem .75rem;
+      margin: 0 0 .65rem;
+    }
+    .cred-row:last-child { margin-bottom: 0; }
+    .cred-label {
+      min-width: 7.5rem;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+    }
+    .cred-mask {
+      font-family: ui-monospace, monospace;
+      letter-spacing: .14em;
+      color: var(--muted);
+    }
+    .cred-once {
+      font-family: ui-monospace, monospace;
+      font-size: .88rem;
+      background: rgba(42,168,160,.14);
+      padding: .15rem .4rem;
+      border-radius: .25rem;
+    }
+    @media (max-width: 40rem) {
+      .opt-head { display: none; }
+      .opt-row { grid-template-columns: 1fr; }
+    }
+    .gh-fab {
+      position: fixed;
+      right: 1.1rem;
+      bottom: 1.1rem;
+      z-index: 20;
+      width: 2.4rem;
+      height: 2.4rem;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--paper);
+      color: var(--sky-deep);
+      border: 1px solid var(--line);
+      box-shadow: 0 3px 12px rgba(28, 46, 40, .14);
+      text-decoration: none;
+    }
+    .gh-fab:hover {
+      background: var(--teal);
+      color: #fffaf0;
+      border-color: var(--teal);
+    }
+    .gh-fab:focus-visible {
+      outline: 2px solid var(--sky-deep);
+      outline-offset: 3px;
+    }
+    .gh-fab svg { width: 1.15rem; height: 1.15rem; display: block; }
   </style>
 </head>
 <body>
@@ -487,18 +610,35 @@ const uiHTML = `<!DOCTYPE html>
       <button type="button" role="tab" aria-selected="false" data-tab="updates">Updates</button>
       <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
       <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="settings">Settings</button>
     </nav>
 
     <section id="overview" class="panel active" role="tabpanel">
       <p class="lede">Live pulse from Palworld REST on localhost — <code>/info</code>, <code>/metrics</code>, <code>/players</code>.</p>
       <p class="lede">Official API: <a href="https://docs.palworldgame.com/api/rest-api/palwold-rest-api">palwold-rest-api</a></p>
       <div class="err" id="ov-err"></div>
+      <div class="ok" id="ov-ok"></div>
       <div class="stats" id="stats"></div>
       <p class="muted" id="ov-stamp"></p>
+      <div class="row">
+        <div style="flex:1;min-width:16rem">
+          <label for="ov-msg">Message</label>
+          <input id="ov-msg" type="text" placeholder="Optional" autocomplete="off" />
+        </div>
+      </div>
       <table>
-        <thead><tr><th>Player</th><th>Level</th><th>Ping</th><th>ID</th></tr></thead>
+        <thead><tr><th>Player</th><th>Level</th><th>Ping</th><th>ID</th><th></th></tr></thead>
         <tbody id="players"></tbody>
       </table>
+
+      <div class="group" style="margin-top:1.15rem">
+        <h2>Ban list</h2>
+        <p class="muted" id="ban-meta"></p>
+        <table>
+          <thead><tr><th>ID</th><th></th></tr></thead>
+          <tbody id="bans"></tbody>
+        </table>
+      </div>
     </section>
 
     <section id="controls" class="panel" role="tabpanel">
@@ -523,7 +663,20 @@ const uiHTML = `<!DOCTYPE html>
         <h2>Restart</h2>
         <p>Players disconnect. Recreate downtime until Ready. This UI restarts too.</p>
         <div class="row">
-          <button class="btn-sun" type="button" id="restart">Restart pod (Recreate)</button>
+          <label class="check" for="ctl-save-first">
+            <input type="checkbox" id="ctl-save-first" checked />
+            Save first
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn-sun" type="button" id="restart">Save &amp; restart</button>
+        </div>
+        <div class="force-panel" id="ctl-restart-panel" hidden>
+          <div class="chain" id="ctl-restart-chain" aria-live="polite">
+            <span class="chain-step" data-step="save">Save</span>
+            <span class="chain-step" data-step="roll">Recreate</span>
+          </div>
+          <p class="force-announce" id="ctl-restart-announce"></p>
         </div>
       </div>
 
@@ -556,10 +709,15 @@ const uiHTML = `<!DOCTYPE html>
         <div class="row">
           <button class="btn" type="button" id="upd-check">Check now</button>
           <span id="upd-force-wrap" hidden>
-            <button class="btn-danger" type="button" id="upd-force">Force update</button>
+            <button class="btn-danger" type="button" id="upd-force">Save &amp; force update</button>
           </span>
         </div>
         <div class="force-panel" id="upd-force-panel" hidden>
+          <div class="chain" id="upd-force-chain" aria-live="polite">
+            <span class="chain-step" data-step="save">Save</span>
+            <span class="chain-step" data-step="announce">Announce</span>
+            <span class="chain-step" data-step="roll">Recreate</span>
+          </div>
           <p class="force-announce" id="upd-force-announce"></p>
           <div class="force-timer" aria-live="polite">
             <strong id="upd-force-left">10</strong>
@@ -746,7 +904,130 @@ const uiHTML = `<!DOCTYPE html>
         </ul>
       </aside>
     </section>
+
+    <section id="settings" class="panel" role="tabpanel">
+      <p class="lede"><a href="https://docs.palworldgame.com/settings-and-operation/configuration/">Official settings</a></p>
+      <div class="err" id="set-err"></div>
+      <div class="ok" id="set-ok"></div>
+
+      <div class="group">
+        <div class="status-head">
+          <h2>Server profile</h2>
+          <span class="unsaved" id="prof-dirty" hidden>Unsaved</span>
+        </div>
+        <div class="settings-split">
+          <form id="prof-form">
+            <div class="fields">
+              <div class="field field--wide">
+                <label for="prof-name">Name</label>
+                <input id="prof-name" type="text" autocomplete="off" />
+              </div>
+              <div class="field field--wide">
+                <label for="prof-desc">Description</label>
+                <textarea id="prof-desc"></textarea>
+              </div>
+              <div class="field">
+                <label for="prof-max">Max players</label>
+                <input id="prof-max" type="number" min="1" max="32" />
+                <p class="field-err" id="err-prof-max" hidden></p>
+              </div>
+              <div class="field field--wide">
+                <label>Crossplay</label>
+                <div class="platforms">
+                  <label class="check"><input type="checkbox" id="prof-steam" /> Steam</label>
+                  <label class="check"><input type="checkbox" id="prof-xbox" /> Xbox</label>
+                  <label class="check"><input type="checkbox" id="prof-ps5" /> PS5</label>
+                  <label class="check"><input type="checkbox" id="prof-mac" /> Mac</label>
+                </div>
+              </div>
+              <div class="field field--wide">
+                <label class="check" for="prof-community">
+                  <input type="checkbox" id="prof-community" />
+                  Community listing
+                </label>
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn-ghost" type="button" id="prof-reset">Reset defaults</button>
+            </div>
+          </form>
+          <aside class="settings-key" aria-label="Profile defaults">
+            <h3>Defaults</h3>
+            <ul>
+              <li><strong>Name</strong> — empty</li>
+              <li><strong>Description</strong> — empty</li>
+              <li><strong>Max players</strong> — <code>4</code></li>
+              <li><strong>Crossplay</strong> — <code>(Steam,Xbox,PS5,Mac)</code></li>
+              <li><strong>Community listing</strong> — Off</li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="status-head">
+          <h2>Game settings</h2>
+          <span class="unsaved" id="opt-dirty" hidden>Unsaved</span>
+        </div>
+        <p class="muted">Empty inherits the game default. <code>spec.optionSettings</code></p>
+        <div class="opt-head">
+          <span>Setting</span>
+          <span>Live</span>
+          <span>Desired</span>
+        </div>
+        <form id="opt-form"></form>
+        <div class="row">
+          <button class="btn-ghost" type="button" id="opt-reset">Reset defaults</button>
+        </div>
+        <aside class="settings-key" style="margin-top:1rem" aria-label="Game setting defaults">
+          <h3>Defaults</h3>
+          <ul>
+            <li><strong>Empty</strong> — inherit game / operator default</li>
+            <li><strong>DeathPenalty</strong> — <code>None</code> <code>Item</code> <code>ItemAndEquipment</code> <code>All</code></li>
+            <li><strong>RandomizerType</strong> — <code>None</code> <code>Region</code> <code>All</code></li>
+            <li><strong>Booleans</strong> — <code>True</code> / <code>False</code></li>
+            <li><strong>Rates</strong> — number ≥ 0</li>
+          </ul>
+        </aside>
+      </div>
+      <div class="group group--warn">
+        <h2>Apply &amp; restart</h2>
+        <div class="row">
+          <button class="btn-sun" type="button" id="set-apply">Apply &amp; restart</button>
+        </div>
+      </div>
+
+      <div class="group group--danger">
+        <h2>Credentials</h2>
+        <div class="cred-row">
+          <span class="cred-label">Join</span>
+          <span class="badge badge--ok" id="cred-join-badge">Set</span>
+          <span class="cred-mask" id="cred-join-mask">••••••••</span>
+          <span class="cred-once" id="cred-join-once" hidden></span>
+          <button class="btn-ghost btn-sm" type="button" id="cred-join-copy">Copy</button>
+          <button class="btn-danger btn-sm" type="button" id="cred-join-rotate">Rotate &amp; restart</button>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Admin</span>
+          <span class="badge badge--ok" id="cred-admin-badge">Set</span>
+          <span class="cred-mask" id="cred-admin-mask">••••••••</span>
+          <span class="cred-once" id="cred-admin-once" hidden></span>
+          <button class="btn-ghost btn-sm" type="button" id="cred-admin-copy">Copy</button>
+          <button class="btn-danger btn-sm" type="button" id="cred-admin-rotate">Rotate &amp; restart</button>
+        </div>
+      </div>
+    </section>
   </main>
+  <a
+    class="gh-fab"
+    href="https://github.com/DataKnifeAI/palworld-operator"
+    title="GitHub"
+    aria-label="GitHub"
+  >
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+  </a>
   <script>
     const $ = (id) => document.getElementById(id);
     const opts = { credentials: "same-origin" };
@@ -815,6 +1096,7 @@ const uiHTML = `<!DOCTYPE html>
       if (id === "updates") loadUpdates();
       if (id === "saves") loadSaves();
       if (id === "mods") { list(current); loadSpace(); }
+      if (id === "settings") loadSettings();
     }
     document.querySelectorAll(".trail button[data-tab]").forEach((b) => {
       b.onclick = () => setTab(b.getAttribute("data-tab"));
@@ -867,6 +1149,87 @@ const uiHTML = `<!DOCTYPE html>
       const m = Math.floor((n % 3600) / 60);
       return h + "h " + m + "m";
     }
+    function makeBtn(cls, text, fn) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = cls;
+      b.textContent = text;
+      b.onclick = fn;
+      return b;
+    }
+    function playerMessage() {
+      return ($("ov-msg") && $("ov-msg").value.trim()) || "";
+    }
+    function playerId(p) {
+      return pick(p, ["userId", "userid", "playerId", "playerID"]) || "";
+    }
+    function renderBans(bans, path) {
+      const rows = $("bans");
+      if (!rows) return;
+      rows.replaceChildren();
+      const list = Array.isArray(bans) ? bans : [];
+      if (!list.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 2;
+        td.className = "muted";
+        td.textContent = "None";
+        tr.appendChild(td);
+        rows.appendChild(tr);
+      } else {
+        list.forEach((b) => {
+          const id = b.id || b.userid || "";
+          const tr = document.createElement("tr");
+          const idTd = document.createElement("td");
+          idTd.textContent = id;
+          const act = document.createElement("td");
+          act.className = "cell-actions";
+          act.appendChild(makeBtn("btn-ghost btn-sm", "Unban", () => unbanPlayer(id)));
+          tr.append(idTd, act);
+          rows.appendChild(tr);
+        });
+      }
+      const meta = $("ban-meta");
+      if (meta) meta.textContent = list.length ? ((path || "banlist.txt") + " · " + list.length) : ((path || "banlist.txt") + " · empty");
+    }
+    async function loadBans() {
+      try {
+        const data = await api("/api/bans");
+        renderBans(data.bans, data.path);
+      } catch (e) {
+        renderBans([], "");
+        if ($("ban-meta")) $("ban-meta").textContent = e.message;
+      }
+    }
+    async function kickPlayer(id, name) {
+      const msg = playerMessage();
+      if (!confirm("Kick " + (name || id) + "?" + (msg ? "\n\n" + msg : ""))) return;
+      show($("ov-err"), ""); show($("ov-ok"), "");
+      try {
+        const out = await api("/api/kick", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ userid: id, message: msg }) });
+        show($("ov-ok"), out.message || ("Kicked " + (name || id) + "."));
+        refreshStats();
+      } catch (e) { show($("ov-err"), e.message); }
+    }
+    async function banPlayer(id, name) {
+      const msg = playerMessage();
+      if (!confirm("Ban " + (name || id) + "?\n\nThey cannot rejoin until Unban." + (msg ? "\n\n" + msg : ""))) return;
+      show($("ov-err"), ""); show($("ov-ok"), "");
+      try {
+        const out = await api("/api/ban", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ userid: id, message: msg }) });
+        show($("ov-ok"), out.message || ("Banned " + (name || id) + "."));
+        refreshStats();
+      } catch (e) { show($("ov-err"), e.message); }
+    }
+    async function unbanPlayer(id) {
+      if (!confirm("Unban " + id + "?")) return;
+      show($("ov-err"), ""); show($("ov-ok"), "");
+      try {
+        const out = await api("/api/unban", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ userid: id }) });
+        show($("ov-ok"), out.message || "Unbanned.");
+        refreshStats();
+      } catch (e) { show($("ov-err"), e.message); }
+    }
     async function refreshStats() {
       show($("ov-err"), "");
       try {
@@ -889,15 +1252,27 @@ const uiHTML = `<!DOCTYPE html>
         const list = (data.players && (data.players.players || data.players)) || [];
         (Array.isArray(list) ? list : []).forEach((p) => {
           const tr = document.createElement("tr");
-          [pick(p, ["name"]), pick(p, ["level"]), pick(p, ["ping"]), pick(p, ["userId", "userid", "playerId", "playerId"])].forEach((v) => {
+          const id = playerId(p);
+          const name = pick(p, ["name"]);
+          [name, pick(p, ["level"]), pick(p, ["ping"]), id].forEach((v) => {
             const td = document.createElement("td");
             td.textContent = v == null ? "—" : String(v);
             tr.appendChild(td);
           });
+          const act = document.createElement("td");
+          act.className = "cell-actions";
+          if (id) {
+            act.append(
+              makeBtn("btn-ghost btn-sm", "Kick", () => kickPlayer(id, name)),
+              makeBtn("btn-danger btn-sm", "Ban", () => banPlayer(id, name))
+            );
+          }
+          tr.appendChild(act);
           rows.appendChild(tr);
         });
         if (data.errors && data.errors.length) show($("ov-err"), data.errors.join(" · "));
         $("ov-stamp").textContent = "Refreshed " + new Date().toLocaleTimeString();
+        await loadBans();
       } catch (e) {
         show($("ov-err"), e.message);
       }
@@ -919,13 +1294,55 @@ const uiHTML = `<!DOCTYPE html>
         show($("ctl-ok"), out.message || "Saved.");
       } catch (e) { show($("ctl-err"), e.message); }
     };
+    function paintChain(rootId, active) {
+      const order = ["save", "announce", "roll"];
+      const idx = order.indexOf(active);
+      document.querySelectorAll("#" + rootId + " .chain-step").forEach((el) => {
+        const step = el.getAttribute("data-step");
+        const si = order.indexOf(step);
+        el.classList.toggle("is-active", step === active);
+        el.classList.toggle("is-done", idx >= 0 && si >= 0 && si < idx);
+      });
+    }
+    function syncRestartLabel() {
+      const btn = $("restart");
+      const saveFirst = $("ctl-save-first");
+      if (btn && saveFirst) btn.textContent = saveFirst.checked ? "Save & restart" : "Restart pod (Recreate)";
+    }
+    if ($("ctl-save-first")) $("ctl-save-first").onchange = syncRestartLabel;
+    let restartRunning = false;
     $("restart").onclick = async () => {
-      if (!confirm("Restart this Palworld server?\n\nPlayers disconnect. Recreate means downtime until Ready. This admin UI restarts with the pod.")) return;
+      if (restartRunning) return;
+      const saveFirst = $("ctl-save-first") && $("ctl-save-first").checked;
+      if (!confirm((saveFirst ? "Save & restart" : "Restart") + " this Palworld server?\n\nPlayers disconnect. Recreate means downtime until Ready. This admin UI restarts with the pod.")) return;
       show($("ctl-err"), ""); show($("ctl-ok"), "");
+      restartRunning = true;
+      $("restart").disabled = true;
+      const panel = $("ctl-restart-panel");
+      const announce = $("ctl-restart-announce");
+      if (panel) panel.hidden = false;
       try {
-        const out = await api("/api/restart", { method: "POST" });
-        show($("ctl-ok"), out.message || "Restart requested.");
+        if (saveFirst) {
+          paintChain("ctl-restart-chain", "save");
+          if (announce) announce.textContent = "Saving…";
+        } else {
+          paintChain("ctl-restart-chain", "roll");
+          if (announce) announce.textContent = "Recreate…";
+        }
+        const out = await api("/api/restart", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ saveFirst: !!saveFirst }) });
+        paintChain("ctl-restart-chain", "roll");
+        document.querySelectorAll("#ctl-restart-chain .chain-step").forEach((el) => {
+          el.classList.remove("is-active");
+          el.classList.add("is-done");
+        });
+        if (announce) announce.textContent = out.message || "Recreate requested.";
+        show($("ctl-ok"), out.message || (saveFirst ? "Saved, then Recreate." : "Recreate requested."));
       } catch (e) { show($("ctl-err"), e.message); }
+      finally {
+        restartRunning = false;
+        $("restart").disabled = false;
+        setTimeout(() => { if (panel) panel.hidden = true; }, 1200);
+      }
     };
     $("shutdown").onsubmit = async (ev) => {
       ev.preventDefault();
@@ -1369,9 +1786,18 @@ const uiHTML = `<!DOCTYPE html>
         applyUpdatesPayload(await api("/api/updates"));
       } catch (e) { show($("upd-err"), e.message); }
     }
-    function paintForceTick(sec) {
+    function forceAnnounceText(sec) {
+      const remaining = sec + "s";
       const ver = updateState.latest || "";
-      $("upd-force-announce").textContent = "[Server] Update " + ver + " — restart in " + sec + "s";
+      const image = updateState.latestImage || ver;
+      const tmpl = savedUpdate.notifyMessage;
+      if (tmpl) {
+        return tmpl.split("{version}").join(ver).split("{image}").join(image).split("{remaining}").join(remaining);
+      }
+      return "[Server] Update " + ver + " — restart in " + remaining;
+    }
+    function paintForceTick(sec) {
+      $("upd-force-announce").textContent = forceAnnounceText(sec);
       $("upd-force-left").textContent = String(sec);
       $("upd-force-left-label").textContent = sec === 1 ? "second" : "seconds";
       $("upd-force-bar").style.width = (((FORCE_COUNTDOWN_SEC - sec) / FORCE_COUNTDOWN_SEC) * 100) + "%";
@@ -1438,23 +1864,35 @@ const uiHTML = `<!DOCTYPE html>
       show($("upd-err"), ""); show($("upd-ok"), "");
       if (forceRunning || !updateState.updateAvailable) return;
       const image = updateState.latestImage || updateState.latest;
-      if (!confirm("Force update to " + image + "?")) return;
-      if (!confirm("Force update now?")) return;
+      if (!confirm("Save & force update to " + image + "?")) return;
+      if (!confirm("Save, announce 10s, then Recreate?")) return;
       forceRunning = true;
       let left = FORCE_COUNTDOWN_SEC;
       $("upd-force-panel").hidden = false;
-      paintForceTick(left);
+      paintChain("upd-force-chain", "save");
+      $("upd-force-announce").textContent = "Saving…";
+      $("upd-force-left").textContent = String(FORCE_COUNTDOWN_SEC);
+      $("upd-force-left-label").textContent = "seconds";
+      $("upd-force-bar").style.width = "0";
       renderUpdateStatus();
       forceTimer = setInterval(function() {
         left -= 1;
-        if (left > 0) paintForceTick(left);
+        if (left > 0) {
+          paintChain("upd-force-chain", "announce");
+          paintForceTick(left);
+        }
       }, 1000);
       try {
         const out = await api("/api/updates/force", { method: "POST" });
         if (forceTimer) { clearInterval(forceTimer); forceTimer = null; }
+        paintChain("upd-force-chain", "roll");
+        document.querySelectorAll("#upd-force-chain .chain-step").forEach(function(el) {
+          el.classList.remove("is-active");
+          el.classList.add("is-done");
+        });
         $("upd-force-left").textContent = "0";
         $("upd-force-bar").style.width = "100%";
-        show($("upd-ok"), out.message || "Updated.");
+        show($("upd-ok"), out.message || "Saved, announced, Recreate.");
         await loadUpdates();
       } catch (e) {
         show($("upd-err"), e.message);
@@ -1465,6 +1903,303 @@ const uiHTML = `<!DOCTYPE html>
         renderUpdateStatus();
       }
     };
+
+    const PROFILE_DEFAULTS = {
+      name: "", description: "", maxPlayers: 4,
+      steam: true, xbox: true, ps5: true, mac: true, community: false
+    };
+    const OPT_GROUPS = [
+      { title: "Performances", keys: [
+        ["BaseCampMaxNum", "int"], ["BaseCampMaxNumInGuild", "int"],
+        ["BaseCampWorkerMaxNum", "int"], ["MaxBuildingLimitNum", "int"]
+      ]},
+      { title: "Server management", keys: [
+        ["bAllowClientMod", "bool"], ["bIsShowJoinLeftMessage", "bool"],
+        ["bIsUseBackupSaveData", "bool"], ["bEnableBuildingPlayerUIdDisplay", "bool"]
+      ]},
+      { title: "Features", keys: [
+        ["bExistPlayerAfterLogout", "bool"], ["bEnableInvaderEnemy", "bool"],
+        ["bIsPvP", "bool"], ["bEnableFastTravel", "bool"],
+        ["bEnableFastTravelOnlyBaseCamp", "bool"], ["bHardcore", "bool"],
+        ["bCharacterRecreateInHardcore", "bool"], ["bAllowGlobalPalboxExport", "bool"],
+        ["bAllowGlobalPalboxImport", "bool"], ["bShowPlayerList", "bool"],
+        ["bEnableVoiceChat", "bool"], ["RandomizerType", "randomizer"],
+        ["bIsStartLocationSelectByMap", "bool"]
+      ]},
+      { title: "Game balances", keys: [
+        ["DayTimeSpeedRate", "num"], ["NightTimeSpeedRate", "num"], ["ExpRate", "num"],
+        ["PalCaptureRate", "num"], ["PalSpawnNumRate", "num"], ["WorkSpeedRate", "num"],
+        ["PalEggDefaultHatchingTime", "num"], ["CollectionDropRate", "num"],
+        ["EnemyDropItemRate", "num"], ["PlayerDamageRateAttack", "num"],
+        ["PlayerDamageRateDefense", "num"], ["PlayerStomachDecreaceRate", "num"],
+        ["PlayerStaminaDecreaceRate", "num"], ["FishingDifficultyRate", "num"],
+        ["ItemWeightRate", "num"], ["GuildPlayerMaxNum", "int"],
+        ["GuildRejoinCooldownMinutes", "int"], ["SupplyDropSpan", "int"],
+        ["DeathPenalty", "death"], ["bPalLost", "bool"], ["BlockRespawnTime", "int"]
+      ]}
+    ];
+    let savedProfile = { ...PROFILE_DEFAULTS };
+    let savedOptions = {};
+    let liveSettings = {};
+    let credOnce = { join: "", admin: "" };
+    let credCopied = { join: false, admin: false };
+
+    function readProfile() {
+      return {
+        name: $("prof-name").value.trim(),
+        description: $("prof-desc").value.trim(),
+        maxPlayers: Number($("prof-max").value),
+        steam: $("prof-steam").checked,
+        xbox: $("prof-xbox").checked,
+        ps5: $("prof-ps5").checked,
+        mac: $("prof-mac").checked,
+        community: $("prof-community").checked
+      };
+    }
+    function writeProfile(p) {
+      $("prof-name").value = p.name || "";
+      $("prof-desc").value = p.description || "";
+      $("prof-max").value = p.maxPlayers;
+      $("prof-steam").checked = !!p.steam;
+      $("prof-xbox").checked = !!p.xbox;
+      $("prof-ps5").checked = !!p.ps5;
+      $("prof-mac").checked = !!p.mac;
+      $("prof-community").checked = !!p.community;
+      setFieldNote("prof-max", "err-prof-max", "");
+      syncProfileDirty();
+    }
+    function validateProfile() {
+      const n = Number($("prof-max").value);
+      if (!Number.isInteger(n) || n < 1 || n > 32) {
+        setFieldNote("prof-max", "err-prof-max", "1–32");
+        return false;
+      }
+      setFieldNote("prof-max", "err-prof-max", "");
+      return true;
+    }
+    function syncProfileDirty() {
+      const el = $("prof-dirty");
+      if (el) el.hidden = JSON.stringify(readProfile()) !== JSON.stringify(savedProfile);
+    }
+    function optControl(key, kind) {
+      if (kind === "bool" || kind === "death" || kind === "randomizer") {
+        const s = document.createElement("select");
+        s.id = "opt-" + key;
+        const opts = kind === "bool" ? [["", "inherit"], ["True", "True"], ["False", "False"]]
+          : kind === "death" ? [["", "inherit"], ["None", "None"], ["Item", "Item"], ["ItemAndEquipment", "ItemAndEquipment"], ["All", "All"]]
+          : [["", "inherit"], ["None", "None"], ["Region", "Region"], ["All", "All"]];
+        opts.forEach(function(pair) {
+          const o = document.createElement("option");
+          o.value = pair[0];
+          o.textContent = pair[1];
+          s.appendChild(o);
+        });
+        return s;
+      }
+      const i = document.createElement("input");
+      i.id = "opt-" + key;
+      i.type = "text";
+      i.inputMode = "decimal";
+      i.placeholder = "inherit";
+      i.autocomplete = "off";
+      return i;
+    }
+    function buildOptForm() {
+      const form = $("opt-form");
+      if (!form || form.dataset.ready) return;
+      form.dataset.ready = "1";
+      OPT_GROUPS.forEach(function(g) {
+        const h = document.createElement("h3");
+        h.className = "opt-group";
+        h.textContent = g.title;
+        form.appendChild(h);
+        g.keys.forEach(function(pair) {
+          const key = pair[0], kind = pair[1];
+          const row = document.createElement("div");
+          row.className = "opt-row";
+          row.dataset.key = key;
+          const lab = document.createElement("label");
+          lab.setAttribute("for", "opt-" + key);
+          lab.textContent = key;
+          const live = document.createElement("span");
+          live.className = "opt-live";
+          live.textContent = liveSettings[key] == null ? "—" : liveSettings[key];
+          row.append(lab, live, optControl(key, kind));
+          form.appendChild(row);
+        });
+      });
+    }
+    function paintLiveSettings() {
+      document.querySelectorAll("#opt-form .opt-row").forEach(function(row) {
+        const key = row.dataset.key;
+        const live = row.querySelector(".opt-live");
+        if (live) live.textContent = liveSettings[key] == null ? "—" : liveSettings[key];
+      });
+    }
+    function readOptions() {
+      const out = {};
+      OPT_GROUPS.forEach(function(g) {
+        g.keys.forEach(function(pair) {
+          const el = $("opt-" + pair[0]);
+          if (!el) return;
+          const v = String(el.value || "").trim();
+          if (v) out[pair[0]] = v;
+        });
+      });
+      return out;
+    }
+    function writeOptions(map) {
+      OPT_GROUPS.forEach(function(g) {
+        g.keys.forEach(function(pair) {
+          const el = $("opt-" + pair[0]);
+          if (el) el.value = (map && map[pair[0]]) || "";
+        });
+      });
+      document.querySelectorAll("#opt-form .opt-row.is-invalid").forEach(function(r) { r.classList.remove("is-invalid"); });
+      syncOptDirty();
+    }
+    function validOptNumber(raw, intOnly) {
+      if (!raw) return true;
+      if (!/^-?\d+(\.\d+)?$/.test(raw)) return false;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) return false;
+      if (intOnly && !Number.isInteger(n)) return false;
+      return true;
+    }
+    function validateOptions() {
+      let ok = true;
+      OPT_GROUPS.forEach(function(g) {
+        g.keys.forEach(function(pair) {
+          const key = pair[0], kind = pair[1];
+          const el = $("opt-" + key);
+          const row = el && el.closest(".opt-row");
+          const v = el ? String(el.value || "").trim() : "";
+          const bad = (kind === "num" && !validOptNumber(v, false)) || (kind === "int" && !validOptNumber(v, true));
+          if (row) row.classList.toggle("is-invalid", bad);
+          if (el) el.setAttribute("aria-invalid", bad ? "true" : "false");
+          if (bad) ok = false;
+        });
+      });
+      return ok;
+    }
+    function syncOptDirty() {
+      const el = $("opt-dirty");
+      if (el) el.hidden = JSON.stringify(readOptions()) !== JSON.stringify(savedOptions);
+    }
+    function paintCred(kind, set) {
+      const badge = $("cred-" + kind + "-badge");
+      if (!badge) return;
+      badge.textContent = set ? "Set" : "Missing";
+      badge.className = "badge " + (set ? "badge--ok" : "badge--off");
+    }
+    async function loadSettings() {
+      show($("set-err"), "");
+      buildOptForm();
+      try {
+        const data = await api("/api/settings");
+        savedProfile = Object.assign({}, PROFILE_DEFAULTS, data.profile || {});
+        savedOptions = data.options || {};
+        liveSettings = data.live || {};
+        writeProfile(savedProfile);
+        writeOptions(savedOptions);
+        paintLiveSettings();
+        const creds = data.credentials || {};
+        paintCred("join", !!(creds.join && creds.join.set));
+        paintCred("admin", !!(creds.admin && creds.admin.set));
+        validateProfile();
+        validateOptions();
+      } catch (e) { show($("set-err"), e.message); }
+    }
+    $("prof-form").addEventListener("input", function() { validateProfile(); syncProfileDirty(); });
+    $("prof-form").addEventListener("change", function() { validateProfile(); syncProfileDirty(); });
+    $("prof-reset").onclick = function() {
+      if (!confirm("Reset profile to defaults?")) return;
+      writeProfile({ ...PROFILE_DEFAULTS });
+      show($("set-err"), "");
+      show($("set-ok"), "");
+    };
+    $("opt-form").addEventListener("input", function() { validateOptions(); syncOptDirty(); });
+    $("opt-form").addEventListener("change", function() { validateOptions(); syncOptDirty(); });
+    $("opt-reset").onclick = function() {
+      if (!confirm("Reset game settings to inherit?")) return;
+      writeOptions({});
+      show($("set-err"), "");
+      show($("set-ok"), "");
+    };
+    $("set-apply").onclick = async function() {
+      show($("set-err"), ""); show($("set-ok"), "");
+      if (!validateProfile() || !validateOptions()) {
+        show($("set-err"), "Not applied.");
+        return;
+      }
+      if (!confirm("Apply server profile and game settings, then Recreate?")) return;
+      try {
+        const out = await api("/api/settings", {
+          method: "PUT",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ profile: readProfile(), options: readOptions() })
+        });
+        savedProfile = readProfile();
+        savedOptions = readOptions();
+        syncProfileDirty();
+        syncOptDirty();
+        show($("set-ok"), out.message || "Profile and game settings applied. Recreate requested.");
+      } catch (e) { show($("set-err"), e.message); }
+    };
+    function copyOnce(kind) {
+      const val = credOnce[kind];
+      if (!val || credCopied[kind]) return;
+      credCopied[kind] = true;
+      const once = $("cred-" + kind + "-once");
+      const mask = $("cred-" + kind + "-mask");
+      const btn = $("cred-" + kind + "-copy");
+      if (once) { once.hidden = false; once.textContent = val; }
+      if (mask) mask.hidden = true;
+      if (btn) { btn.textContent = "Copied"; btn.disabled = true; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).catch(function() {});
+      }
+      show($("set-err"), "");
+      show($("set-ok"), "Copied once.");
+      setTimeout(function() {
+        if (once) { once.textContent = ""; once.hidden = true; }
+        if (mask) mask.hidden = false;
+      }, 4000);
+    }
+    $("cred-join-copy").onclick = function() { copyOnce("join"); };
+    $("cred-admin-copy").onclick = function() { copyOnce("admin"); };
+    async function rotateCred(kind) {
+      const label = kind === "join" ? "join" : "admin";
+      if (!confirm("Rotate " + label + " password, then Recreate?")) return;
+      if (!confirm("Rotate now? Old password stops working after Recreate.")) return;
+      show($("set-err"), ""); show($("set-ok"), "");
+      try {
+        const out = await api("/api/credentials/rotate", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ key: kind })
+        });
+        credOnce[kind] = out.password || "";
+        credCopied[kind] = false;
+        const once = $("cred-" + kind + "-once");
+        const mask = $("cred-" + kind + "-mask");
+        const copy = $("cred-" + kind + "-copy");
+        if (once) { once.textContent = ""; once.hidden = true; }
+        if (mask) { mask.hidden = false; mask.textContent = "••••••••"; }
+        if (copy) { copy.textContent = "Copy"; copy.disabled = !credOnce[kind]; }
+        paintCred(kind, true);
+        show($("set-ok"), out.message || ("Rotated " + label + ". Recreate requested. Copy once if needed."));
+      } catch (e) { show($("set-err"), e.message); }
+    }
+    $("cred-join-rotate").onclick = function() { rotateCred("join"); };
+    $("cred-admin-rotate").onclick = function() { rotateCred("admin"); };
+    $("cred-join-copy").disabled = true;
+    $("cred-admin-copy").disabled = true;
+
+    buildOptForm();
+    writeProfile(savedProfile);
+    writeOptions(savedOptions);
+    syncRestartLabel();
 
     refreshStats();
     statsTimer = setInterval(() => {

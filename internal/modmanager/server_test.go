@@ -33,6 +33,8 @@ import (
 )
 
 const testPassword = "test-admin-password"
+const testCRName = "palworld-server"
+const testSecretName = "palworld-server-secrets"
 
 type countingRestarter struct {
 	n atomic.Int32
@@ -298,6 +300,24 @@ func TestUIRequiresAuth(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `id="upd-check"`) || !strings.Contains(rec.Body.String(), `id="upd-force"`) {
 		t.Fatal("ui must include Check now and Force update")
+	}
+	if !strings.Contains(rec.Body.String(), "data-tab=\"settings\"") {
+		t.Fatal("ui must include Settings tab")
+	}
+	if !strings.Contains(rec.Body.String(), "github.com/DataKnifeAI/palworld-operator") {
+		t.Fatal("ui must include GitHub button")
+	}
+	if !strings.Contains(rec.Body.String(), "Save &amp; restart") && !strings.Contains(rec.Body.String(), "Save & restart") {
+		t.Fatal("ui must default restart to Save & restart")
+	}
+	if !strings.Contains(rec.Body.String(), `id="cred-join-rotate"`) || !strings.Contains(rec.Body.String(), `id="cred-admin-rotate"`) {
+		t.Fatal("ui must have per-credential Rotate & restart")
+	}
+	if strings.Contains(rec.Body.String(), "id=\"live-settings\"") || strings.Contains(rec.Body.String(), "GET /settings") {
+		t.Fatal("Settings tab must not have a standalone Live / GET /settings card")
+	}
+	if !strings.Contains(rec.Body.String(), "docs.palworldgame.com/settings-and-operation/configuration/") {
+		t.Fatal("Settings tab must link official configuration docs")
 	}
 	if !strings.Contains(rec.Body.String(), "stats--image") {
 		t.Fatal("ui must use wide Pinned/Latest tiles")

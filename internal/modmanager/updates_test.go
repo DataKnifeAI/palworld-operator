@@ -124,7 +124,7 @@ func TestValidateAndBuildUpdate(t *testing.T) {
 
 func TestUpdatesGetAndSave(t *testing.T) {
 	cr := &fakeCR{server: &palworldv1alpha1.PalworldServer{}}
-	cr.server.Name = "palworld-server"
+	cr.server.Name = testCRName
 	cr.server.Spec.ServerImage = "ghcr.io/pocketpairjp/palserver:v1.0.1.100619"
 	s := testUpdateServer(t, cr, []string{"v1.0.1.100619", testNewerTag, "latest"}, "")
 
@@ -172,7 +172,11 @@ func TestUpdatesForce(t *testing.T) {
 	t.Cleanup(func() { forceCountdown = prev })
 
 	var announced []string
+	var saved int
 	rest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "save") {
+			saved++
+		}
 		if strings.Contains(r.URL.Path, "announce") {
 			var req struct {
 				Message string `json:"message"`
@@ -195,6 +199,9 @@ func TestUpdatesForce(t *testing.T) {
 	}
 	if !strings.HasSuffix(cr.server.Spec.ServerImage, testNewerTag) {
 		t.Fatalf("pinned = %s", cr.server.Spec.ServerImage)
+	}
+	if saved != 1 {
+		t.Fatalf("saves = %d", saved)
 	}
 	if len(announced) < 2 {
 		t.Fatalf("announces = %v", announced)

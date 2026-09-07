@@ -146,6 +146,30 @@ func credentialsSecretName(server *palworldv1alpha1.PalworldServer) string {
 	return server.Name + credentialsSecretSuffix
 }
 
+func sidecarSecretNames(server *palworldv1alpha1.PalworldServer) []string {
+	seen := map[string]struct{}{}
+	var out []string
+	add := func(name string) {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return
+		}
+		if _, ok := seen[name]; ok {
+			return
+		}
+		seen[name] = struct{}{}
+		out = append(out, name)
+	}
+	add(credentialsSecretName(server))
+	if ref := server.Spec.AdminPasswordSecretRef; ref != nil {
+		add(ref.Name)
+	}
+	if ref := server.Spec.ServerPasswordSecretRef; ref != nil {
+		add(ref.Name)
+	}
+	return out
+}
+
 func defaultSecretKeySelector(name, key string) *corev1.SecretKeySelector {
 	return &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{Name: name},
