@@ -293,6 +293,18 @@ func TestUIRequiresAuth(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "data-tab=\"saves\"") {
 		t.Fatal("ui must include Saves tab")
 	}
+	if !strings.Contains(rec.Body.String(), "data-tab=\"updates\"") {
+		t.Fatal("ui must include Updates tab")
+	}
+	if !strings.Contains(rec.Body.String(), `id="upd-check"`) || !strings.Contains(rec.Body.String(), `id="upd-force"`) {
+		t.Fatal("ui must include Check now and Force update")
+	}
+	if !strings.Contains(rec.Body.String(), "stats--image") {
+		t.Fatal("ui must use wide Pinned/Latest tiles")
+	}
+	if strings.Contains(rec.Body.String(), "id=\"upd-notes-heading\"") {
+		t.Fatal("Updates tab must not have a notes section")
+	}
 	if strings.Contains(rec.Body.String(), "World pulse") {
 		t.Fatal("header lede under Server Manager must be removed")
 	}

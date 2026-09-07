@@ -253,6 +253,7 @@ type ModsConfig struct {
 // game Gateway VIP (not a LoadBalancer on the game pod). Public access is
 // HTTPS by default (TLS terminate on the Gateway). Tabs: Overview
 // (REST stats), Controls (announce/save/shutdown + Recreate restart),
+// Updates (image pin / latest / auto-update / force update),
 // Saves (world zip download/restore), Mods (PVC file manager). The sidecar
 // proxies Palworld REST on localhost (http://127.0.0.1:8212/v1/api) and
 // does not public-route REST or RCON. RCON is deprecated — use REST via

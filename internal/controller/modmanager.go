@@ -48,6 +48,7 @@ func serverManagerSidecar(
 		{Name: envServerManagerListen, Value: fmt.Sprintf(":%d", port)},
 		{Name: envServerManagerUser, Value: palworldAdminUser},
 		{Name: envServerManagerDeployment, Value: names.deploymentName},
+		{Name: envServerManagerCR, Value: names.deploymentName},
 		{Name: envServerManagerSaves, Value: serverManagerSavesPath},
 		{
 			Name: envServerManagerNamespace,
@@ -135,6 +136,12 @@ func (r *PalworldServerReconciler) reconcileModManagerRBAC(
 				APIGroups:     []string{"apps"},
 				Resources:     []string{"deployments"},
 				ResourceNames: []string{names.deploymentName},
+				Verbs:         []string{"get", "patch", "update"},
+			},
+			{
+				APIGroups:     []string{palworldv1alpha1.GroupVersion.Group},
+				Resources:     []string{"palworldservers"},
+				ResourceNames: []string{server.Name},
 				Verbs:         []string{"get", "patch", "update"},
 			},
 		}

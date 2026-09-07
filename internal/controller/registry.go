@@ -73,13 +73,24 @@ func (l *GHCRTagLister) cacheStore() *tagListCache {
 
 // ListTags returns tags for repository, caching successful lookups for tagCacheTTL.
 func (l *GHCRTagLister) ListTags(ctx context.Context, repository string) ([]string, error) {
+	return l.listTags(ctx, repository, false)
+}
+
+// ListTagsFresh bypasses the tag cache (Check now).
+func (l *GHCRTagLister) ListTagsFresh(ctx context.Context, repository string) ([]string, error) {
+	return l.listTags(ctx, repository, true)
+}
+
+func (l *GHCRTagLister) listTags(ctx context.Context, repository string, fresh bool) ([]string, error) {
 	host, path, err := splitOCIRepository(repository)
 	if err != nil {
 		return nil, err
 	}
 	cacheKey := host + "/" + path
-	if tags, ok := l.cacheStore().get(cacheKey); ok {
-		return tags, nil
+	if !fresh {
+		if tags, ok := l.cacheStore().get(cacheKey); ok {
+			return tags, nil
+		}
 	}
 
 	token, err := l.fetchPullToken(ctx, host, path)

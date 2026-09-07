@@ -66,6 +66,7 @@ const (
 	envServerManagerNamespace  = "SERVER_MANAGER_NAMESPACE"
 	envServerManagerDeployment = "SERVER_MANAGER_DEPLOYMENT"
 	envServerManagerRESTBase   = "SERVER_MANAGER_REST_BASE"
+	envServerManagerCR         = "SERVER_MANAGER_CR"
 	workshopSubdir             = "Workshop"
 	workshopDirArgPrefix       = "-workshopdir="
 	seedModsInitName           = "seed-mods"

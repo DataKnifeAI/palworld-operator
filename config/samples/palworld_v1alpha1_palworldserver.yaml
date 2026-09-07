@@ -132,7 +132,7 @@ spec:
   # HTTPS by default (reuse an existing Let's Encrypt wildcard Secret).
   # Enabling rolls the game pod (Recreate) — leave commented on a live
   # world. Basic auth: user "admin" + admin-password Secret key.
-  # Tabs: Overview (REST stats) → Controls → Saves (zip) → Mods.
+  # Tabs: Overview (REST stats) → Controls → Updates → Saves (zip) → Mods.
   # REST stays ClusterIP-internal (UI proxies localhost); RCON is deprecated.
   # Sidecar binary is /server-manager from the operator image (/mod-manager
   # is kept as a copy). spec.modManager is a deprecated alias.

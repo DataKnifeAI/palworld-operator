@@ -50,6 +50,17 @@ func main() {
 
 	namespace := envOr([]string{"SERVER_MANAGER_NAMESPACE", "MOD_MANAGER_NAMESPACE"}, "")
 	deployment := envOr([]string{"SERVER_MANAGER_DEPLOYMENT", "MOD_MANAGER_DEPLOYMENT"}, "")
+	crName := envOr([]string{"SERVER_MANAGER_CR"}, deployment)
+
+	var crClient modmanager.ServerCR
+	if namespace != "" && crName != "" {
+		c, crErr := modmanager.NewRuntimeCR(namespace, crName)
+		if crErr != nil {
+			log.Printf("update CR client unavailable: %v", crErr)
+		} else {
+			crClient = c
+		}
+	}
 
 	srv, err := modmanager.New(modmanager.Config{
 		Root:      *root,
@@ -57,6 +68,7 @@ func main() {
 		User:      *user,
 		Password:  password,
 		RESTBase:  *restBase,
+		CR:        crClient,
 		Restarter: &modmanager.DeploymentRestarter{
 			Namespace: namespace,
 			Name:      deployment,

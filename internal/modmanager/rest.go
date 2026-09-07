@@ -53,6 +53,7 @@ type shutdownRequest struct {
 type actionResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
+	Image   string `json:"image,omitempty"`
 }
 
 func (s *Server) restConfigured() bool {

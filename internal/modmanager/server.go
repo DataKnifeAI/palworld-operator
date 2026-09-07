@@ -29,6 +29,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/DataKnifeAI/palworld-operator/internal/controller"
 )
 
 const (
@@ -55,6 +57,8 @@ type Config struct {
 	Password  string
 	RESTBase  string
 	Restarter Restarter
+	CR        ServerCR
+	Tags      controller.TagLister
 	Client    *http.Client
 }
 
@@ -66,6 +70,8 @@ type Server struct {
 	password   string
 	restBase   string
 	restarter  Restarter
+	cr         ServerCR
+	tags       controller.TagLister
 	httpClient *http.Client
 	mux        *http.ServeMux
 	usage      func(root string) (diskUsage, error)
@@ -105,6 +111,8 @@ func New(cfg Config) (*Server, error) {
 		password:   cfg.Password,
 		restBase:   strings.TrimSpace(cfg.RESTBase),
 		restarter:  cfg.Restarter,
+		cr:         cfg.CR,
+		tags:       cfg.Tags,
 		httpClient: cfg.Client,
 		mux:        http.NewServeMux(),
 	}
@@ -141,6 +149,11 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("GET /api/saves", s.handleSavesList)
 	s.mux.HandleFunc("GET /api/saves/download", s.handleSavesDownload)
 	s.mux.HandleFunc("POST /api/saves/upload", s.handleSavesUpload)
+	s.mux.HandleFunc("GET /api/updates", s.handleUpdatesGet)
+	s.mux.HandleFunc("POST /api/updates/check", s.handleUpdatesCheck)
+	s.mux.HandleFunc("PUT /api/updates", s.handleUpdatesSave)
+	s.mux.HandleFunc("POST /api/updates/reset", s.handleUpdatesReset)
+	s.mux.HandleFunc("POST /api/updates/force", s.handleUpdatesForce)
 	return s, nil
 }
 

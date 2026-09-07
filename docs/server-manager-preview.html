@@ -216,6 +216,23 @@
       letter-spacing: .05em;
       color: var(--muted);
     }
+    .stats--image {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .stats--image .stat { min-width: 0; }
+    .stats--image .stat b {
+      font-size: 1.02rem;
+      word-break: normal;
+      overflow-wrap: normal;
+      white-space: nowrap;
+    }
+    @media (max-width: 36rem) {
+      .stats--image { grid-template-columns: 1fr; }
+      .stats--image .stat b {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
     table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); }
     th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--line); font-size: .92rem; }
     th { background: #e4f3ea; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; font-family: var(--font-display); }
@@ -300,6 +317,132 @@
       background: rgba(42,168,160,.12);
       color: var(--sky-deep);
     }
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .85rem 1rem;
+    }
+    .field--wide { grid-column: 1 / -1; }
+    .field input[type=text], .field textarea {
+      width: 100%;
+      min-width: 0;
+    }
+    .field.is-invalid input, .field.is-invalid textarea {
+      border-color: var(--coral);
+    }
+    .field-err, .field-warn {
+      margin: .22rem 0 0;
+      font-size: .78rem;
+      color: var(--coral);
+    }
+    .field-warn { color: #8a5a00; }
+    .field-err[hidden], .field-warn[hidden] { display: none; }
+    .settings-split {
+      display: grid;
+      grid-template-columns: 1fr minmax(15rem, 17.5rem);
+      gap: 1rem 1.15rem;
+      align-items: start;
+    }
+    .settings-key {
+      background: var(--sand);
+      border: 1px solid rgba(232,160,48,.4);
+      border-radius: .5rem;
+      padding: .7rem .8rem .65rem;
+    }
+    .settings-key h3 {
+      margin: 0 0 .45rem;
+      font-family: var(--font-display);
+      font-size: .82rem;
+      font-weight: 800;
+    }
+    .settings-key ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .settings-key li {
+      margin: 0 0 .4rem;
+      font-size: .78rem;
+      line-height: 1.35;
+      color: var(--ink);
+    }
+    .settings-key li:last-child { margin-bottom: 0; }
+    .settings-key li strong { font-weight: 700; }
+    @media (max-width: 48rem) {
+      .settings-split { grid-template-columns: 1fr; }
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .9rem;
+      color: var(--ink);
+      font-weight: 700;
+      margin-bottom: 0;
+    }
+    .check input { width: 1.05rem; height: 1.05rem; accent-color: var(--sky-deep); }
+    .badge {
+      display: inline-block;
+      font: 800 .72rem var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: .22rem .55rem;
+      border-radius: .3rem;
+    }
+    .badge--ok { background: #e4f3ea; color: var(--grass-deep); }
+    .badge--warn { background: #fff3d6; color: #7a4e00; }
+    .badge--off { background: rgba(28,46,40,.08); color: var(--muted); }
+    .badge--danger { background: #fde8e2; color: var(--coral); }
+    .force-panel { margin-top: .9rem; }
+    .force-announce {
+      margin: .35rem 0 .75rem;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      padding: .65rem .8rem;
+      font-size: .92rem;
+    }
+    .force-timer {
+      display: flex;
+      align-items: baseline;
+      gap: .55rem;
+      margin: 0 0 .55rem;
+    }
+    .force-timer strong {
+      font-family: var(--font-display);
+      font-size: 2.15rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--coral);
+    }
+    .force-timer span { font-size: .85rem; color: var(--muted); font-weight: 700; }
+    .force-bar-track {
+      height: .55rem;
+      background: rgba(28,46,40,.1);
+      border: 1px solid var(--line);
+      border-radius: .4rem;
+      overflow: hidden;
+    }
+    .force-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--amber), var(--coral));
+      border-radius: .4rem;
+      transition: width .2s linear;
+    }
+    .status-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: .75rem;
+    }
+    .status-head h2 { margin-bottom: 0; }
+    .unsaved { font-size: .82rem; color: var(--amber); font-weight: 700; }
+    @media (max-width: 40rem) {
+      .fields { grid-template-columns: 1fr; }
+    }
     .mock-banner {
       background: #1c2e22;
       color: #f6eedc;
@@ -338,6 +481,7 @@
     <nav class="trail" role="tablist">
       <button type="button" role="tab" aria-selected="true" data-tab="overview">Overview</button>
       <button type="button" role="tab" aria-selected="false" data-tab="controls">Controls</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="updates">Updates</button>
       <button type="button" role="tab" aria-selected="false" data-tab="saves">Saves</button>
       <button type="button" role="tab" aria-selected="false" data-tab="mods">Mods</button>
     </nav>
@@ -394,6 +538,122 @@
           </div>
           <button class="btn-danger" type="submit">Shutdown…</button>
         </form>
+      </div>
+    </section>
+
+    <section id="updates" class="panel" role="tabpanel">
+      <div class="err" id="upd-err"></div>
+      <div class="ok" id="upd-ok"></div>
+
+      <div class="group">
+        <div class="status-head">
+          <h2>Image</h2>
+          <span class="badge badge--ok" id="upd-badge">Up to date</span>
+        </div>
+        <div class="stats stats--image" id="upd-stats"></div>
+        <div class="row">
+          <button class="btn" type="button" id="upd-check">Check now</button>
+          <span id="upd-force-wrap" hidden>
+            <button class="btn-danger" type="button" id="upd-force">Force update</button>
+          </span>
+          <button class="btn-ghost" type="button" id="upd-preview-current">Up to date</button>
+          <button class="btn-ghost" type="button" id="upd-preview-ready">Update ready</button>
+        </div>
+        <div class="force-panel" id="upd-force-panel" hidden>
+          <p class="force-announce" id="upd-force-announce"></p>
+          <div class="force-timer" aria-live="polite">
+            <strong id="upd-force-left">10</strong>
+            <span id="upd-force-left-label">seconds</span>
+          </div>
+          <div class="force-bar-track">
+            <div class="force-bar" id="upd-force-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="status-head">
+          <h2>Settings</h2>
+          <span class="unsaved" id="upd-dirty" hidden>Unsaved</span>
+        </div>
+        <div class="settings-split">
+        <form id="upd-form">
+          <div class="fields">
+            <div class="field field--wide">
+              <label class="check" for="upd-auto">
+                <input type="checkbox" id="upd-auto" />
+                Auto-update
+              </label>
+            </div>
+            <div class="field">
+              <label for="upd-interval">Check interval</label>
+              <input id="upd-interval" type="text" placeholder="6h" autocomplete="off" />
+              <p class="field-err" id="err-interval" hidden></p>
+            </div>
+            <div class="field">
+              <label for="upd-check-cron">Check schedule</label>
+              <input id="upd-check-cron" type="text" placeholder="" autocomplete="off" />
+              <p class="field-err" id="err-check-cron" hidden></p>
+            </div>
+            <div class="field">
+              <label for="upd-apply-cron">Apply schedule</label>
+              <input id="upd-apply-cron" type="text" placeholder="" autocomplete="off" />
+              <p class="field-err" id="err-apply-cron" hidden></p>
+            </div>
+            <div class="field">
+              <label for="upd-tz">Time zone</label>
+              <input id="upd-tz" type="text" placeholder="UTC" autocomplete="off" />
+              <p class="field-err" id="err-tz" hidden></p>
+            </div>
+            <div class="field field--wide">
+              <label for="upd-repo">Image repository</label>
+              <input id="upd-repo" type="text" placeholder="ghcr.io/pocketpairjp/palserver" autocomplete="off" />
+              <p class="field-err" id="err-repo" hidden></p>
+            </div>
+            <div class="field field--wide">
+              <label class="check" for="upd-empty">
+                <input type="checkbox" id="upd-empty" checked />
+                Only when empty
+              </label>
+            </div>
+            <div class="field field--wide">
+              <label class="check" for="upd-notify">
+                <input type="checkbox" id="upd-notify" />
+                Notify players
+              </label>
+            </div>
+            <div class="field field--wide">
+              <label for="upd-notify-sched">Notify schedule</label>
+              <input id="upd-notify-sched" type="text" placeholder="60m, 30m, 15m, 5m, 1m, 30s, 10s" autocomplete="off" />
+              <p class="field-err" id="err-notify-sched" hidden></p>
+            </div>
+            <div class="field field--wide">
+              <label for="upd-notify-msg">Notify message</label>
+              <textarea id="upd-notify-msg" placeholder=""></textarea>
+              <p class="field-warn" id="warn-notify-msg" hidden></p>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn-grass" type="submit">Save</button>
+            <button class="btn-ghost" type="button" id="upd-reset">Reset defaults</button>
+          </div>
+        </form>
+        <aside class="settings-key" aria-label="Setting formulas">
+          <h3>Defaults</h3>
+          <ul>
+            <li><strong>Auto-update</strong> — opt-in pin. Off</li>
+            <li><strong>Check interval</strong> — poll cadence. <code>6h</code></li>
+            <li><strong>Check schedule</strong> — cron instead of interval</li>
+            <li><strong>Apply schedule</strong> — apply-window cron</li>
+            <li><strong>Time zone</strong> — cron zone. <code>UTC</code></li>
+            <li><strong>Image repository</strong> — <code>ghcr.io/pocketpairjp/palserver</code></li>
+            <li><strong>Only when empty</strong> — wait for 0 players. On</li>
+            <li><strong>Notify players</strong> — announce first. Off</li>
+            <li><strong>Notify schedule</strong> — <code>60m, 30m, 15m, 5m, 1m, 30s, 10s</code></li>
+            <li><strong>Notify message</strong> — <code>{version}</code> <code>{image}</code> <code>{remaining}</code></li>
+          </ul>
+        </aside>
+        </div>
       </div>
     </section>
 
@@ -521,6 +781,7 @@
       document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === id));
       document.querySelectorAll(".trail button[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.getAttribute("data-tab") === id ? "true" : "false"));
       if (id === "overview") refreshStats();
+      if (id === "updates") renderUpdateStatus();
       if (id === "saves") loadSaves();
       if (id === "mods") list(current);
     }
@@ -813,6 +1074,406 @@
         if (btn) btn.disabled = false;
       }
     };
+
+    const UPDATE_DEFAULTS = {
+      autoUpdateImage: false,
+      checkInterval: "",
+      checkSchedule: "",
+      applySchedule: "",
+      timeZone: "",
+      imageRepository: "",
+      onlyWhenEmpty: true,
+      notifyPlayers: false,
+      notifySchedule: "",
+      notifyMessage: "",
+    };
+    const SAMPLE_PINNED = "ghcr.io/pocketpairjp/palserver:v1.0.1.100619";
+    const SAMPLE_CURRENT = "v1.0.1.100619";
+    const SAMPLE_NEWER = "v1.0.2.101000";
+    const FORCE_COUNTDOWN_SEC = 10;
+    let pinnedImage = SAMPLE_PINNED;
+    let runningVersion = SAMPLE_CURRENT;
+    let updateReady = false;
+    let lastImageCheck = null;
+    let savedUpdate = { ...UPDATE_DEFAULTS };
+    let forceTimer = null;
+    let forceRunning = false;
+
+    function readUpdateForm() {
+      return {
+        autoUpdateImage: $("upd-auto").checked,
+        checkInterval: $("upd-interval").value.trim(),
+        checkSchedule: $("upd-check-cron").value.trim(),
+        applySchedule: $("upd-apply-cron").value.trim(),
+        timeZone: $("upd-tz").value.trim(),
+        imageRepository: $("upd-repo").value.trim(),
+        onlyWhenEmpty: $("upd-empty").checked,
+        notifyPlayers: $("upd-notify").checked,
+        notifySchedule: $("upd-notify-sched").value.trim(),
+        notifyMessage: $("upd-notify-msg").value.trim(),
+      };
+    }
+    function writeUpdateForm(s) {
+      $("upd-auto").checked = s.autoUpdateImage;
+      $("upd-interval").value = s.checkInterval;
+      $("upd-check-cron").value = s.checkSchedule;
+      $("upd-apply-cron").value = s.applySchedule;
+      $("upd-tz").value = s.timeZone;
+      $("upd-repo").value = s.imageRepository;
+      $("upd-empty").checked = s.onlyWhenEmpty;
+      $("upd-notify").checked = s.notifyPlayers;
+      $("upd-notify-sched").value = s.notifySchedule;
+      $("upd-notify-msg").value = s.notifyMessage;
+      clearUpdateFieldErrors();
+      syncUpdateDirty();
+    }
+    const CRON_MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const CRON_DOW = { sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6 };
+    const CRON_DESCRIPTORS = {
+      "@yearly": 1, "@annually": 1, "@monthly": 1, "@weekly": 1,
+      "@daily": 1, "@midnight": 1, "@hourly": 1,
+    };
+    const KNOWN_NOTIFY_TOKENS = { version: 1, image: 1, remaining: 1 };
+    const IANA_ZONE = /^(UTC|GMT|Etc\/[A-Za-z0-9+_:-]+|[A-Z][A-Za-z]+(?:\/[A-Za-z0-9_+\-]+)+)$/;
+    const OCI_REPO = /^[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[0-9]+)?(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)+$/i;
+
+    function parseGoDurationMs(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return { empty: true };
+      const m = s.match(/^([+-])?((?:(?:\d+(?:\.\d+)?|\.\d+)(?:ns|us|µs|μs|ms|s|m|h))+)$/);
+      if (!m) return { error: true };
+      const sign = m[1] === "-" ? -1 : 1;
+      const body = m[2];
+      const partRe = /(?:\d+(?:\.\d+)?|\.\d+)(?:ns|us|µs|μs|ms|s|m|h)/g;
+      let ms = 0;
+      let part;
+      while ((part = partRe.exec(body))) {
+        const tok = part[0];
+        const um = tok.match(/^((?:\d+(?:\.\d+)?|\.\d+))(ns|us|µs|μs|ms|s|m|h)$/);
+        const n = Number(um[1]);
+        const unit = um[2];
+        const mul = unit === "h" ? 3600000
+          : unit === "m" ? 60000
+          : unit === "s" ? 1000
+          : unit === "ms" ? 1
+          : unit === "us" || unit === "µs" || unit === "μs" ? 0.001
+          : 0.000001;
+        ms += n * mul;
+      }
+      ms *= sign;
+      if (!Number.isFinite(ms) || ms <= 0) return { error: true, nonPositive: true };
+      return { ms };
+    }
+    function cronNameOrNum(tok, min, max, names) {
+      const low = tok.toLowerCase();
+      if (names && names[low] != null) return names[low];
+      if (!/^\d+$/.test(tok)) return null;
+      const n = Number(tok);
+      if (n < min || n > max) return null;
+      return n;
+    }
+    function validCronAtom(atom, min, max, names) {
+      const stepParts = atom.split("/");
+      if (stepParts.length > 2) return false;
+      const range = stepParts[0];
+      if (stepParts.length === 2) {
+        if (!/^[1-9]\d*$/.test(stepParts[1])) return false;
+      }
+      if (range === "*") return true;
+      const ends = range.split("-");
+      if (ends.length > 2) return false;
+      const a = cronNameOrNum(ends[0], min, max, names);
+      if (a == null) return false;
+      if (ends.length === 1) return true;
+      const b = cronNameOrNum(ends[1], min, max, names);
+      return b != null && b >= a;
+    }
+    function validCronField(field, min, max, names) {
+      if (!field) return false;
+      return field.split(",").every((atom) => validCronAtom(atom, min, max, names));
+    }
+    function validCronExpr(raw) {
+      const expr = String(raw || "").trim();
+      if (!expr) return true;
+      const low = expr.toLowerCase();
+      if (CRON_DESCRIPTORS[low]) return true;
+      if (low.startsWith("@every ")) {
+        const d = parseGoDurationMs(expr.slice(6));
+        return !d.empty && !d.error;
+      }
+      if (expr.startsWith("@")) return false;
+      const parts = expr.split(/\s+/);
+      if (parts.length !== 5) return false;
+      return validCronField(parts[0], 0, 59, null)
+        && validCronField(parts[1], 0, 23, null)
+        && validCronField(parts[2], 1, 31, null)
+        && validCronField(parts[3], 1, 12, CRON_MONTHS)
+        && validCronField(parts[4], 0, 7, CRON_DOW);
+    }
+    function validTimeZone(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return true;
+      return IANA_ZONE.test(s);
+    }
+    function validImageRepo(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return true;
+      if (/\s/.test(s)) return false;
+      return OCI_REPO.test(s.replace(/\/+$/, ""));
+    }
+    function notifyMessageHint(raw) {
+      const s = String(raw || "");
+      if (!s.includes("{")) return "";
+      const tokens = [...s.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1]);
+      const unknown = tokens.filter((t) => !KNOWN_NOTIFY_TOKENS[t]);
+      if (/\{[^{}]*$/.test(s.replace(/\{[^{}]*\}/g, ""))) return "Unclosed {";
+      if (unknown.length) return "Unknown {" + unknown[0] + "}";
+      return "";
+    }
+    function setFieldNote(inputId, noteId, msg, warn) {
+      const input = $(inputId);
+      const note = $(noteId);
+      const field = input && input.closest(".field");
+      if (note) {
+        note.textContent = msg || "";
+        note.hidden = !msg;
+      }
+      if (field) field.classList.toggle("is-invalid", !!(msg && !warn));
+      if (input) input.setAttribute("aria-invalid", msg && !warn ? "true" : "false");
+    }
+    function clearUpdateFieldErrors() {
+      ["err-interval", "err-check-cron", "err-apply-cron", "err-tz", "err-repo", "err-notify-sched"].forEach((id) => {
+        const el = $(id);
+        if (el) { el.textContent = ""; el.hidden = true; }
+      });
+      const warn = $("warn-notify-msg");
+      if (warn) { warn.textContent = ""; warn.hidden = true; }
+      document.querySelectorAll("#upd-form .field.is-invalid").forEach((f) => f.classList.remove("is-invalid"));
+      ["upd-interval", "upd-check-cron", "upd-apply-cron", "upd-tz", "upd-repo", "upd-notify-sched", "upd-notify-msg"].forEach((id) => {
+        const el = $(id);
+        if (el) el.setAttribute("aria-invalid", "false");
+      });
+    }
+    function validateUpdateForm() {
+      const s = readUpdateForm();
+      let ok = true;
+      const interval = parseGoDurationMs(s.checkInterval);
+      if (interval.error) {
+        setFieldNote("upd-interval", "err-interval", "Need a Go duration (6h, 1h30m)");
+        ok = false;
+      } else setFieldNote("upd-interval", "err-interval", "");
+      if (s.checkSchedule && !validCronExpr(s.checkSchedule)) {
+        setFieldNote("upd-check-cron", "err-check-cron", "Need 5-field cron or @hourly");
+        ok = false;
+      } else setFieldNote("upd-check-cron", "err-check-cron", "");
+      if (s.applySchedule && !validCronExpr(s.applySchedule)) {
+        setFieldNote("upd-apply-cron", "err-apply-cron", "Need 5-field cron or @hourly");
+        ok = false;
+      } else setFieldNote("upd-apply-cron", "err-apply-cron", "");
+      if (!validTimeZone(s.timeZone)) {
+        setFieldNote("upd-tz", "err-tz", "Need IANA zone (UTC, America/Los_Angeles)");
+        ok = false;
+      } else setFieldNote("upd-tz", "err-tz", "");
+      if (!validImageRepo(s.imageRepository)) {
+        setFieldNote("upd-repo", "err-repo", "Need host/path");
+        ok = false;
+      } else setFieldNote("upd-repo", "err-repo", "");
+      if (s.notifySchedule) {
+        const toks = s.notifySchedule.split(",").map((t) => t.trim());
+        const bad = toks.some((t) => !t || parseGoDurationMs(t).error);
+        if (bad) {
+          setFieldNote("upd-notify-sched", "err-notify-sched", "Each item needs a Go duration");
+          ok = false;
+        } else setFieldNote("upd-notify-sched", "err-notify-sched", "");
+      } else setFieldNote("upd-notify-sched", "err-notify-sched", "");
+      const hint = notifyMessageHint(s.notifyMessage);
+      setFieldNote("upd-notify-msg", "warn-notify-msg", hint, true);
+      return ok;
+    }
+    function syncUpdateDirty() {
+      const cur = readUpdateForm();
+      const dirty = JSON.stringify(cur) !== JSON.stringify(savedUpdate);
+      const el = $("upd-dirty");
+      if (el) el.hidden = !dirty;
+    }
+    function targetForceImage() {
+      const repo = (savedUpdate.imageRepository || "ghcr.io/pocketpairjp/palserver").replace(/\/$/, "");
+      return repo + ":" + SAMPLE_NEWER;
+    }
+    function forceAnnounceText(sec) {
+      const remaining = sec + "s";
+      const image = targetForceImage();
+      const tmpl = savedUpdate.notifyMessage;
+      if (tmpl) {
+        return tmpl
+          .split("{version}").join(SAMPLE_NEWER)
+          .split("{image}").join(image)
+          .split("{remaining}").join(remaining);
+      }
+      return "[Server] Update " + SAMPLE_NEWER + " — restart in " + remaining;
+    }
+    function syncForceButton() {
+      const wrap = $("upd-force-wrap");
+      const btn = $("upd-force");
+      const show = updateReady || forceRunning;
+      if (wrap) wrap.hidden = !show;
+      if (btn) btn.disabled = forceRunning || !updateReady;
+    }
+    function stopForceTimer() {
+      if (forceTimer) {
+        clearInterval(forceTimer);
+        forceTimer = null;
+      }
+    }
+    function hideForcePanel() {
+      stopForceTimer();
+      forceRunning = false;
+      const panel = $("upd-force-panel");
+      if (panel) panel.hidden = true;
+      syncForceButton();
+    }
+    function paintForceTick(sec) {
+      $("upd-force-announce").textContent = forceAnnounceText(sec);
+      $("upd-force-left").textContent = String(sec);
+      $("upd-force-left-label").textContent = sec === 1 ? "second" : "seconds";
+      $("upd-force-bar").style.width = (((FORCE_COUNTDOWN_SEC - sec) / FORCE_COUNTDOWN_SEC) * 100) + "%";
+    }
+    function finishForceUpdate() {
+      stopForceTimer();
+      forceRunning = false;
+      pinnedImage = targetForceImage();
+      runningVersion = SAMPLE_NEWER;
+      updateReady = false;
+      $("upd-force-left").textContent = "0";
+      $("upd-force-left-label").textContent = "seconds";
+      $("upd-force-bar").style.width = "100%";
+      $("upd-force-announce").textContent = "[Server] Update " + SAMPLE_NEWER + " — restarting now";
+      renderUpdateStatus();
+      show($("upd-ok"), "Updated.");
+      setTimeout(() => {
+        const panel = $("upd-force-panel");
+        if (panel) panel.hidden = true;
+      }, 800);
+    }
+    function updateStatusCopy() {
+      const badge = $("upd-badge");
+      if (forceRunning) {
+        badge.textContent = "Updating";
+        badge.className = "badge badge--danger";
+        return;
+      }
+      if (!updateReady) {
+        badge.textContent = "Up to date";
+        badge.className = "badge badge--ok";
+        return;
+      }
+      badge.textContent = "Update ready";
+      badge.className = "badge badge--warn";
+    }
+    function renderUpdateStatus() {
+      const latest = (updateReady || pinnedImage.endsWith(":" + SAMPLE_NEWER)) ? SAMPLE_NEWER : SAMPLE_CURRENT;
+      const box = $("upd-stats");
+      if (!box) return;
+      box.replaceChildren(
+        statCard("Pinned", pinnedImage),
+        statCard("Latest", latest)
+      );
+      updateStatusCopy();
+      syncForceButton();
+    }
+    function setUpdateReady(ready) {
+      hideForcePanel();
+      updateReady = ready;
+      pinnedImage = SAMPLE_PINNED;
+      runningVersion = SAMPLE_CURRENT;
+      renderUpdateStatus();
+    }
+    $("upd-form").addEventListener("input", () => {
+      validateUpdateForm();
+      syncUpdateDirty();
+    });
+    $("upd-form").addEventListener("change", () => {
+      validateUpdateForm();
+      syncUpdateDirty();
+    });
+    $("upd-form").onsubmit = (ev) => {
+      ev.preventDefault();
+      if (forceRunning) return;
+      show($("upd-err"), "");
+      show($("upd-ok"), "");
+      if (!validateUpdateForm()) {
+        show($("upd-err"), "Not saved.");
+        return;
+      }
+      savedUpdate = readUpdateForm();
+      syncUpdateDirty();
+      renderUpdateStatus();
+      show($("upd-ok"), "Saved.");
+    };
+    $("upd-reset").onclick = () => {
+      if (forceRunning) return;
+      if (!confirm("Reset to defaults?")) return;
+      show($("upd-err"), "");
+      savedUpdate = { ...UPDATE_DEFAULTS };
+      writeUpdateForm(savedUpdate);
+      renderUpdateStatus();
+      show($("upd-ok"), "Defaults restored.");
+    };
+    $("upd-check").onclick = async () => {
+      if (forceRunning) return;
+      show($("upd-err"), "");
+      show($("upd-ok"), "");
+      const btn = $("upd-check");
+      btn.disabled = true;
+      btn.textContent = "Checking…";
+      await new Promise((r) => setTimeout(r, 550));
+      lastImageCheck = new Date().toLocaleString();
+      if (!updateReady && pinnedImage === SAMPLE_PINNED) setUpdateReady(true);
+      else renderUpdateStatus();
+      btn.disabled = false;
+      btn.textContent = "Check now";
+      show($("upd-ok"), "");
+    };
+    $("upd-preview-current").onclick = () => {
+      if (forceRunning) return;
+      show($("upd-err"), "");
+      show($("upd-ok"), "");
+      lastImageCheck = lastImageCheck || new Date().toLocaleString();
+      setUpdateReady(false);
+      show($("upd-ok"), "");
+    };
+    $("upd-preview-ready").onclick = () => {
+      if (forceRunning) return;
+      show($("upd-err"), "");
+      show($("upd-ok"), "");
+      lastImageCheck = lastImageCheck || new Date().toLocaleString();
+      setUpdateReady(true);
+      show($("upd-ok"), "");
+    };
+    $("upd-force").onclick = () => {
+      show($("upd-err"), "");
+      show($("upd-ok"), "");
+      if (forceRunning) return;
+      if (!updateReady) return;
+      const image = targetForceImage();
+      if (!confirm("Force update to " + image + "?")) return;
+      if (!confirm("Force update now?")) return;
+      forceRunning = true;
+      let left = FORCE_COUNTDOWN_SEC;
+      $("upd-force-panel").hidden = false;
+      paintForceTick(left);
+      renderUpdateStatus();
+      forceTimer = setInterval(() => {
+        left -= 1;
+        if (left > 0) {
+          paintForceTick(left);
+          return;
+        }
+        finishForceUpdate();
+      }, 1000);
+    };
+    writeUpdateForm(savedUpdate);
+    renderUpdateStatus();
 
     refreshStats();
   </script>
