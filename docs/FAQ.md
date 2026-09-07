@@ -132,5 +132,6 @@ More: [PALWORLD_SERVER.md](PALWORLD_SERVER.md) resources section, [LOCAL.md](LOC
 
 - [CONNECT.md](CONNECT.md) — join from the client
 - [PALWORLD_SERVER.md](PALWORLD_SERVER.md) — ports, REST vs deprecated RCON, mounts, optionSettings, Linux vs Windows mods, optional Server Manager, updates, world pin, crossplay
+- [Official configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/) — PalWorldSettings.ini OptionSettings
 - [LOCAL.md](LOCAL.md) — Compose on a PC
 - [ARCHITECTURE.md](ARCHITECTURE.md) — owned resources / Gateway

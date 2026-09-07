@@ -222,7 +222,7 @@ Pin a version tag or digest in production. A separate DataKnifeAI game-image pro
 
 `spec.optionSettings` is a **passthrough** `map[string]string` of [PalWorldSettings.ini OptionSettings](https://docs.palworldgame.com/settings-and-operation/configuration/) keys (balance, features, performance). Values are INI literals (`"True"`, `"1.5"`, `None`, …). Unknown keys are kept for newer game versions.
 
-**Official parameter list (source of truth):** [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/). Do not copy Pocketpair’s full key list into this repo.
+**Official parameter list (source of truth):** [Configuration parameters](https://docs.palworldgame.com/settings-and-operation/configuration/). Pocketpair groups keys as Performances, Server management, Features, and Game balances. Do not copy Pocketpair’s full key list into this repo.
 
 | Behavior | Detail |
 |----------|--------|
