@@ -43,6 +43,7 @@ const (
 	platformXbox         = "Xbox"
 	platformPS5          = "PS5"
 	platformMac          = "Mac"
+	optNone              = "None"
 )
 
 var (
@@ -55,8 +56,8 @@ var (
 	secretLiveKeys = map[string]struct{}{
 		"ServerPassword": {}, "AdminPassword": {},
 	}
-	deathPenaltyVals   = map[string]struct{}{"None": {}, "Item": {}, "ItemAndEquipment": {}, "All": {}}
-	randomizerVals     = map[string]struct{}{"None": {}, "Region": {}, "All": {}}
+	deathPenaltyVals   = map[string]struct{}{optNone: {}, "Item": {}, "ItemAndEquipment": {}, "All": {}}
+	randomizerVals     = map[string]struct{}{optNone: {}, "Region": {}, "All": {}}
 	boolOptionVals     = map[string]struct{}{"True": {}, "False": {}}
 	optNumberRE        = regexp.MustCompile(`^-?\d+(\.\d+)?$`)
 	optionSettingsLine = regexp.MustCompile(`(?i)OptionSettings\s*=\s*\((.*)\)\s*$`)
@@ -144,11 +145,11 @@ func (s *Server) handleSettingsApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.restarter == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "restart is not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRestartNotConfigured})
 		return
 	}
 	if err := s.restarter.Restart(ctx); err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "restart failed"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errRestartFailed})
 		return
 	}
 	writeJSON(w, http.StatusOK, actionResponse{

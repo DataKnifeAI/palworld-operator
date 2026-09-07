@@ -37,6 +37,8 @@ import (
 // exceed that and reset with "connection termination" before response headers.
 const serverManagerHTTPTimeout gatewayv1.Duration = "3600s"
 
+var serverManagerWriteVerbs = []string{"get", "patch", "update"}
+
 func serverManagerSidecar(
 	spec palworldv1alpha1.PalworldServerSpec,
 	names derivedNames,
@@ -136,13 +138,13 @@ func (r *PalworldServerReconciler) reconcileModManagerRBAC(
 				APIGroups:     []string{"apps"},
 				Resources:     []string{"deployments"},
 				ResourceNames: []string{names.deploymentName},
-				Verbs:         []string{"get", "patch", "update"},
+				Verbs:         serverManagerWriteVerbs,
 			},
 			{
 				APIGroups:     []string{palworldv1alpha1.GroupVersion.Group},
 				Resources:     []string{"palworldservers"},
 				ResourceNames: []string{server.Name},
-				Verbs:         []string{"get", "patch", "update"},
+				Verbs:         serverManagerWriteVerbs,
 			},
 		}
 		if secretNames := sidecarSecretNames(server); len(secretNames) > 0 {
@@ -150,7 +152,7 @@ func (r *PalworldServerReconciler) reconcileModManagerRBAC(
 				APIGroups:     []string{""},
 				Resources:     []string{"secrets"},
 				ResourceNames: secretNames,
-				Verbs:         []string{"get", "patch", "update"},
+				Verbs:         serverManagerWriteVerbs,
 			})
 		}
 		role.Rules = rules

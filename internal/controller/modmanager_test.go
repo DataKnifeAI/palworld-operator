@@ -39,7 +39,7 @@ func testServerForServerManager(mods, manager bool) *palworldv1alpha1.PalworldSe
 	server := testServerForMods(mods)
 	server.Spec.ServerManager.Enabled = manager
 	server.Spec.AdminPasswordSecretRef = &corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{Name: "palworld-test-secrets"},
+		LocalObjectReference: corev1.LocalObjectReference{Name: testCredentialsSecret},
 		Key:                  secretKeyAdminPassword,
 	}
 	if manager {
@@ -289,7 +289,7 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 		}
 		if len(rule.Resources) == 1 && rule.Resources[0] == "secrets" {
 			hasSecret = true
-			if rule.ResourceNames[0] != enabled.Name+"-secrets" && rule.ResourceNames[0] != "palworld-test-secrets" {
+			if rule.ResourceNames[0] != enabled.Name+"-secrets" && rule.ResourceNames[0] != testCredentialsSecret {
 				t.Fatalf("secret ResourceNames = %v", rule.ResourceNames)
 			}
 		}

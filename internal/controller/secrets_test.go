@@ -51,8 +51,8 @@ func testServerForSecrets(generate bool) *palworldv1alpha1.PalworldServer {
 
 func TestCredentialsSecretName(t *testing.T) {
 	server := testServerForSecrets(true)
-	if got := credentialsSecretName(server); got != "palworld-test-secrets" {
-		t.Fatalf("credentialsSecretName() = %q, want palworld-test-secrets", got)
+	if got := credentialsSecretName(server); got != testCredentialsSecret {
+		t.Fatalf("credentialsSecretName() = %q, want %s", got, testCredentialsSecret)
 	}
 	server.Spec.CredentialsSecretName = "custom-creds"
 	if got := credentialsSecretName(server); got != "custom-creds" {

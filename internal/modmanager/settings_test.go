@@ -34,6 +34,8 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+const testExpRate20 = "2.0"
+
 type fakeSecrets struct {
 	mu   sync.Mutex
 	data map[string]*corev1.Secret
@@ -81,7 +83,7 @@ func TestSettingsGetAndApply(t *testing.T) {
 	cr.server.Spec.ServerName = "Island Keep"
 	cr.server.Spec.MaxPlayers = 32
 	cr.server.Spec.CrossplayPlatforms = "(Steam,Xbox,PS5,Mac)"
-	cr.server.Spec.OptionSettings = map[string]string{"ExpRate": "2.0", "DeathPenalty": "None"}
+	cr.server.Spec.OptionSettings = map[string]string{"ExpRate": testExpRate20, "DeathPenalty": optNone}
 	cr.server.Spec.GenerateSecrets = true
 	secrets := &fakeSecrets{data: map[string]*corev1.Secret{
 		testSecretName: {
@@ -114,7 +116,7 @@ func TestSettingsGetAndApply(t *testing.T) {
 	if got.Profile.Name != "Island Keep" || got.Profile.MaxPlayers != 32 || !got.Profile.Steam {
 		t.Fatalf("profile = %+v", got.Profile)
 	}
-	if got.Options["ExpRate"] != "2.0" {
+	if got.Options["ExpRate"] != testExpRate20 {
 		t.Fatalf("options = %+v", got.Options)
 	}
 	if got.Live["ExpRate"] != "2" || got.Live["ServerPassword"] != liveRedacted {
@@ -197,7 +199,7 @@ func TestRotateOneKeyLeavesOther(t *testing.T) {
 
 func TestParseOptionSettingsTuple(t *testing.T) {
 	got := parseOptionSettingsTuple(`OptionSettings=(ExpRate=2.0,DeathPenalty=None,CrossplayPlatforms="(Steam,Xbox)",ServerPassword="secret")`)
-	if got["ExpRate"] != "2.0" || got["DeathPenalty"] != "None" || got["CrossplayPlatforms"] != "(Steam,Xbox)" {
+	if got["ExpRate"] != testExpRate20 || got["DeathPenalty"] != optNone || got["CrossplayPlatforms"] != "(Steam,Xbox)" {
 		t.Fatalf("parsed = %+v", got)
 	}
 	if got["ServerPassword"] != "secret" {

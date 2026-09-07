@@ -34,18 +34,20 @@ import (
 )
 
 const (
-	maxUploadBytes  = 2 << 30
-	maxMultipartMem = 32 << 20
-	healthzPath     = "/healthz"
-	logoutPath      = "/logout"
-	basicAuthRealm  = `Basic realm="Palworld Server Manager"`
-	errModsDisabled = "mods PVC is not mounted; enable spec.mods"
-	errRESTDisabled = "Palworld REST is not configured on this sidecar"
-	errInvalidJSON  = "invalid JSON"
-	errUploadWrite  = "write failed"
-	errUploadMkdir  = "create directory failed"
-	errSpaceCheck   = "space check failed"
-	headerWWWAuth   = "WWW-Authenticate"
+	maxUploadBytes          = 2 << 30
+	maxMultipartMem         = 32 << 20
+	healthzPath             = "/healthz"
+	logoutPath              = "/logout"
+	basicAuthRealm          = `Basic realm="Palworld Server Manager"`
+	errModsDisabled         = "mods PVC is not mounted; enable spec.mods"
+	errRESTDisabled         = "Palworld REST is not configured on this sidecar"
+	errInvalidJSON          = "invalid JSON"
+	errUploadWrite          = "write failed"
+	errUploadMkdir          = "create directory failed"
+	errSpaceCheck           = "space check failed"
+	errRestartNotConfigured = "restart is not configured"
+	errRestartFailed        = "restart failed"
+	headerWWWAuth           = "WWW-Authenticate"
 	// DefaultUser is the basic-auth username (same as Palworld REST admin).
 	DefaultUser = "admin"
 )
@@ -516,7 +518,7 @@ type restartRequest struct {
 
 func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 	if s.restarter == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "restart is not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRestartNotConfigured})
 		return
 	}
 	var req restartRequest
@@ -539,7 +541,7 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.restarter.Restart(ctx); err != nil {
 		log.Printf("server manager restart failed: %v", err)
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "restart failed"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errRestartFailed})
 		return
 	}
 	msg := "Palworld Deployment Recreate requested. Players will disconnect until Ready."

@@ -97,11 +97,11 @@ func (s *Server) handleCredentialsRotate(w http.ResponseWriter, r *http.Request)
 	}
 	log.Printf("server manager rotated %s password", kind)
 	if s.restarter == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: "restart is not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRestartNotConfigured})
 		return
 	}
 	if err := s.restarter.Restart(ctx); err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "restart failed"})
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errRestartFailed})
 		return
 	}
 	writeJSON(w, http.StatusOK, rotateResponse{

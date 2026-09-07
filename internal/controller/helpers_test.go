@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	testGatewayAddress = "192.168.14.187"
-	testMemLimitLarge  = "7Gi"
-	testRate15         = "1.5"
-	testRate20         = "2.0"
-	testCRName         = "palworld-server"
+	testGatewayAddress    = "192.168.14.187"
+	testMemLimitLarge     = "7Gi"
+	testRate15            = "1.5"
+	testRate20            = "2.0"
+	testCRName            = "palworld-server"
+	testCredentialsSecret = "palworld-test-secrets"
 )
 
 func TestBuildPalWorldSettingsINI(t *testing.T) {
