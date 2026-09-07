@@ -32,6 +32,7 @@ const (
 	maxRESTBodyBytes  = 1 << 20
 	maxShutdownWait   = 600
 	defaultRESTClient = 15 * time.Second
+	restMessageField  = "message"
 )
 
 type statsResponse struct {
@@ -96,7 +97,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	}
 	var req announceRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxRESTBodyBytes)).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: errInvalidJSON})
 		return
 	}
 	req.Message = strings.TrimSpace(req.Message)
@@ -104,7 +105,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "message is required"})
 		return
 	}
-	if err := s.restPost(r.Context(), "/v1/api/announce", map[string]string{"message": req.Message}); err != nil {
+	if err := s.restPost(r.Context(), "/v1/api/announce", map[string]string{restMessageField: req.Message}); err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
@@ -130,7 +131,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 	}
 	var req shutdownRequest
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxRESTBodyBytes)).Decode(&req); err != nil && err != io.EOF {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: errInvalidJSON})
 		return
 	}
 	if req.WaitTime < 0 || req.WaitTime > maxShutdownWait {
@@ -139,7 +140,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 	}
 	body := map[string]any{"waittime": req.WaitTime}
 	if strings.TrimSpace(req.Message) != "" {
-		body["message"] = req.Message
+		body[restMessageField] = req.Message
 	}
 	if err := s.restPost(r.Context(), "/v1/api/shutdown", body); err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})

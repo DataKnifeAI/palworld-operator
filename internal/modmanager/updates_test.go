@@ -30,6 +30,8 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+const testNewerTag = "v1.0.2.101000"
+
 type fakeCR struct {
 	mu     sync.Mutex
 	server *palworldv1alpha1.PalworldServer
@@ -124,7 +126,7 @@ func TestUpdatesGetAndSave(t *testing.T) {
 	cr := &fakeCR{server: &palworldv1alpha1.PalworldServer{}}
 	cr.server.Name = "palworld-server"
 	cr.server.Spec.ServerImage = "ghcr.io/pocketpairjp/palserver:v1.0.1.100619"
-	s := testUpdateServer(t, cr, []string{"v1.0.1.100619", "v1.0.2.101000", "latest"}, "")
+	s := testUpdateServer(t, cr, []string{"v1.0.1.100619", testNewerTag, "latest"}, "")
 
 	rec := doAuth(t, s, http.MethodGet, "/api/updates", nil, "")
 	if rec.Code != http.StatusOK {
@@ -134,7 +136,7 @@ func TestUpdatesGetAndSave(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Pinned == "" || got.Latest != "v1.0.2.101000" || !got.UpdateAvailable {
+	if got.Pinned == "" || got.Latest != testNewerTag || !got.UpdateAvailable {
 		t.Fatalf("get = %+v", got)
 	}
 
@@ -185,13 +187,13 @@ func TestUpdatesForce(t *testing.T) {
 
 	cr := &fakeCR{server: &palworldv1alpha1.PalworldServer{}}
 	cr.server.Spec.ServerImage = "ghcr.io/pocketpairjp/palserver:v1.0.1.100619"
-	s := testUpdateServer(t, cr, []string{"v1.0.1.100619", "v1.0.2.101000"}, rest.URL)
+	s := testUpdateServer(t, cr, []string{"v1.0.1.100619", testNewerTag}, rest.URL)
 
 	rec := doAuth(t, s, http.MethodPost, "/api/updates/force", nil, "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("force status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.HasSuffix(cr.server.Spec.ServerImage, "v1.0.2.101000") {
+	if !strings.HasSuffix(cr.server.Spec.ServerImage, testNewerTag) {
 		t.Fatalf("pinned = %s", cr.server.Spec.ServerImage)
 	}
 	if len(announced) < 2 {

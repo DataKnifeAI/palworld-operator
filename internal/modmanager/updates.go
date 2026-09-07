@@ -111,7 +111,7 @@ func (s *Server) handleUpdatesSave(w http.ResponseWriter, r *http.Request) {
 	}
 	var req updateSettings
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxUpdateSettingsBytes)).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid JSON"})
+		writeJSON(w, http.StatusBadRequest, errorResponse{Error: errInvalidJSON})
 		return
 	}
 	cfg, fields := validateAndBuildUpdate(req)
@@ -187,7 +187,7 @@ func (s *Server) handleUpdatesForce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	startMsg := forceAnnounceText(server.Spec, out.Latest, out.LatestImage, forceCountdown)
-	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{"message": startMsg}); err != nil {
+	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{restMessageField: startMsg}); err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
@@ -203,7 +203,7 @@ func (s *Server) handleUpdatesForce(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	nowMsg := forceAnnounceText(server.Spec, out.Latest, out.LatestImage, 0)
-	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{"message": nowMsg}); err != nil {
+	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{restMessageField: nowMsg}); err != nil {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}

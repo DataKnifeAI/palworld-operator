@@ -41,6 +41,7 @@ const (
 	basicAuthRealm  = `Basic realm="Palworld Server Manager"`
 	errModsDisabled = "mods PVC is not mounted; enable spec.mods"
 	errRESTDisabled = "Palworld REST is not configured on this sidecar"
+	errInvalidJSON  = "invalid JSON"
 	errUploadWrite  = "write failed"
 	errUploadMkdir  = "create directory failed"
 	errSpaceCheck   = "space check failed"
