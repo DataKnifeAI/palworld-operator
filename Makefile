@@ -86,8 +86,9 @@ COMPOSE = docker compose -f $(COMPOSE_DIR)/compose.yaml --project-directory $(CO
 compose-up:
 	@test -f $(COMPOSE_DIR)/.env || cp $(COMPOSE_DIR)/.env.example $(COMPOSE_DIR)/.env
 	@$(COMPOSE_DIR)/scripts/seed-settings.sh
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d --build
 	@echo "Game: UDP $${GAME_PORT:-8211} on this host (see docs/LOCAL.md)"
+	@echo "Server Manager: http://127.0.0.1:$${SERVER_MANAGER_PORT:-8088} (admin + ADMIN_PASSWORD)"
 
 .PHONY: compose-down
 compose-down:

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Local Compose: Server Manager sidecar (`/server-manager` from the operator image, `:8088`), community `.pak` overlays (`Paks/~WorkshopMods`, `LogicMods`, `/pal/Package/Mods`), and pin `palserver:v1.0.4.102642`. Updates / Settings apply / credential rotate / Recreate stay Kubernetes-only (503 locally). REST-first; no SteamCMD.
 - Server Manager Mods tab: Palworld Server does load community pak files. Default path `paks/~WorkshopMods`, `.pak`-only upload (client + 400), human-readable MB/GB sizes, PVC used/free bar, reject if the file will not fit. Notes callout for Workshop/UE4SS limits, client+server install, PC-aligned mods, and Crossplay/console. No Yorkhost.
 - Docs / GitHub Pages / CRD comments: community pak support + `.pak` limitation; drop Yorkhost and “Linux PalServer does not load” / “this image” phrasing. Pocketpair mods link has no Windows suffix.
 - Server Manager UI: world-keeper hero (Pages art + Bricolage/Figtree), no header lede, larger overview cards, grouped Controls (announce+save / restart / isolated shutdown) and Saves (controls first, isolated replace-world) with confirmations.

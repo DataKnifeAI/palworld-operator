@@ -39,10 +39,11 @@ Full resource layout: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 cp compose/.env.example compose/.env   # set SERVER_PASSWORD / ADMIN_PASSWORD
 make compose-up
 # Join Multiplayer Game → 127.0.0.1:8211
+# Server Manager → http://127.0.0.1:8088 (admin + ADMIN_PASSWORD)
 make compose-down
 ```
 
-Details (RAM, ports, LAN): [docs/LOCAL.md](docs/LOCAL.md).
+Details (RAM, ports, LAN, mods drop path, what needs Kubernetes): [docs/LOCAL.md](docs/LOCAL.md).
 
 ## Quick start (Kubernetes)
 

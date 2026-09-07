@@ -68,6 +68,13 @@ func main() {
 		crClient = runtimeCR
 		secrets = runtimeCR
 	}
+	var restarter modmanager.Restarter
+	if namespace != "" && deployment != "" {
+		restarter = &modmanager.DeploymentRestarter{
+			Namespace: namespace,
+			Name:      deployment,
+		}
+	}
 	srv, err := modmanager.New(modmanager.Config{
 		Root:      *root,
 		SavesRoot: *saves,
@@ -76,10 +83,7 @@ func main() {
 		RESTBase:  *restBase,
 		CR:        crClient,
 		Secrets:   secrets,
-		Restarter: &modmanager.DeploymentRestarter{
-			Namespace: namespace,
-			Name:      deployment,
-		},
+		Restarter: restarter,
 	})
 	if err != nil {
 		log.Fatal(err)

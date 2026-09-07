@@ -20,8 +20,13 @@ set -a
 source "${ENV_FILE}"
 set +a
 
+# Host dirs must exist before compose bind-mounts (else Docker creates root-owned empties).
+# Overlays only — do not create a host Paks/ tree that would hide Pal-LinuxServer.pak.
+mkdir -p "${ROOT}/Mods/paks/~WorkshopMods" "${ROOT}/Mods/paks/LogicMods"
+
 if [[ -f "${SETTINGS_FILE}" ]]; then
-  echo "settings already present: ${SETTINGS_FILE} (skip seed)"
+  echo "settings already present: ${SETTINGS_FILE} (skip INI seed)"
+  echo "mods overlay dirs: ${ROOT}/Mods/paks/~WorkshopMods and LogicMods"
   exit 0
 fi
 

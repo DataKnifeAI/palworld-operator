@@ -20,7 +20,7 @@ curl -s -u "admin:${ADMIN}" http://127.0.0.1:8212/v1/api/info | jq '{version,wor
 ```shell
 # Example — use the newest published tag that matches the client
 kubectl -n game-servers patch palworldserver palworld-server --type=merge \
-  -p '{"spec":{"serverImage":"ghcr.io/pocketpairjp/palserver:v1.0.1.100619","imagePullPolicy":"Always"}}'
+  -p '{"spec":{"serverImage":"ghcr.io/pocketpairjp/palserver:v1.0.4.102642","imagePullPolicy":"Always"}}'
 ```
 
 Or enable **opt-in** auto-update (`spec.update.autoUpdateImage: true`) so the operator polls GHCR and pins the newest `vX.Y.Z.W` tag when safe (world pin learned, optional maintenance cron, prefer empty server). Status shows `runningVersion`, `latestAvailableVersion`, `updateAvailable`.
@@ -115,7 +115,9 @@ This operator already uses REST [`POST /v1/api/announce`](https://docs.palworldg
 | **Docker Compose** | Gaming PC / laptop, no cluster — [LOCAL.md](LOCAL.md), `make compose-up` |
 | **Operator** | Shared Kubernetes, Envoy Gateway, PVC, CRDs — [README](../README.md) |
 
-Same official Pocketpair image either way.
+Same official Pocketpair image either way. Compose also runs a local Server Manager on
+`http://127.0.0.1:8088` (REST + Mods). The Updates tab, Settings CR apply, credential
+rotate, and Recreate restart **need Kubernetes** and return 4xx/503 locally.
 
 ## Glitchy / laggy performance
 

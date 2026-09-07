@@ -1,5 +1,5 @@
 # Local / minimal PC Palworld dedicated server (no Kubernetes).
-# Official Pocketpair image — see docs/LOCAL.md
+# Official Pocketpair image + Server Manager sidecar — see docs/LOCAL.md
 #
 #   cp .env.example .env   # edit passwords
 #   make compose-up
@@ -9,7 +9,7 @@ services:
   palworld-server:
     # Default pins a current Pocketpair tag (override via PALSERVER_IMAGE). See docs/FAQ.md.
     # https://github.com/pocketpairjp/palworld-dedicated-server-docker/pkgs/container/palserver
-    image: ${PALSERVER_IMAGE:-ghcr.io/pocketpairjp/palserver:v1.0.1.100619}
+    image: ${PALSERVER_IMAGE:-ghcr.io/pocketpairjp/palserver:v1.0.4.102642}
     container_name: palworld-local
     restart: unless-stopped
     stop_grace_period: 60s
@@ -35,9 +35,49 @@ services:
     volumes:
       - ./helper.sh:/pal/helper.sh:ro
       - ./Saved:/pal/Package/Pal/Saved
+      # Forward-looking Pocketpair Mods/ tree (not in the official image).
+      - ./Mods:/pal/Package/Mods
+      # Subpath overlays only — never replace Paks/ (would hide Pal-LinuxServer.pak).
+      - "./Mods/paks/~WorkshopMods:/pal/Package/Pal/Content/Paks/~WorkshopMods"
+      - ./Mods/paks/LogicMods:/pal/Package/Pal/Content/Paks/LogicMods
 
     # Honest PC caps: comfortable for 2–4 players on a gaming laptop/desktop.
     # Palworld is UE5 — expect ~4–8 Gi RAM used at idle/light load; raise MEM_LIMIT if OOM.
     mem_limit: ${MEM_LIMIT:-6g}
     cpus: ${CPU_LIMIT:-4.0}
     shm_size: ${SHM_SIZE:-1gb}
+
+  # Same operator image as the cluster sidecar (`command` would be appended to
+  # ENTRYPOINT /manager — override entrypoint so we run /server-manager).
+  server-manager:
+    image: ${SERVER_MANAGER_IMAGE:-palworld-operator:compose}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: palworld-local-manager
+    restart: unless-stopped
+    entrypoint: ["/server-manager"]
+    user: "${SIDECAR_UID:-1000}:${SIDECAR_GID:-1000}"
+    depends_on:
+      - palworld-server
+
+    ports:
+      - "127.0.0.1:${SERVER_MANAGER_PORT:-8088}:8088/tcp"
+
+    environment:
+      SERVER_MANAGER_LISTEN: ":8088"
+      SERVER_MANAGER_USER: "${SERVER_MANAGER_USER:-admin}"
+      SERVER_MANAGER_PASSWORD: "${ADMIN_PASSWORD}"
+      SERVER_MANAGER_REST_BASE: "${SERVER_MANAGER_REST_BASE:-http://palworld-server:8212}"
+      SERVER_MANAGER_SAVES: /saves
+      SERVER_MANAGER_ROOT: /mods
+      # Do not set SERVER_MANAGER_NAMESPACE / DEPLOYMENT / CR here.
+      # Updates, Settings apply, credential rotate, and Recreate restart need Kubernetes.
+
+    volumes:
+      - ./Saved:/saves
+      - ./Mods:/mods
+
+    # Laptop sidecar — cluster default is 1Gi; local UI/proxy does not need that.
+    mem_limit: ${SIDECAR_MEM_LIMIT:-128m}
+    cpus: ${SIDECAR_CPU_LIMIT:-0.25}

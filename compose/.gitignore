@@ -1,3 +1,7 @@
 .env
 Saved/*
 !Saved/.gitkeep
+Mods/paks/~WorkshopMods/*
+!Mods/paks/~WorkshopMods/.gitkeep
+Mods/paks/LogicMods/*
+!Mods/paks/LogicMods/.gitkeep
