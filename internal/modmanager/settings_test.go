@@ -102,6 +102,7 @@ func TestSettingsGetAndApply(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(rest.Close)
+	zeroRebootCountdown(t)
 	r := &countingRestarter{}
 	s := testSettingsServer(t, cr, secrets, rest.URL, r)
 
@@ -168,8 +169,13 @@ func TestRotateOneKeyLeavesOther(t *testing.T) {
 			},
 		},
 	}}
+	zeroRebootCountdown(t)
+	rest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(rest.Close)
 	r := &countingRestarter{}
-	s := testSettingsServer(t, cr, secrets, "", r)
+	s := testSettingsServer(t, cr, secrets, rest.URL, r)
 
 	rec := doAuth(t, s, http.MethodPost, "/api/credentials/rotate", strings.NewReader(`{"key":"admin"}`), "application/json")
 	if rec.Code != http.StatusOK {

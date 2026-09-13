@@ -395,9 +395,13 @@ const uiHTML = `<!DOCTYPE html>
     .force-bar {
       height: 100%;
       width: 0;
-      background: linear-gradient(90deg, var(--amber), var(--coral));
+      background: linear-gradient(90deg, var(--teal), var(--grass));
       border-radius: .4rem;
       transition: width .2s linear;
+    }
+    .force-bar.is-indeterminate {
+      width: 32%;
+      animation: upload-slide 1.05s ease-in-out infinite;
     }
     .status-head {
       display: flex;
@@ -674,9 +678,17 @@ const uiHTML = `<!DOCTYPE html>
         <div class="force-panel" id="ctl-restart-panel" hidden>
           <div class="chain" id="ctl-restart-chain" aria-live="polite">
             <span class="chain-step" data-step="save">Save</span>
+            <span class="chain-step" data-step="announce">Announce</span>
             <span class="chain-step" data-step="roll">Recreate</span>
           </div>
           <p class="force-announce" id="ctl-restart-announce"></p>
+          <div class="force-timer" aria-live="polite">
+            <strong id="ctl-restart-left">10</strong>
+            <span id="ctl-restart-left-label">seconds</span>
+          </div>
+          <div class="force-bar-track">
+            <div class="force-bar" id="ctl-restart-bar"></div>
+          </div>
         </div>
       </div>
 
@@ -1001,6 +1013,21 @@ const uiHTML = `<!DOCTYPE html>
         <div class="row">
           <button class="btn-sun" type="button" id="set-apply">Apply &amp; restart</button>
         </div>
+        <div class="force-panel" id="set-apply-panel" hidden>
+          <div class="chain" id="set-apply-chain" aria-live="polite">
+            <span class="chain-step" data-step="save">Save</span>
+            <span class="chain-step" data-step="announce">Announce</span>
+            <span class="chain-step" data-step="roll">Recreate</span>
+          </div>
+          <p class="force-announce" id="set-apply-announce"></p>
+          <div class="force-timer" aria-live="polite">
+            <strong id="set-apply-left">10</strong>
+            <span id="set-apply-left-label">seconds</span>
+          </div>
+          <div class="force-bar-track">
+            <div class="force-bar" id="set-apply-bar"></div>
+          </div>
+        </div>
       </div>
 
       <div class="group group--danger">
@@ -1020,6 +1047,21 @@ const uiHTML = `<!DOCTYPE html>
           <span class="cred-once" id="cred-admin-once" hidden></span>
           <button class="btn-ghost btn-sm" type="button" id="cred-admin-copy">Copy</button>
           <button class="btn-danger btn-sm" type="button" id="cred-admin-rotate">Rotate &amp; restart</button>
+        </div>
+        <div class="force-panel" id="cred-rotate-panel" hidden>
+          <div class="chain" id="cred-rotate-chain" aria-live="polite">
+            <span class="chain-step" data-step="save">Save</span>
+            <span class="chain-step" data-step="announce">Announce</span>
+            <span class="chain-step" data-step="roll">Recreate</span>
+          </div>
+          <p class="force-announce" id="cred-rotate-announce"></p>
+          <div class="force-timer" aria-live="polite">
+            <strong id="cred-rotate-left">10</strong>
+            <span id="cred-rotate-left-label">seconds</span>
+          </div>
+          <div class="force-bar-track">
+            <div class="force-bar" id="cred-rotate-bar"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -1310,6 +1352,160 @@ const uiHTML = `<!DOCTYPE html>
         el.classList.toggle("is-done", idx >= 0 && si >= 0 && si < idx);
       });
     }
+    const REBOOT_COUNTDOWN_SEC = 10;
+    const REBOOT_STORE = "pw-reboot";
+    const REBOOT_IDS = {
+      restart: { panel: "ctl-restart-panel", chain: "ctl-restart-chain", announce: "ctl-restart-announce", left: "ctl-restart-left", leftLabel: "ctl-restart-left-label", bar: "ctl-restart-bar", err: "ctl-err", ok: "ctl-ok" },
+      force: { panel: "upd-force-panel", chain: "upd-force-chain", announce: "upd-force-announce", left: "upd-force-left", leftLabel: "upd-force-left-label", bar: "upd-force-bar", err: "upd-err", ok: "upd-ok" },
+      apply: { panel: "set-apply-panel", chain: "set-apply-chain", announce: "set-apply-announce", left: "set-apply-left", leftLabel: "set-apply-left-label", bar: "set-apply-bar", err: "set-err", ok: "set-ok" },
+      rotate: { panel: "cred-rotate-panel", chain: "cred-rotate-chain", announce: "cred-rotate-announce", left: "cred-rotate-left", leftLabel: "cred-rotate-left-label", bar: "cred-rotate-bar", err: "set-err", ok: "set-ok" }
+    };
+    function rebootAnnounceText(sec) {
+      if (sec > 0) return "Server changes applied and server rebooting — restart in " + sec + "s";
+      return "Server changes applied and server rebooting — restarting now";
+    }
+    function storeReboot(state) {
+      try { sessionStorage.setItem(REBOOT_STORE, JSON.stringify(state)); } catch (e) {}
+    }
+    function loadReboot() {
+      try { return JSON.parse(sessionStorage.getItem(REBOOT_STORE) || "null"); } catch (e) { return null; }
+    }
+    function clearReboot() {
+      try { sessionStorage.removeItem(REBOOT_STORE); } catch (e) {}
+    }
+    function rebootUI(ids) {
+      return {
+        panel: $(ids.panel), chain: ids.chain, announce: $(ids.announce),
+        left: $(ids.left), leftLabel: $(ids.leftLabel), bar: $(ids.bar),
+        err: $(ids.err), ok: $(ids.ok)
+      };
+    }
+    function paintRebootTick(ui, sec) {
+      if (ui.announce) ui.announce.textContent = rebootAnnounceText(sec);
+      if (ui.left) ui.left.textContent = String(sec);
+      if (ui.leftLabel) ui.leftLabel.textContent = sec === 1 ? "second" : "seconds";
+      if (ui.bar) {
+        ui.bar.classList.remove("is-indeterminate");
+        ui.bar.style.width = (((REBOOT_COUNTDOWN_SEC - sec) / REBOOT_COUNTDOWN_SEC) * 100) + "%";
+      }
+    }
+    function markRebootRoll(ui) {
+      paintChain(ui.chain, "roll");
+      document.querySelectorAll("#" + ui.chain + " .chain-step").forEach(function(el) {
+        el.classList.remove("is-active");
+        el.classList.add("is-done");
+      });
+      if (ui.left) ui.left.textContent = "0";
+      if (ui.bar) {
+        ui.bar.classList.add("is-indeterminate");
+        ui.bar.style.width = "32%";
+      }
+      if (ui.announce) ui.announce.textContent = "Recreate in progress. Portal will reconnect…";
+    }
+    function isReconnectError(err) {
+      const m = (err && err.message) ? String(err.message) : "";
+      return !m || /failed to fetch|networkerror|load failed|connection|refused|reset|aborted|unauthorized/i.test(m);
+    }
+    async function waitForPortal(opt) {
+      const start = Date.now();
+      let sawDown = false;
+      const giveUp = (opt && opt.timeout) || 180000;
+      const stillUpOk = opt && opt.stillUpOk;
+      while (Date.now() - start < giveUp) {
+        let up = false;
+        try {
+          const r = await fetch("/healthz", { cache: "no-store", credentials: "same-origin" });
+          up = r.ok;
+        } catch (e) { up = false; }
+        if (!up) sawDown = true;
+        else if (sawDown) return true;
+        else if (stillUpOk && Date.now() - start > stillUpOk) return true;
+        await new Promise(function(res) { setTimeout(res, 1500); });
+      }
+      return false;
+    }
+    async function finishRebootReconnect(ui, cfg, okMsg) {
+      markRebootRoll(ui);
+      show(ui.ok, "Recreate in progress. Portal will reconnect…");
+      const back = await waitForPortal(cfg.wait);
+      if (back) {
+        show(ui.ok, okMsg);
+        if (cfg.onSuccess) await cfg.onSuccess();
+        clearReboot();
+        return true;
+      }
+      show(ui.err, "Portal did not reconnect. Refresh when Ready.");
+      return false;
+    }
+    async function runRebootCountdown(cfg) {
+      const ui = rebootUI(cfg.ids);
+      const buttons = cfg.buttons || [];
+      buttons.forEach(function(b) { if (b) b.disabled = true; });
+      if (ui.panel) ui.panel.hidden = false;
+      show(ui.err, "");
+      show(ui.ok, cfg.startLabel || "Starting…");
+      storeReboot({ action: cfg.action, ok: cfg.okMessage, tab: cfg.tab || "" });
+      let left = REBOOT_COUNTDOWN_SEC;
+      let timer = null;
+      if (ui.left) ui.left.textContent = String(REBOOT_COUNTDOWN_SEC);
+      if (ui.leftLabel) ui.leftLabel.textContent = "seconds";
+      if (ui.bar) { ui.bar.classList.remove("is-indeterminate"); ui.bar.style.width = "0"; }
+      if (cfg.saveFirst) {
+        paintChain(ui.chain, "save");
+        if (ui.announce) ui.announce.textContent = cfg.startLabel || "Saving…";
+      } else {
+        paintChain(ui.chain, "announce");
+        paintRebootTick(ui, REBOOT_COUNTDOWN_SEC);
+        if (ui.announce && cfg.startLabel) ui.announce.textContent = cfg.startLabel;
+      }
+      timer = setInterval(function() {
+        left -= 1;
+        if (left > 0) {
+          paintChain(ui.chain, "announce");
+          paintRebootTick(ui, left);
+        }
+      }, 1000);
+      try {
+        const out = await cfg.request();
+        if (timer) { clearInterval(timer); timer = null; }
+        await finishRebootReconnect(ui, cfg, (out && out.message) || cfg.okMessage || "Done.");
+        return out;
+      } catch (e) {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (isReconnectError(e)) {
+          await finishRebootReconnect(ui, cfg, cfg.okMessage || "Done.");
+          return null;
+        }
+        clearReboot();
+        show(ui.err, e.message);
+        show(ui.ok, "");
+        throw e;
+      } finally {
+        if (timer) clearInterval(timer);
+        buttons.forEach(function(b) { if (b) b.disabled = false; });
+      }
+    }
+    async function resumeRebootProgress() {
+      const st = loadReboot();
+      if (!st || !st.action) return;
+      const ids = REBOOT_IDS[st.action];
+      if (st.tab) setTab(st.tab);
+      if (ids) {
+        const ui = rebootUI(ids);
+        if (ui.panel) ui.panel.hidden = false;
+        markRebootRoll(ui);
+        show(ui.ok, "Recreate in progress. Portal will reconnect…");
+        const back = await waitForPortal();
+        if (back) {
+          show(ui.ok, st.ok || "Recreate complete.");
+          if (st.action === "apply" || st.action === "rotate") loadSettings();
+          if (st.action === "force") loadUpdates();
+          clearReboot();
+        } else {
+          show(ui.err, "Portal did not reconnect. Refresh when Ready.");
+        }
+      }
+    }
     function syncRestartLabel() {
       const btn = $("restart");
       const saveFirst = $("ctl-save-first");
@@ -1321,34 +1517,22 @@ const uiHTML = `<!DOCTYPE html>
       if (restartRunning) return;
       const saveFirst = $("ctl-save-first") && $("ctl-save-first").checked;
       if (!confirm((saveFirst ? "Save & restart" : "Restart") + " this Palworld server?\n\nPlayers disconnect. Recreate means downtime until Ready. This admin UI restarts with the pod.")) return;
-      show($("ctl-err"), ""); show($("ctl-ok"), "");
       restartRunning = true;
-      $("restart").disabled = true;
-      const panel = $("ctl-restart-panel");
-      const announce = $("ctl-restart-announce");
-      if (panel) panel.hidden = false;
       try {
-        if (saveFirst) {
-          paintChain("ctl-restart-chain", "save");
-          if (announce) announce.textContent = "Saving…";
-        } else {
-          paintChain("ctl-restart-chain", "roll");
-          if (announce) announce.textContent = "Recreate…";
-        }
-        const out = await api("/api/restart", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ saveFirst: !!saveFirst }) });
-        paintChain("ctl-restart-chain", "roll");
-        document.querySelectorAll("#ctl-restart-chain .chain-step").forEach((el) => {
-          el.classList.remove("is-active");
-          el.classList.add("is-done");
+        await runRebootCountdown({
+          action: "restart",
+          ids: REBOOT_IDS.restart,
+          tab: "controls",
+          saveFirst: !!saveFirst,
+          startLabel: saveFirst ? "Saving…" : "Announcing reboot…",
+          okMessage: saveFirst ? "Saved, then Recreate." : "Recreate requested.",
+          buttons: [$("restart")],
+          request: function() {
+            return api("/api/restart", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ saveFirst: !!saveFirst }) });
+          }
         });
-        if (announce) announce.textContent = out.message || "Recreate requested.";
-        show($("ctl-ok"), out.message || (saveFirst ? "Saved, then Recreate." : "Recreate requested."));
-      } catch (e) { show($("ctl-err"), e.message); }
-      finally {
-        restartRunning = false;
-        $("restart").disabled = false;
-        setTimeout(() => { if (panel) panel.hidden = true; }, 1200);
-      }
+      } catch (e) {}
+      finally { restartRunning = false; }
     };
     $("shutdown").onsubmit = async (ev) => {
       ev.preventDefault();
@@ -1659,7 +1843,7 @@ const uiHTML = `<!DOCTYPE html>
       }
     };
 
-    const FORCE_COUNTDOWN_SEC = 10;
+    const FORCE_COUNTDOWN_SEC = REBOOT_COUNTDOWN_SEC;
     const CRON_MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
     const CRON_DOW = { sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6 };
     const CRON_DESCRIPTORS = { "@yearly":1,"@annually":1,"@monthly":1,"@weekly":1,"@daily":1,"@midnight":1,"@hourly":1 };
@@ -1870,21 +2054,8 @@ const uiHTML = `<!DOCTYPE html>
         applyUpdatesPayload(await api("/api/updates"));
       } catch (e) { show($("upd-err"), e.message); }
     }
-    function forceAnnounceText(sec) {
-      const remaining = sec + "s";
-      const ver = updateState.latest || "";
-      const image = updateState.latestImage || ver;
-      const tmpl = savedUpdate.notifyMessage;
-      if (tmpl) {
-        return tmpl.split("{version}").join(ver).split("{image}").join(image).split("{remaining}").join(remaining);
-      }
-      return "[Server] Update " + ver + " — restart in " + remaining;
-    }
     function paintForceTick(sec) {
-      $("upd-force-announce").textContent = forceAnnounceText(sec);
-      $("upd-force-left").textContent = String(sec);
-      $("upd-force-left-label").textContent = sec === 1 ? "second" : "seconds";
-      $("upd-force-bar").style.width = (((FORCE_COUNTDOWN_SEC - sec) / FORCE_COUNTDOWN_SEC) * 100) + "%";
+      paintRebootTick(rebootUI(REBOOT_IDS.force), sec);
     }
     $("upd-form").addEventListener("input", function() { validateUpdateForm(); syncUpdateDirty(); });
     $("upd-form").addEventListener("change", function() { validateUpdateForm(); syncUpdateDirty(); });
@@ -1951,39 +2122,22 @@ const uiHTML = `<!DOCTYPE html>
       if (!confirm("Save & force update to " + image + "?")) return;
       if (!confirm("Save, announce 10s, then Recreate?")) return;
       forceRunning = true;
-      let left = FORCE_COUNTDOWN_SEC;
-      $("upd-force-panel").hidden = false;
-      paintChain("upd-force-chain", "save");
-      $("upd-force-announce").textContent = "Saving…";
-      $("upd-force-left").textContent = String(FORCE_COUNTDOWN_SEC);
-      $("upd-force-left-label").textContent = "seconds";
-      $("upd-force-bar").style.width = "0";
       renderUpdateStatus();
-      forceTimer = setInterval(function() {
-        left -= 1;
-        if (left > 0) {
-          paintChain("upd-force-chain", "announce");
-          paintForceTick(left);
-        }
-      }, 1000);
       try {
-        const out = await api("/api/updates/force", { method: "POST" });
-        if (forceTimer) { clearInterval(forceTimer); forceTimer = null; }
-        paintChain("upd-force-chain", "roll");
-        document.querySelectorAll("#upd-force-chain .chain-step").forEach(function(el) {
-          el.classList.remove("is-active");
-          el.classList.add("is-done");
+        await runRebootCountdown({
+          action: "force",
+          ids: REBOOT_IDS.force,
+          tab: "updates",
+          saveFirst: true,
+          startLabel: "Saving…",
+          okMessage: "Saved, announced, Recreate.",
+          buttons: [$("upd-force"), $("upd-check")],
+          request: function() { return api("/api/updates/force", { method: "POST" }); },
+          onSuccess: function() { return loadUpdates(); }
         });
-        $("upd-force-left").textContent = "0";
-        $("upd-force-bar").style.width = "100%";
-        show($("upd-ok"), out.message || "Saved, announced, Recreate.");
-        await loadUpdates();
-      } catch (e) {
-        show($("upd-err"), e.message);
-      } finally {
-        if (forceTimer) { clearInterval(forceTimer); forceTimer = null; }
+      } catch (e) {}
+      finally {
         forceRunning = false;
-        $("upd-force-panel").hidden = true;
         renderUpdateStatus();
       }
     };
@@ -2061,9 +2215,30 @@ const uiHTML = `<!DOCTYPE html>
       setFieldNote("prof-max", "err-prof-max", "");
       return true;
     }
+    function stableJSON(obj) {
+      if (obj == null || typeof obj !== "object" || Array.isArray(obj)) return JSON.stringify(obj);
+      const out = {};
+      Object.keys(obj).sort().forEach(function(k) { out[k] = obj[k]; });
+      return JSON.stringify(out);
+    }
+    function snapshotsEqual(a, b) {
+      return stableJSON(a) === stableJSON(b);
+    }
+    function markProfileClean() {
+      savedProfile = readProfile();
+      syncProfileDirty();
+    }
+    function markOptionsClean() {
+      savedOptions = readOptions();
+      syncOptDirty();
+    }
+    function markSettingsClean() {
+      markProfileClean();
+      markOptionsClean();
+    }
     function syncProfileDirty() {
       const el = $("prof-dirty");
-      if (el) el.hidden = JSON.stringify(readProfile()) !== JSON.stringify(savedProfile);
+      if (el) el.hidden = snapshotsEqual(readProfile(), savedProfile);
     }
     function optControl(key, kind) {
       if (kind === "bool" || kind === "death" || kind === "randomizer") {
@@ -2168,7 +2343,7 @@ const uiHTML = `<!DOCTYPE html>
     }
     function syncOptDirty() {
       const el = $("opt-dirty");
-      if (el) el.hidden = JSON.stringify(readOptions()) !== JSON.stringify(savedOptions);
+      if (el) el.hidden = snapshotsEqual(readOptions(), savedOptions);
     }
     function paintCred(kind, set) {
       const badge = $("cred-" + kind + "-badge");
@@ -2181,12 +2356,11 @@ const uiHTML = `<!DOCTYPE html>
       buildOptForm();
       try {
         const data = await api("/api/settings");
-        savedProfile = Object.assign({}, PROFILE_DEFAULTS, data.profile || {});
-        savedOptions = data.options || {};
         liveSettings = data.live || {};
-        writeProfile(savedProfile);
-        writeOptions(savedOptions);
+        writeProfile(Object.assign({}, PROFILE_DEFAULTS, data.profile || {}));
+        writeOptions(data.options || {});
         paintLiveSettings();
+        markSettingsClean();
         const creds = data.credentials || {};
         paintCred("join", !!(creds.join && creds.join.set));
         paintCred("admin", !!(creds.admin && creds.admin.set));
@@ -2217,18 +2391,29 @@ const uiHTML = `<!DOCTYPE html>
         return;
       }
       if (!confirm("Apply server profile and game settings, then Recreate?")) return;
+      const profile = readProfile();
+      const options = readOptions();
       try {
-        const out = await api("/api/settings", {
-          method: "PUT",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ profile: readProfile(), options: readOptions() })
+        await runRebootCountdown({
+          action: "apply",
+          ids: REBOOT_IDS.apply,
+          tab: "settings",
+          startLabel: "Applying settings…",
+          okMessage: "Profile and game settings applied. Recreate requested.",
+          buttons: [$("set-apply")],
+          request: function() {
+            return api("/api/settings", {
+              method: "PUT",
+              headers: {"Content-Type":"application/json"},
+              body: JSON.stringify({ profile: profile, options: options })
+            });
+          },
+          onSuccess: function() {
+            markSettingsClean();
+            return loadSettings();
+          }
         });
-        savedProfile = readProfile();
-        savedOptions = readOptions();
-        syncProfileDirty();
-        syncOptDirty();
-        show($("set-ok"), out.message || "Profile and game settings applied. Recreate requested.");
-      } catch (e) { show($("set-err"), e.message); }
+      } catch (e) {}
     };
     function copyOnce(kind) {
       const val = credOnce[kind];
@@ -2258,22 +2443,32 @@ const uiHTML = `<!DOCTYPE html>
       if (!confirm("Rotate now? Old password stops working after Recreate.")) return;
       show($("set-err"), ""); show($("set-ok"), "");
       try {
-        const out = await api("/api/credentials/rotate", {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ key: kind })
+        await runRebootCountdown({
+          action: "rotate",
+          ids: REBOOT_IDS.rotate,
+          tab: "settings",
+          startLabel: "Rotating " + label + "…",
+          okMessage: "Rotated " + label + ". Recreate requested. Copy once if needed.",
+          buttons: [$("cred-join-rotate"), $("cred-admin-rotate")],
+          request: async function() {
+            const out = await api("/api/credentials/rotate", {
+              method: "POST",
+              headers: {"Content-Type":"application/json"},
+              body: JSON.stringify({ key: kind })
+            });
+            credOnce[kind] = out.password || "";
+            credCopied[kind] = false;
+            const once = $("cred-" + kind + "-once");
+            const mask = $("cred-" + kind + "-mask");
+            const copy = $("cred-" + kind + "-copy");
+            if (once) { once.textContent = ""; once.hidden = true; }
+            if (mask) { mask.hidden = false; mask.textContent = "••••••••"; }
+            if (copy) { copy.textContent = "Copy"; copy.disabled = !credOnce[kind]; }
+            paintCred(kind, true);
+            return out;
+          }
         });
-        credOnce[kind] = out.password || "";
-        credCopied[kind] = false;
-        const once = $("cred-" + kind + "-once");
-        const mask = $("cred-" + kind + "-mask");
-        const copy = $("cred-" + kind + "-copy");
-        if (once) { once.textContent = ""; once.hidden = true; }
-        if (mask) { mask.hidden = false; mask.textContent = "••••••••"; }
-        if (copy) { copy.textContent = "Copy"; copy.disabled = !credOnce[kind]; }
-        paintCred(kind, true);
-        show($("set-ok"), out.message || ("Rotated " + label + ". Recreate requested. Copy once if needed."));
-      } catch (e) { show($("set-err"), e.message); }
+      } catch (e) {}
     }
     $("cred-join-rotate").onclick = function() { rotateCred("join"); };
     $("cred-admin-rotate").onclick = function() { rotateCred("admin"); };
@@ -2283,7 +2478,9 @@ const uiHTML = `<!DOCTYPE html>
     buildOptForm();
     writeProfile(savedProfile);
     writeOptions(savedOptions);
+    markSettingsClean();
     syncRestartLabel();
+    resumeRebootProgress();
 
     refreshStats();
     statsTimer = setInterval(() => {

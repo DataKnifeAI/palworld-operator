@@ -96,6 +96,9 @@ func (s *Server) handleCredentialsRotate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	log.Printf("server manager rotated %s password", kind)
+	if !s.announceRebootCountdown(w, ctx) {
+		return
+	}
 	if s.restarter == nil {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRestartNotConfigured})
 		return

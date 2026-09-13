@@ -96,10 +96,14 @@ func TestKickBanUnbanAndList(t *testing.T) {
 }
 
 func TestRestartSaveFirst(t *testing.T) {
-	var saved int
+	zeroRebootCountdown(t)
+	var saved, announced int
 	game := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/api/save" {
 			saved++
+		}
+		if r.URL.Path == "/v1/api/announce" {
+			announced++
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -113,8 +117,8 @@ func TestRestartSaveFirst(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if saved != 1 || r.n.Load() != 1 {
-		t.Fatalf("saved=%d restarts=%d", saved, r.n.Load())
+	if saved != 1 || announced != 2 || r.n.Load() != 1 {
+		t.Fatalf("saved=%d announced=%d restarts=%d", saved, announced, r.n.Load())
 	}
 	if !strings.Contains(rec.Body.String(), "Saved, then Recreate") {
 		t.Fatalf("body=%s", rec.Body.String())

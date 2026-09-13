@@ -144,6 +144,9 @@ func (s *Server) handleSettingsApply(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
+	if !s.announceRebootCountdown(w, ctx) {
+		return
+	}
 	if s.restarter == nil {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errRestartNotConfigured})
 		return

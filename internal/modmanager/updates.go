@@ -19,7 +19,6 @@ package modmanager
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -33,12 +32,9 @@ import (
 const (
 	errUpdatesDisabled     = "update API is not configured"
 	errNoUpdateAvailable   = "no update available"
-	forceCountdownDefault  = 10 * time.Second
 	notifyPlaceholderOpen  = "{"
 	maxUpdateSettingsBytes = 1 << 16
 )
-
-var forceCountdown = forceCountdownDefault
 
 type updateSettings struct {
 	AutoUpdateImage  bool   `json:"autoUpdateImage"`
@@ -190,25 +186,7 @@ func (s *Server) handleUpdatesForce(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 		return
 	}
-	startMsg := forceAnnounceText(server.Spec, out.Latest, out.LatestImage, forceCountdown)
-	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{restMessageField: startMsg}); err != nil {
-		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
-		return
-	}
-	wait := forceCountdown
-	if wait > 0 {
-		timer := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			writeJSON(w, http.StatusRequestTimeout, errorResponse{Error: "force update canceled"})
-			return
-		case <-timer.C:
-		}
-	}
-	nowMsg := forceAnnounceText(server.Spec, out.Latest, out.LatestImage, 0)
-	if err := s.restPost(ctx, "/v1/api/announce", map[string]string{restMessageField: nowMsg}); err != nil {
-		writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
+	if !s.announceRebootCountdown(w, ctx) {
 		return
 	}
 	server, err = s.cr.Get(ctx)
@@ -372,23 +350,4 @@ func notifyMessageHint(msg string) string {
 		}
 		rest = rest[j+1:]
 	}
-}
-
-func forceAnnounceText(spec palworldv1alpha1.PalworldServerSpec, version, image string, remaining time.Duration) string {
-	remain := "now"
-	if remaining > 0 {
-		remain = remaining.String()
-	}
-	tmpl := strings.TrimSpace(spec.Update.NotifyMessage)
-	if tmpl == "" {
-		if remaining > 0 {
-			return fmt.Sprintf("[Server] Update %s — restart in %s", version, remain)
-		}
-		return fmt.Sprintf("[Server] Update %s — restarting now", version)
-	}
-	out := tmpl
-	out = strings.ReplaceAll(out, "{version}", version)
-	out = strings.ReplaceAll(out, "{image}", image)
-	out = strings.ReplaceAll(out, "{remaining}", remain)
-	return out
 }

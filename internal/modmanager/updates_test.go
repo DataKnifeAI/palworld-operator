@@ -167,9 +167,7 @@ func TestUpdatesGetAndSave(t *testing.T) {
 }
 
 func TestUpdatesForce(t *testing.T) {
-	prev := forceCountdown
-	forceCountdown = 0
-	t.Cleanup(func() { forceCountdown = prev })
+	zeroRebootCountdown(t)
 
 	var announced []string
 	var saved int
@@ -205,6 +203,9 @@ func TestUpdatesForce(t *testing.T) {
 	}
 	if len(announced) < 2 {
 		t.Fatalf("announces = %v", announced)
+	}
+	if !strings.Contains(announced[0], rebootAnnounceBase) {
+		t.Fatalf("want generic reboot announce, got %v", announced)
 	}
 }
 

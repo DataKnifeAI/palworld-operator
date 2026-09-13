@@ -269,14 +269,27 @@ func TestRejectTraversalOnAPI(t *testing.T) {
 }
 
 func TestRestart(t *testing.T) {
+	zeroRebootCountdown(t)
+	var announced int
+	game := testGameREST(t, func(path, _ string) {
+		if strings.Contains(path, "announce") {
+			announced++
+		}
+	})
 	r := &countingRestarter{}
-	s, _ := testServer(t, r)
+	s, err := New(Config{Root: t.TempDir(), SavesRoot: t.TempDir(), Password: testPassword, RESTBase: game.URL, Client: game.Client(), Restarter: r})
+	if err != nil {
+		t.Fatal(err)
+	}
 	rec := doAuth(t, s, http.MethodPost, "/api/restart", nil, "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("restart status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	if r.n.Load() != 1 {
 		t.Fatalf("restart calls = %d", r.n.Load())
+	}
+	if announced != 2 {
+		t.Fatalf("announces = %d", announced)
 	}
 }
 
@@ -312,6 +325,18 @@ func TestUIRequiresAuth(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `id="cred-join-rotate"`) || !strings.Contains(rec.Body.String(), `id="cred-admin-rotate"`) {
 		t.Fatal("ui must have per-credential Rotate & restart")
+	}
+	if !strings.Contains(rec.Body.String(), "function runRebootCountdown") || !strings.Contains(rec.Body.String(), "function rebootAnnounceText") {
+		t.Fatal("ui must share reboot countdown helper")
+	}
+	if !strings.Contains(rec.Body.String(), "function markSettingsClean") || !strings.Contains(rec.Body.String(), "function snapshotsEqual") {
+		t.Fatal("ui must compare settings dirty against last loaded snapshot")
+	}
+	if !strings.Contains(rec.Body.String(), `id="set-apply-panel"`) || !strings.Contains(rec.Body.String(), `id="cred-rotate-panel"`) {
+		t.Fatal("ui must show apply and rotate countdown panels")
+	}
+	if !strings.Contains(rec.Body.String(), "Portal will reconnect") {
+		t.Fatal("ui must show reconnect status during Recreate")
 	}
 	if strings.Contains(rec.Body.String(), "id=\"live-settings\"") || strings.Contains(rec.Body.String(), "GET /settings") {
 		t.Fatal("Settings tab must not have a standalone Live / GET /settings card")

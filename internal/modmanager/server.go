@@ -158,6 +158,7 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /api/shutdown", s.handleShutdown)
 	s.mux.HandleFunc("GET /api/settings", s.handleSettingsGet)
 	s.mux.HandleFunc("PUT /api/settings", s.handleSettingsApply)
+	s.mux.HandleFunc("PATCH /api/settings", s.handleSettingsApply)
 	s.mux.HandleFunc("POST /api/credentials/rotate", s.handleCredentialsRotate)
 	s.mux.HandleFunc("GET /api/saves", s.handleSavesList)
 	s.mux.HandleFunc("GET /api/saves/download", s.handleSavesDownload)
@@ -538,6 +539,9 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadGateway, errorResponse{Error: err.Error()})
 			return
 		}
+	}
+	if !s.announceRebootCountdown(w, ctx) {
+		return
 	}
 	if err := s.restarter.Restart(ctx); err != nil {
 		log.Printf("server manager restart failed: %v", err)
