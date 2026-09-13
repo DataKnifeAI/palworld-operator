@@ -346,6 +346,9 @@ func TestUIRequiresAuth(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "mod-progress") || !strings.Contains(rec.Body.String(), "uploadWithProgress") {
 		t.Fatal("ui must show mods upload progress")
 	}
+	if !strings.Contains(rec.Body.String(), "sv-progress") || !strings.Contains(rec.Body.String(), "downloadWithProgress") {
+		t.Fatal("ui must show saves download progress")
+	}
 	if !strings.Contains(rec.Body.String(), "Palworld Server does load community pak files") {
 		t.Fatal("ui must lead with community pak support")
 	}

@@ -827,6 +827,12 @@ const uiHTML = `<!DOCTYPE html>
           <label><input type="checkbox" id="sv-cfg" /> Include Config INIs (passwords redacted)</label>
           <button class="btn" type="button" id="sv-dl">Download world zip</button>
         </div>
+        <div class="upload-status" id="sv-progress" hidden>
+          <div class="upload-status__track">
+            <div class="upload-status__bar" id="sv-progress-bar"></div>
+          </div>
+          <p class="muted" id="sv-progress-label"></p>
+        </div>
       </div>
 
       <p class="muted" id="sv-meta"></p>
@@ -1377,26 +1383,104 @@ const uiHTML = `<!DOCTYPE html>
         $("sv-meta").textContent = (data.warning || ("SaveGames " + fmt(data.totalBytes))) + (data.saveGamesRel ? " · " + data.saveGamesRel : "");
       } catch (e) { show($("sv-err"), e.message); }
     }
+    function showSaveProgress(text, loaded, total) {
+      const wrap = $("sv-progress");
+      const bar = $("sv-progress-bar");
+      const label = $("sv-progress-label");
+      if (!wrap || !bar || !label) return;
+      wrap.hidden = false;
+      if (total > 0) {
+        const pct = Math.min(100, Math.round((loaded / total) * 100));
+        bar.classList.remove("is-indeterminate");
+        bar.style.width = pct + "%";
+        label.textContent = text;
+        return;
+      }
+      bar.classList.add("is-indeterminate");
+      bar.style.width = "";
+      label.textContent = text;
+    }
+    function setDownloadProgress(loaded, total) {
+      if (total > 0) {
+        const pct = Math.min(100, Math.round((loaded / total) * 100));
+        showSaveProgress("Downloading " + fmt(loaded) + " / " + fmt(total) + " (" + pct + "%)", loaded, total);
+        return;
+      }
+      showSaveProgress(loaded > 0 ? ("Downloading " + fmt(loaded) + "…") : "Downloading…", loaded, 0);
+    }
+    function filenameFromDisposition(cd) {
+      const m = /filename\*?=(?:UTF-8''|"?)([^";]+)/i.exec(cd || "");
+      if (!m) return "palworld-save.zip";
+      try { return decodeURIComponent(m[1].replace(/"$/, "")); } catch (e) { return m[1]; }
+    }
+    function downloadWithProgress(url, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+        xhr.withCredentials = true;
+        xhr.responseType = "blob";
+        xhr.onprogress = (ev) => {
+          onProgress(ev.loaded, ev.lengthComputable ? ev.total : 0);
+        };
+        xhr.onload = () => {
+          const fail = (msg) => reject(new Error(msg || xhr.statusText || "Download failed"));
+          if (xhr.status === 401) {
+            fail("Unauthorized");
+            return;
+          }
+          if (xhr.status < 200 || xhr.status >= 300) {
+            const blob = xhr.response;
+            if (blob && typeof blob.text === "function") {
+              blob.text().then((t) => {
+                try {
+                  const body = JSON.parse(t);
+                  fail((body && body.error) ? body.error : (xhr.statusText || "Download failed"));
+                } catch (e) {
+                  fail(xhr.statusText || "Download failed");
+                }
+              }).catch(() => fail(xhr.statusText || "Download failed"));
+              return;
+            }
+            fail(xhr.statusText || "Download failed");
+            return;
+          }
+          resolve({
+            blob: xhr.response,
+            name: filenameFromDisposition(xhr.getResponseHeader("content-disposition"))
+          });
+        };
+        xhr.onerror = () => reject(new Error("Network error during download"));
+        xhr.onabort = () => reject(new Error("Download aborted"));
+        xhr.send();
+      });
+    }
     $("sv-dl").onclick = async () => {
       show($("sv-err"), ""); show($("sv-ok"), "");
+      const btn = $("sv-dl");
+      if (btn) btn.disabled = true;
       try {
         if ($("sv-save-first").checked) {
+          showSaveProgress("Saving world…", 0, 0);
           await api("/api/save", { method: "POST" });
         }
+        setDownloadProgress(0, 0);
         const q = $("sv-cfg").checked ? "?includeConfig=1" : "";
-        const r = await fetch("/api/saves/download" + q, opts);
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({}));
-          throw new Error(body.error || r.statusText);
-        }
-        const blob = await r.blob();
+        const out = await downloadWithProgress("/api/saves/download" + q, setDownloadProgress);
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "palworld-save.zip";
+        a.href = URL.createObjectURL(out.blob);
+        a.download = out.name || "palworld-save.zip";
         a.click();
         URL.revokeObjectURL(a.href);
-        show($("sv-ok"), "Download started.");
-      } catch (e) { show($("sv-err"), e.message); }
+        const size = out.blob && out.blob.size ? " (" + fmt(out.blob.size) + ")" : "";
+        const done = "Downloaded " + (out.name || "palworld-save.zip") + size;
+        showSaveProgress(done, 1, 1);
+        show($("sv-ok"), done + ".");
+      } catch (e) {
+        if ($("sv-progress")) $("sv-progress").hidden = true;
+        show($("sv-err"), e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     };
     $("sv-up").onsubmit = async (ev) => {
       ev.preventDefault();
