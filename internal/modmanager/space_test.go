@@ -62,3 +62,23 @@ func TestSpaceError(t *testing.T) {
 		t.Fatalf("spaceError = %q", got)
 	}
 }
+
+func TestIsTruthy(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in   string
+		want bool
+	}{
+		{"1", true},
+		{"true", true},
+		{"YES", true},
+		{"on", true},
+		{"0", false},
+		{"", false},
+		{"no", false},
+	} {
+		if got := isTruthy(tc.in); got != tc.want {
+			t.Fatalf("isTruthy(%q) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}

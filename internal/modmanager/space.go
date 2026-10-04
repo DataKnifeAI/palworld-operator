@@ -35,6 +35,15 @@ func isPakName(name string) bool {
 	return strings.EqualFold(filepath.Ext(name), ".pak")
 }
 
+func isTruthy(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 func diskUsageOf(path string) (diskUsage, error) {
 	var st syscall.Statfs_t
 	if err := syscall.Statfs(path, &st); err != nil {

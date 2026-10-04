@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/DataKnifeAI/palworld-operator/internal/controller"
 )
@@ -47,6 +48,7 @@ const (
 	errSpaceCheck           = "space check failed"
 	errRestartNotConfigured = "restart is not configured"
 	errRestartFailed        = "restart failed"
+	errReplaceDir           = "cannot replace a directory"
 	headerWWWAuth           = "WWW-Authenticate"
 	// DefaultUser is the basic-auth username (same as Palworld REST admin).
 	DefaultUser = "admin"
@@ -83,11 +85,14 @@ type Server struct {
 }
 
 type fileEntry struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Dir  bool   `json:"dir"`
-	Size int64  `json:"size"`
+	Name  string `json:"name"`
+	Path  string `json:"path"`
+	Dir   bool   `json:"dir"`
+	Size  int64  `json:"size"`
+	MTime string `json:"mtime,omitempty"`
 }
+
+var errFileExists = errors.New("file already exists; send replace=1 to overwrite")
 
 type listResponse struct {
 	Path    string      `json:"path"`
@@ -265,15 +270,17 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 		info, infoErr := e.Info()
 		size := int64(0)
 		dir := e.IsDir()
+		mtime := ""
 		if infoErr == nil {
 			size = info.Size()
 			dir = info.IsDir()
+			mtime = fileModTime(info)
 		}
 		child := name
 		if rel != "" && rel != "." {
 			child = strings.TrimSuffix(rel, "/") + "/" + name
 		}
-		out = append(out, fileEntry{Name: name, Path: child, Dir: dir, Size: size})
+		out = append(out, fileEntry{Name: name, Path: child, Dir: dir, Size: size, MTime: mtime})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Dir != out[j].Dir {
@@ -314,13 +321,8 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: errModsDisabled})
 		return
 	}
-	usage, usageErr := s.modsUsage()
-	if usageErr != nil {
+	if _, usageErr := s.modsUsage(); usageErr != nil {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: errSpaceCheck})
-		return
-	}
-	if r.ContentLength > 0 && r.ContentLength > usage.Free {
-		writeJSON(w, http.StatusBadRequest, errorResponse{Error: spaceError(usage.Free)})
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
@@ -330,6 +332,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	replace := isTruthy(r.URL.Query().Get("replace"))
 	var dirRel string
 	var written *fileEntry
 	var stagedAbs string
@@ -352,7 +355,7 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 			}
 			dirRel = strings.TrimSpace(string(b))
 			if written != nil && stagedAbs != "" {
-				moved, moveErr := s.relocateUpload(*written, stagedAbs, dirRel)
+				moved, moveErr := s.relocateUpload(*written, stagedAbs, dirRel, replace)
 				if moveErr != nil {
 					writeJSON(w, uploadStatus(moveErr), errorResponse{Error: moveErr.Error()})
 					return
@@ -360,8 +363,16 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 				written = &moved.entry
 				stagedAbs = moved.abs
 			}
+		case "replace":
+			b, readErr := io.ReadAll(io.LimitReader(part, 64))
+			_ = part.Close()
+			if readErr != nil {
+				writeJSON(w, uploadStatus(readErr), errorResponse{Error: uploadErrorMessage(readErr)})
+				return
+			}
+			replace = isTruthy(string(b))
 		case "file":
-			entry, abs, writeErr := s.streamUploadPart(dirRel, part)
+			entry, abs, writeErr := s.streamUploadPart(dirRel, part, replace)
 			_ = part.Close()
 			if writeErr != nil {
 				writeJSON(w, uploadStatus(writeErr), errorResponse{Error: writeErr.Error()})
@@ -397,10 +408,30 @@ func uploadStatus(err error) int {
 	if errors.Is(err, errPathEscape) || errors.Is(err, errEmptyName) {
 		return http.StatusBadRequest
 	}
+	if errors.Is(err, errFileExists) {
+		return http.StatusConflict
+	}
 	if err != nil && (err.Error() == errUploadWrite || err.Error() == errUploadMkdir || err.Error() == errSpaceCheck) {
 		return http.StatusInternalServerError
 	}
 	return http.StatusBadRequest
+}
+
+func fileModTime(info os.FileInfo) string {
+	if info == nil {
+		return ""
+	}
+	return info.ModTime().UTC().Format(time.RFC3339)
+}
+
+func withFileMeta(entry fileEntry, abs string) fileEntry {
+	info, err := os.Stat(abs)
+	if err != nil {
+		return entry
+	}
+	entry.Size = info.Size()
+	entry.MTime = fileModTime(info)
+	return entry
 }
 
 func joinUploadRel(dirRel, base string) string {
@@ -410,7 +441,7 @@ func joinUploadRel(dirRel, base string) string {
 	return strings.TrimSuffix(dirRel, "/") + "/" + base
 }
 
-func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntry, string, error) {
+func (s *Server) streamUploadPart(dirRel string, part *multipart.Part, replace bool) (fileEntry, string, error) {
 	base, err := safeBaseName(part.FileName())
 	if err != nil {
 		return fileEntry{}, "", err
@@ -422,13 +453,26 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 	if usageErr != nil {
 		return fileEntry{}, "", errors.New(errSpaceCheck)
 	}
-	if usage.Free <= 0 {
-		return fileEntry{}, "", errors.New(spaceError(0))
-	}
 	destRel := joinUploadRel(dirRel, base)
 	abs, err := SafeJoin(s.root, destRel)
 	if err != nil {
 		return fileEntry{}, "", err
+	}
+	var destSize int64
+	if info, statErr := os.Stat(abs); statErr == nil {
+		if info.IsDir() {
+			return fileEntry{}, "", errors.New(errReplaceDir)
+		}
+		if !replace {
+			return fileEntry{}, "", errFileExists
+		}
+		destSize = info.Size()
+	} else if !errors.Is(statErr, fs.ErrNotExist) {
+		return fileEntry{}, "", errors.New(errUploadWrite)
+	}
+	available := usage.Free + destSize
+	if available <= 0 {
+		return fileEntry{}, "", errors.New(spaceError(0))
 	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 		return fileEntry{}, "", errors.New(errUploadMkdir)
@@ -438,7 +482,15 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 	if err != nil {
 		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	n, copyErr := io.Copy(dst, io.LimitReader(part, usage.Free+1))
+	n, copyErr := copyReplaceBudget(dst, part, usage.Free, destSize, func() error {
+		if destSize <= 0 {
+			return nil
+		}
+		if remErr := os.Remove(abs); remErr != nil && !errors.Is(remErr, fs.ErrNotExist) {
+			return remErr
+		}
+		return nil
+	})
 	closeErr := dst.Close()
 	if copyErr != nil || closeErr != nil {
 		_ = os.Remove(tmp)
@@ -450,15 +502,15 @@ func (s *Server) streamUploadPart(dirRel string, part *multipart.Part) (fileEntr
 		}
 		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	if n > usage.Free {
+	if n > available {
 		_ = os.Remove(tmp)
-		return fileEntry{}, "", errors.New(spaceError(usage.Free))
+		return fileEntry{}, "", errors.New(spaceError(available))
 	}
 	if err := os.Rename(tmp, abs); err != nil {
 		_ = os.Remove(tmp)
 		return fileEntry{}, "", errors.New(errUploadWrite)
 	}
-	return fileEntry{Name: base, Path: destRel, Size: n}, abs, nil
+	return withFileMeta(fileEntry{Name: base, Path: destRel, Size: n}, abs), abs, nil
 }
 
 type relocatedUpload struct {
@@ -466,7 +518,7 @@ type relocatedUpload struct {
 	abs   string
 }
 
-func (s *Server) relocateUpload(current fileEntry, stagedAbs, dirRel string) (relocatedUpload, error) {
+func (s *Server) relocateUpload(current fileEntry, stagedAbs, dirRel string, replace bool) (relocatedUpload, error) {
 	destRel := joinUploadRel(dirRel, current.Name)
 	abs, err := SafeJoin(s.root, destRel)
 	if err != nil {
@@ -474,16 +526,73 @@ func (s *Server) relocateUpload(current fileEntry, stagedAbs, dirRel string) (re
 	}
 	if abs == stagedAbs {
 		current.Path = destRel
-		return relocatedUpload{entry: current, abs: abs}, nil
+		return relocatedUpload{entry: withFileMeta(current, abs), abs: abs}, nil
+	}
+	if info, statErr := os.Stat(abs); statErr == nil {
+		if info.IsDir() {
+			_ = os.Remove(stagedAbs)
+			return relocatedUpload{}, errors.New(errReplaceDir)
+		}
+		if !replace {
+			_ = os.Remove(stagedAbs)
+			return relocatedUpload{}, errFileExists
+		}
+	} else if !errors.Is(statErr, fs.ErrNotExist) {
+		_ = os.Remove(stagedAbs)
+		return relocatedUpload{}, errors.New(errUploadWrite)
 	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 		return relocatedUpload{}, errors.New(errUploadMkdir)
 	}
 	if err := os.Rename(stagedAbs, abs); err != nil {
+		_ = os.Remove(stagedAbs)
 		return relocatedUpload{}, errors.New(errUploadWrite)
 	}
 	current.Path = destRel
-	return relocatedUpload{entry: current, abs: abs}, nil
+	return relocatedUpload{entry: withFileMeta(current, abs), abs: abs}, nil
+}
+
+func copyReplaceBudget(dst io.Writer, src io.Reader, free, reclaimable int64, reclaim func() error) (int64, error) {
+	available := free + reclaimable
+	if available < 0 {
+		available = 0
+	}
+	src = io.LimitReader(src, available+1)
+	var n int64
+	if free > 0 {
+		copied, err := io.CopyN(dst, src, free)
+		n += copied
+		if err == io.EOF {
+			return n, nil
+		}
+		if err != nil {
+			return n, err
+		}
+	}
+	peek := make([]byte, 1)
+	k, peekErr := src.Read(peek)
+	if k == 0 {
+		if peekErr != nil && peekErr != io.EOF {
+			return n, peekErr
+		}
+		return n, nil
+	}
+	if reclaimable > 0 && reclaim != nil {
+		if err := reclaim(); err != nil {
+			return n, err
+		}
+	}
+	w, werr := dst.Write(peek[:k])
+	n += int64(w)
+	if werr != nil {
+		return n, werr
+	}
+	extra, err := io.Copy(dst, src)
+	n += extra
+	if err != nil {
+		return n, err
+	}
+	return n, nil
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {

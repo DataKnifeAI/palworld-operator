@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const testPassword = "test-admin-password"
@@ -56,6 +57,33 @@ func testServer(t *testing.T, restarter Restarter) (*Server, string) {
 		t.Fatal(err)
 	}
 	return s, root
+}
+
+func pakUpload(t *testing.T, dir, name, replace string, body []byte) (*bytes.Buffer, string) {
+	t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	if dir != "" {
+		if err := mw.WriteField("path", dir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if replace != "" {
+		if err := mw.WriteField("replace", replace); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fw, err := mw.CreateFormFile("file", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write(body); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return &buf, mw.FormDataContentType()
 }
 
 func doAuth(t *testing.T, h http.Handler, method, path string, body io.Reader, contentType string) *httptest.ResponseRecorder {
@@ -203,6 +231,159 @@ func TestUploadRejectsNonPak(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "paks", "~WorkshopMods", "notes.txt")); !os.IsNotExist(err) {
 		t.Fatal("non-pak must not be written")
+	}
+}
+
+func TestUploadConflictWithoutReplace(t *testing.T) {
+	s, root := testServer(t, nil)
+	dest := filepath.Join(root, "paks", "~WorkshopMods", "demo.pak")
+	if err := os.WriteFile(dest, []byte("old-pak"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	buf, ct := pakUpload(t, "paks/~WorkshopMods", "demo.pak", "", []byte("new-pak"))
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", buf, ct)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "replace=1") {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil || string(got) != "old-pak" {
+		t.Fatalf("dest = %q err=%v", got, err)
+	}
+	if _, err := os.Stat(dest + ".partial"); !os.IsNotExist(err) {
+		t.Fatal("partial must not remain")
+	}
+}
+
+func TestUploadReplaceOverwrites(t *testing.T) {
+	s, root := testServer(t, nil)
+	dest := filepath.Join(root, "paks", "~WorkshopMods", "demo.pak")
+	if err := os.WriteFile(dest, []byte("old-pak"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	buf, ct := pakUpload(t, "paks/~WorkshopMods", "demo.pak", "1", []byte("new-pak-bytes"))
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", buf, ct)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil || string(got) != "new-pak-bytes" {
+		t.Fatalf("dest = %q err=%v", got, err)
+	}
+	var entry fileEntry
+	if err := json.Unmarshal(rec.Body.Bytes(), &entry); err != nil {
+		t.Fatal(err)
+	}
+	if entry.Size != int64(len("new-pak-bytes")) || entry.MTime == "" {
+		t.Fatalf("entry = %+v", entry)
+	}
+	if _, err := time.Parse(time.RFC3339, entry.MTime); err != nil {
+		t.Fatalf("mtime = %q: %v", entry.MTime, err)
+	}
+	if _, err := os.Stat(dest + ".partial"); !os.IsNotExist(err) {
+		t.Fatal("partial must not remain")
+	}
+}
+
+func TestUploadReplaceCountsExistingTowardSpace(t *testing.T) {
+	s, root := testServer(t, nil)
+	dest := filepath.Join(root, "paks", "~WorkshopMods", "demo.pak")
+	if err := os.WriteFile(dest, []byte("12345"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.usage = func(string) (diskUsage, error) {
+		return diskUsage{Used: 10, Free: 3, Total: 13}, nil
+	}
+	buf, ct := pakUpload(t, "paks/~WorkshopMods", "demo.pak", "1", []byte("abcdef"))
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", buf, ct)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	got, err := os.ReadFile(dest)
+	if err != nil || string(got) != "abcdef" {
+		t.Fatalf("dest = %q err=%v", got, err)
+	}
+}
+
+func TestUploadReplaceRejectsWhenLargerThanFreePlusExisting(t *testing.T) {
+	s, root := testServer(t, nil)
+	dest := filepath.Join(root, "paks", "~WorkshopMods", "demo.pak")
+	if err := os.WriteFile(dest, []byte("12345"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.usage = func(string) (diskUsage, error) {
+		return diskUsage{Used: 10, Free: 3, Total: 13}, nil
+	}
+	buf, ct := pakUpload(t, "paks/~WorkshopMods", "demo.pak", "1", []byte("0123456789"))
+	rec := doAuth(t, s, http.MethodPost, "/api/upload", buf, ct)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "free on the mods PVC") {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+	if _, err := os.Stat(dest + ".partial"); !os.IsNotExist(err) {
+		t.Fatal("partial must not remain")
+	}
+}
+
+func TestListIncludesMtime(t *testing.T) {
+	s, root := testServer(t, nil)
+	dest := filepath.Join(root, "paks", "~WorkshopMods", "demo.pak")
+	if err := os.WriteFile(dest, []byte("pak"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rec := doAuth(t, s, http.MethodGet, "/api/files?path="+filepath.ToSlash("paks/~WorkshopMods"), nil, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var listed listResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &listed); err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range listed.Entries {
+		if e.Name != "demo.pak" {
+			continue
+		}
+		if e.Size != 3 || e.MTime == "" {
+			t.Fatalf("entry = %+v", e)
+		}
+		if _, err := time.Parse(time.RFC3339, e.MTime); err != nil {
+			t.Fatalf("mtime = %q: %v", e.MTime, err)
+		}
+		return
+	}
+	t.Fatalf("missing demo.pak in %s", rec.Body.String())
+}
+
+func TestCopyReplaceBudget(t *testing.T) {
+	t.Parallel()
+	var dst bytes.Buffer
+	reclaimed := false
+	n, err := copyReplaceBudget(&dst, bytes.NewReader([]byte("abc")), 5, 5, func() error {
+		reclaimed = true
+		return nil
+	})
+	if err != nil || n != 3 || dst.String() != "abc" || reclaimed {
+		t.Fatalf("fit-free n=%d err=%v dst=%q reclaimed=%v", n, err, dst.String(), reclaimed)
+	}
+
+	dst.Reset()
+	reclaimed = false
+	n, err = copyReplaceBudget(&dst, bytes.NewReader([]byte("abcdef")), 3, 5, func() error {
+		reclaimed = true
+		return nil
+	})
+	if err != nil || n != 6 || dst.String() != "abcdef" || !reclaimed {
+		t.Fatalf("reclaim n=%d err=%v dst=%q reclaimed=%v", n, err, dst.String(), reclaimed)
+	}
+
+	dst.Reset()
+	n, err = copyReplaceBudget(&dst, bytes.NewReader([]byte("0123456789")), 3, 5, func() error { return nil })
+	if err != nil || n != 9 {
+		t.Fatalf("cap n=%d err=%v dst=%q", n, err, dst.String())
 	}
 }
 
@@ -370,6 +551,18 @@ func TestUIRequiresAuth(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "mod-progress") || !strings.Contains(rec.Body.String(), "uploadWithProgress") {
 		t.Fatal("ui must show mods upload progress")
+	}
+	if !strings.Contains(rec.Body.String(), "<th>Modified</th>") || !strings.Contains(rec.Body.String(), "id=\"mod-version-note\"") {
+		t.Fatal("ui must show size/mtime only and say there is no readable mod version")
+	}
+	if !strings.Contains(rec.Body.String(), "do not include a readable mod version") {
+		t.Fatal("ui must say community paks have no readable version")
+	}
+	if !strings.Contains(rec.Body.String(), "Replace existing") || !strings.Contains(rec.Body.String(), `append("replace"`) {
+		t.Fatal("ui must confirm replace and send replace=1")
+	}
+	if !strings.Contains(rec.Body.String(), `id="upload-btn"`) {
+		t.Fatal("ui must switch Upload to Replace when the dest exists")
 	}
 	if !strings.Contains(rec.Body.String(), "sv-progress") || !strings.Contains(rec.Body.String(), "downloadWithProgress") {
 		t.Fatal("ui must show saves download progress")

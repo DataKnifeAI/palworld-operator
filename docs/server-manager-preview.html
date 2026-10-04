@@ -883,7 +883,7 @@
         <div class="space-meter__track">
           <div class="space-meter__bar" style="width:32%"></div>
         </div>
-        <p class="space-meter__hint">Upload is rejected if the file is larger than free space, so a mid-write fill of the PVC cannot happen.</p>
+        <p class="space-meter__hint">Upload is rejected if the file is larger than free space. Replacing an existing .pak counts that file's size as free.</p>
       </div>
       <div class="row" style="margin-top:0">
         <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
@@ -900,17 +900,18 @@
         </div>
         <p class="muted" id="mod-progress-label"></p>
       </div>
+      <p class="muted" id="mod-version-note">Community <code>.pak</code> files do not include a readable mod version. The list shows size and last modified time.</p>
       <table>
-        <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Size</th><th>Modified</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
       <form class="row" id="upload">
         <div>
           <label for="file">Upload .pak into current folder</label>
           <input id="file" name="file" type="file" accept=".pak" required />
-          <p class="muted" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than 6.8 GB free is rejected before upload.</p>
+          <p class="muted" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than 6.8 GB free is rejected before upload. Same-name upload needs Replace.</p>
         </div>
-        <button class="btn" type="submit">Upload</button>
+        <button class="btn" id="upload-btn" type="submit">Upload</button>
       </form>
       <aside class="mod-notes" aria-labelledby="mod-notes-heading">
         <h2 id="mod-notes-heading">Notes</h2>
@@ -1082,6 +1083,7 @@
     const defaultModsPath = "paks/~WorkshopMods";
     const mockFreeBytes = 6.8 * 1024 * 1024 * 1024;
     let current = defaultModsPath;
+    let listedFiles = {};
 
     function show(el, msg) { if (el) el.textContent = msg || ""; }
     async function api() {
@@ -1097,6 +1099,27 @@
     }
     function isPakName(name) {
       return /\.pak$/i.test(name || "");
+    }
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      const p = function(n) { return String(n).padStart(2, "0"); };
+      return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + " UTC";
+    }
+    function existingFile(name) {
+      const e = listedFiles[name];
+      return (e && !e.dir) ? e : null;
+    }
+    function uploadBudget(name) {
+      const ex = existingFile(name);
+      return mockFreeBytes + (ex ? Number(ex.size) || 0 : 0);
+    }
+    function syncUploadButton() {
+      const input = $("file");
+      const btn = $("upload-btn");
+      const f = input && input.files && input.files[0];
+      if (btn) btn.textContent = (f && existingFile(f.name)) ? "Replace" : "Upload";
     }
     function pick(obj, keys) {
       if (!obj) return undefined;
@@ -1526,9 +1549,9 @@
       }
       if (path === "paks/~WorkshopMods") {
         return [
-          { name: "IslandKeep.pak", path: "paks/~WorkshopMods/IslandKeep.pak", dir: false, size: 42.5 * 1024 * 1024 },
-          { name: "ExtraPals.pak", path: "paks/~WorkshopMods/ExtraPals.pak", dir: false, size: 1.2 * 1024 * 1024 * 1024 },
-          { name: "QoLTweaks.pak", path: "paks/~WorkshopMods/QoLTweaks.pak", dir: false, size: 8.4 * 1024 * 1024 },
+          { name: "IslandKeep.pak", path: "paks/~WorkshopMods/IslandKeep.pak", dir: false, size: 42.5 * 1024 * 1024, mtime: "2026-09-12T18:04:00Z" },
+          { name: "ExtraPals.pak", path: "paks/~WorkshopMods/ExtraPals.pak", dir: false, size: 1.2 * 1024 * 1024 * 1024, mtime: "2026-08-03T09:21:00Z" },
+          { name: "QoLTweaks.pak", path: "paks/~WorkshopMods/QoLTweaks.pak", dir: false, size: 8.4 * 1024 * 1024, mtime: "2026-10-01T14:55:00Z" },
         ];
       }
       return [];
@@ -1546,10 +1569,11 @@
       markPathButtons();
       const rows = $("rows");
       rows.replaceChildren();
+      listedFiles = {};
       if (current) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
-        td.colSpan = 3;
+        td.colSpan = 4;
         const a = document.createElement("button");
         a.className = "btn-ghost";
         a.textContent = ".. (parent)";
@@ -1565,14 +1589,16 @@
       if (!entries.length) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
-        td.colSpan = 3;
+        td.colSpan = 4;
         td.className = "muted";
         td.textContent = "No files in this folder (sample).";
         tr.appendChild(td);
         rows.appendChild(tr);
+        syncUploadButton();
         return;
       }
       entries.forEach((e) => {
+        listedFiles[e.name] = e;
         const tr = document.createElement("tr");
         const nameTd = document.createElement("td");
         if (e.dir) {
@@ -1587,16 +1613,21 @@
         const sizeTd = document.createElement("td");
         sizeTd.className = "muted";
         sizeTd.textContent = e.dir ? "dir" : fmt(e.size);
+        const timeTd = document.createElement("td");
+        timeTd.className = "muted";
+        timeTd.textContent = e.dir ? "" : fmtTime(e.mtime);
         const act = document.createElement("td");
         act.className = "muted";
         act.textContent = "disabled";
-        tr.append(nameTd, sizeTd, act);
+        tr.append(nameTd, sizeTd, timeTd, act);
         rows.appendChild(tr);
       });
+      syncUploadButton();
     }
     document.querySelectorAll("button[data-path]").forEach((b) => {
       b.onclick = () => list(b.getAttribute("data-path") || "");
     });
+    if ($("file")) $("file").onchange = syncUploadButton;
     $("upload").onsubmit = async (ev) => {
       ev.preventDefault();
       const f = $("file").files[0];
@@ -1608,8 +1639,13 @@
         show($("mod-err"), "Only .pak files are supported.");
         return;
       }
-      if (f.size > mockFreeBytes) {
-        show($("mod-err"), "File is larger than 6.8 GB free on the mods PVC. Upload rejected.");
+      const ex = existingFile(f.name);
+      const budget = uploadBudget(f.name);
+      if (f.size > budget) {
+        show($("mod-err"), "File is larger than " + fmt(budget) + " available on the mods PVC. Upload rejected.");
+        return;
+      }
+      if (ex && !confirm("Replace existing " + f.name + "?\n\nThis overwrites the file on the mods PVC (" + fmt(ex.size) + " → " + fmt(f.size) + ").")) {
         return;
       }
       const btn = ev.target.querySelector("button[type=submit]");

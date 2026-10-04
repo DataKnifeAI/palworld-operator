@@ -883,7 +883,7 @@ const uiHTML = `<!DOCTYPE html>
         <div class="space-meter__track">
           <div class="space-meter__bar" id="mod-space-bar" style="width:0%"></div>
         </div>
-        <p class="space-meter__hint" id="mod-space-hint">Upload is rejected if the file is larger than free space, so a mid-write fill of the PVC cannot happen.</p>
+        <p class="space-meter__hint" id="mod-space-hint">Upload is rejected if the file is larger than free space. Replacing an existing .pak counts that file's size as free.</p>
       </div>
       <div class="row" style="margin-top:0">
         <button class="btn-ghost" type="button" data-path="">PVC root (Mods)</button>
@@ -900,17 +900,18 @@ const uiHTML = `<!DOCTYPE html>
         </div>
         <p class="muted" id="mod-progress-label"></p>
       </div>
+      <p class="muted" id="mod-version-note">Community <code>.pak</code> files do not include a readable mod version. The list shows size and last modified time.</p>
       <table>
-        <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Size</th><th>Modified</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
       <form class="row" id="upload">
         <div>
           <label for="file">Upload .pak into current folder</label>
           <input id="file" name="file" type="file" accept=".pak" required />
-          <p class="muted" id="mod-upload-hint" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than free space is rejected before upload.</p>
+          <p class="muted" id="mod-upload-hint" style="margin:.35rem 0 0">Only <code>.pak</code> files are accepted. A file larger than free space is rejected before upload. Same-name upload needs Replace.</p>
         </div>
-        <button class="btn" type="submit">Upload</button>
+        <button class="btn" id="upload-btn" type="submit">Upload</button>
       </form>
       <aside class="mod-notes" aria-labelledby="mod-notes-heading">
         <h2 id="mod-notes-heading">Notes</h2>
@@ -1082,6 +1083,7 @@ const uiHTML = `<!DOCTYPE html>
     const defaultModsPath = "paks/~WorkshopMods";
     let current = defaultModsPath;
     let modsFreeBytes = 0;
+    let listedFiles = {};
     let statsTimer = null;
 
     function show(el, msg) { if (el) el.textContent = msg || ""; }
@@ -1108,6 +1110,27 @@ const uiHTML = `<!DOCTYPE html>
     function isPakName(name) {
       return /\.pak$/i.test(name || "");
     }
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "—";
+      const p = function(n) { return String(n).padStart(2, "0"); };
+      return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + " UTC";
+    }
+    function existingFile(name) {
+      const e = listedFiles[name];
+      return (e && !e.dir) ? e : null;
+    }
+    function uploadBudget(name) {
+      const ex = existingFile(name);
+      return modsFreeBytes + (ex ? Number(ex.size) || 0 : 0);
+    }
+    function syncUploadButton() {
+      const input = $("file");
+      const btn = $("upload-btn");
+      const f = input && input.files && input.files[0];
+      if (btn) btn.textContent = (f && existingFile(f.name)) ? "Replace" : "Upload";
+    }
     function renderSpace(space) {
       const used = Number(space && space.used) || 0;
       const free = Number(space && space.free) || 0;
@@ -1119,7 +1142,8 @@ const uiHTML = `<!DOCTYPE html>
       const uploadHint = $("mod-upload-hint");
       if (bar) bar.style.width = pct + "%";
       if (label) label.textContent = fmt(used) + " used · " + fmt(free) + " free of " + fmt(total);
-      if (uploadHint) uploadHint.innerHTML = "Only <code>.pak</code> files are accepted. A file larger than " + fmt(free) + " free is rejected before upload.";
+      if (uploadHint) uploadHint.innerHTML = "Only <code>.pak</code> files are accepted. A file larger than " + fmt(free) + " free is rejected before upload. Same-name upload needs Replace (counts the existing file toward free space).";
+      syncUploadButton();
     }
     async function loadSpace() {
       try {
@@ -1704,10 +1728,11 @@ const uiHTML = `<!DOCTYPE html>
         const data = await api("/api/files?path=" + encodeURIComponent(current));
         const rows = $("rows");
         rows.replaceChildren();
+        listedFiles = {};
         if (current) {
           const tr = document.createElement("tr");
           const td = document.createElement("td");
-          td.colSpan = 3;
+          td.colSpan = 4;
           const a = document.createElement("button");
           a.className = "btn-ghost";
           a.textContent = ".. (parent)";
@@ -1720,6 +1745,7 @@ const uiHTML = `<!DOCTYPE html>
           rows.appendChild(tr);
         }
         (data.entries || []).forEach((e) => {
+          listedFiles[e.name] = e;
           const tr = document.createElement("tr");
           const nameTd = document.createElement("td");
           if (e.dir) {
@@ -1737,6 +1763,9 @@ const uiHTML = `<!DOCTYPE html>
           const sizeTd = document.createElement("td");
           sizeTd.className = "muted";
           sizeTd.textContent = e.dir ? "dir" : fmt(e.size);
+          const timeTd = document.createElement("td");
+          timeTd.className = "muted";
+          timeTd.textContent = e.dir ? "" : fmtTime(e.mtime);
           const act = document.createElement("td");
           const del = document.createElement("button");
           del.className = "btn-danger";
@@ -1748,9 +1777,10 @@ const uiHTML = `<!DOCTYPE html>
             loadSpace();
           };
           act.appendChild(del);
-          tr.append(nameTd, sizeTd, act);
+          tr.append(nameTd, sizeTd, timeTd, act);
           rows.appendChild(tr);
         });
+        syncUploadButton();
       } catch (e) { show($("mod-err"), e.message); }
     }
     document.querySelectorAll("button[data-path]").forEach((b) => {
@@ -1805,6 +1835,7 @@ const uiHTML = `<!DOCTYPE html>
         xhr.send(fd);
       });
     }
+    if ($("file")) $("file").onchange = syncUploadButton;
     $("upload").onsubmit = async (ev) => {
       ev.preventDefault();
       const f = $("file").files[0];
@@ -1815,8 +1846,13 @@ const uiHTML = `<!DOCTYPE html>
         show($("mod-err"), "Only .pak files are supported.");
         return;
       }
-      if (modsFreeBytes > 0 && f.size > modsFreeBytes) {
-        show($("mod-err"), "File is larger than " + fmt(modsFreeBytes) + " free on the mods PVC. Upload rejected.");
+      const ex = existingFile(f.name);
+      const budget = uploadBudget(f.name);
+      if (budget > 0 && f.size > budget) {
+        show($("mod-err"), "File is larger than " + fmt(budget) + " available on the mods PVC. Upload rejected.");
+        return;
+      }
+      if (ex && !confirm("Replace existing " + f.name + "?\n\nThis overwrites the file on the mods PVC (" + fmt(ex.size) + " → " + fmt(f.size) + ").")) {
         return;
       }
       const btn = ev.target.querySelector("button[type=submit]");
@@ -1824,17 +1860,20 @@ const uiHTML = `<!DOCTYPE html>
       if (btn) btn.disabled = true;
       const fd = new FormData();
       fd.append("path", current);
+      if (ex) fd.append("replace", "1");
       fd.append("file", f);
       try {
         const out = await uploadWithProgress("/api/upload", fd, setUploadProgress);
         $("file").value = "";
+        syncUploadButton();
         await list(current);
         loadSpace();
         $("mod-progress").hidden = false;
         $("mod-progress-bar").classList.remove("is-indeterminate");
         $("mod-progress-bar").style.width = "100%";
-        $("mod-progress-label").textContent = "Uploaded " + (out && out.name ? out.name : f.name);
-        show($("mod-ok"), "Uploaded " + (out && out.name ? out.name : f.name) + ".");
+        const doneName = (out && out.name) ? out.name : f.name;
+        $("mod-progress-label").textContent = (ex ? "Replaced " : "Uploaded ") + doneName;
+        show($("mod-ok"), (ex ? "Replaced " : "Uploaded ") + doneName + ".");
       } catch (e) {
         $("mod-progress").hidden = true;
         show($("mod-err"), e.message);
