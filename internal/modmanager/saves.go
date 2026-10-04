@@ -100,7 +100,7 @@ func (s *Server) handleSavesDownload(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Error: err.Error()})
 		return
 	}
-	includeConfig := r.URL.Query().Get("includeConfig") == "1" || r.URL.Query().Get("includeConfig") == "true"
+	includeConfig := isTruthy(r.URL.Query().Get("includeConfig"))
 	name := fmt.Sprintf("%s-%s.zip", saveArchivePrefix, time.Now().UTC().Format("20060102-150405"))
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
@@ -133,7 +133,7 @@ func (s *Server) handleSavesUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = file.Close() }()
-	includeConfig := r.FormValue("includeConfig") == "1" || r.FormValue("includeConfig") == "true"
+	includeConfig := isTruthy(r.FormValue("includeConfig"))
 	if err := s.restoreSaveArchive(file, hdr.Filename, saveGames, config, includeConfig); err != nil {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: err.Error()})
 		return
