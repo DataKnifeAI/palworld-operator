@@ -1,0 +1,36 @@
+---
+description: DataKnifeAI org-wide agent defaults; override with project rules as needed
+alwaysApply: true
+---
+
+# DataKnifeAI common
+
+Org-wide defaults for every DataKnifeAI repository. Project rules in `.cursor/rules/` add or narrow behavior — do not fork this file; leave it shared and add a thin project rule instead.
+
+## Shared baselines
+
+- Prefer skills from [DataKnifeAI/agent-skills](https://github.com/DataKnifeAI/agent-skills) over one-off project skills when the workflow is reusable.
+- Cloud Agent / Coder multi-repo layout: [agent-workspace](https://github.com/DataKnifeAI/agent-workspace) (`git/<project>/` for sibling repos).
+- Branding and naming: [ORG_BRANDING](https://github.com/DataKnifeAI/.github/blob/main/docs/ORG_BRANDING.md) and [NAMING](https://github.com/DataKnifeAI/.github/blob/main/docs/NAMING.md). Do not redefine org identity in product READMEs.
+
+## Security
+
+- Never commit secrets, tokens, or live `secret.yaml` — use `.env.example` / `*.example` templates.
+- Redact tokens and credentials in logs, terminal paste, and agent replies.
+
+## Git and changes
+
+- Conventional commits: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
+- Prefer small, focused PRs; squash-friendly history on `main`.
+- Do not push, force-push, or amend published history unless the user asks.
+
+## Repo presentation (when editing meta)
+
+- GitHub description: role + purpose, ≤ ~160 characters.
+- Topics: capability and stack (`mcp`, `kubernetes`, `agents`, …), not every dependency.
+- README leads with what DataKnifeAI owns; integrations are secondary.
+- Hero graphic: `docs/assets/<repo>-hero.jpg` (or `.png`), embedded as the first image in the README when the repo has public-facing docs.
+
+## Overrides
+
+Product repos vendor this file at `.cursor/rules/dataknifeai-common.mdc`. Add `.cursor/rules/<project>.mdc` (or file-glob rules) for stack-specific conventions; keep this common rule unchanged.
