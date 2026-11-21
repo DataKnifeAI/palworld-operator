@@ -15,7 +15,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
-	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func secretsTestScheme(t *testing.T) *runtime.Scheme {
@@ -25,7 +24,6 @@ func secretsTestScheme(t *testing.T) *runtime.Scheme {
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(palworldv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(gatewayv1.Install(scheme))
-	utilruntime.Must(gatewayv1alpha2.Install(scheme))
 	utilruntime.Must(egv1a1.AddToScheme(scheme))
 	return scheme
 }

@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
-	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 func (r *PalworldServerReconciler) reconcileEnvoyGateway(
@@ -244,7 +243,7 @@ func (r *PalworldServerReconciler) reconcileUDPRoute(
 	routeName, listenerName string,
 	port int32,
 ) error {
-	udpRoute := &gatewayv1alpha2.UDPRoute{
+	udpRoute := &gatewayv1.UDPRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      routeName,
 			Namespace: server.Namespace,
@@ -256,7 +255,7 @@ func (r *PalworldServerReconciler) reconcileUDPRoute(
 			return err
 		}
 		udpRoute.Labels = gatewayLabels(server.Name)
-		udpRoute.Spec = gatewayv1alpha2.UDPRouteSpec{
+		udpRoute.Spec = gatewayv1.UDPRouteSpec{
 			CommonRouteSpec: gatewayv1.CommonRouteSpec{
 				ParentRefs: []gatewayv1.ParentReference{
 					{
@@ -266,9 +265,9 @@ func (r *PalworldServerReconciler) reconcileUDPRoute(
 					},
 				},
 			},
-			Rules: []gatewayv1alpha2.UDPRouteRule{
+			Rules: []gatewayv1.UDPRouteRule{
 				{
-					BackendRefs: []gatewayv1alpha2.BackendRef{
+					BackendRefs: []gatewayv1.BackendRef{
 						{
 							BackendObjectReference: gatewayv1.BackendObjectReference{
 								Name: gatewayv1.ObjectName(names.envoyService),
@@ -295,7 +294,7 @@ func (r *PalworldServerReconciler) reconcileTCPRoute(
 	routeName, listenerName string,
 	port int32,
 ) error {
-	tcpRoute := &gatewayv1alpha2.TCPRoute{
+	tcpRoute := &gatewayv1.TCPRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      routeName,
 			Namespace: server.Namespace,
@@ -307,7 +306,7 @@ func (r *PalworldServerReconciler) reconcileTCPRoute(
 			return err
 		}
 		tcpRoute.Labels = gatewayLabels(server.Name)
-		tcpRoute.Spec = gatewayv1alpha2.TCPRouteSpec{
+		tcpRoute.Spec = gatewayv1.TCPRouteSpec{
 			CommonRouteSpec: gatewayv1.CommonRouteSpec{
 				ParentRefs: []gatewayv1.ParentReference{
 					{
@@ -317,9 +316,9 @@ func (r *PalworldServerReconciler) reconcileTCPRoute(
 					},
 				},
 			},
-			Rules: []gatewayv1alpha2.TCPRouteRule{
+			Rules: []gatewayv1.TCPRouteRule{
 				{
-					BackendRefs: []gatewayv1alpha2.BackendRef{
+					BackendRefs: []gatewayv1.BackendRef{
 						{
 							BackendObjectReference: gatewayv1.BackendObjectReference{
 								Name: gatewayv1.ObjectName(names.envoyService),
