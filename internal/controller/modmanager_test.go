@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
-	gatewayv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 const testServerManagerHost = "palworld.example.test"
@@ -243,7 +242,7 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	if !apierrors.IsNotFound(err) {
 		t.Fatalf("HTTPRoute should be absent when disabled, got %v", err)
 	}
-	udp := &gatewayv1alpha2.UDPRoute{}
+	udp := &gatewayv1.UDPRoute{}
 	if err := rDisabled.Get(ctx, types.NamespacedName{Name: names.gameUDPRoute, Namespace: disabled.Namespace}, udp); err != nil {
 		t.Fatalf("game UDPRoute must still exist: %v", err)
 	}
@@ -344,7 +343,7 @@ func TestReconcileServerManagerRBACAndHTTPRoute(t *testing.T) {
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.serverManagerRedirectHTTPRoute, Namespace: enabled.Namespace}, redirect); err != nil {
 		t.Fatalf("redirect HTTPRoute missing: %v", err)
 	}
-	udpEnabled := &gatewayv1alpha2.UDPRoute{}
+	udpEnabled := &gatewayv1.UDPRoute{}
 	if err := rEnabled.Get(ctx, types.NamespacedName{Name: enNames.gameUDPRoute, Namespace: enabled.Namespace}, udpEnabled); err != nil {
 		t.Fatalf("game UDPRoute must remain when server manager is on: %v", err)
 	}
